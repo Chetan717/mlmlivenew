@@ -2935,7 +2935,7 @@ function GeneralEditPage({
         {/* Music toggle + Download button */}
         <div className="flex flex-row items-center gap-2 mr-3 flex-shrink-0">
           {/* Music toggle — compact icon button next to download to save space */}
-          {/* <button
+          <button
             title={selectedMusic ? `Music: ${selectedMusic.name}` : "Add background music"}
             onClick={() => setMusicModalOpen(true)}
             className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${
@@ -2954,7 +2954,7 @@ function GeneralEditPage({
                 </svg>
               </span>
             )}
-          </button> */}
+          </button> 
           {/* Refer credits badge */}
           {/* {referCredits > 0 && (
             <span
