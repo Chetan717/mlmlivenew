@@ -1179,7 +1179,7 @@ function GeneralEditPage({
       });
 
       // 5️⃣ Trigger actual download / RN bridge
-      if (window.ReactNativeWebView) {
+      if (uri) {
         window.ReactNativeWebView.postMessage(
           JSON.stringify({
             type: "DOWNLOAD_IMAGE",
