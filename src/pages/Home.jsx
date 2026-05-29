@@ -1,8 +1,8 @@
-import Carosel from "../Pages/Homepage/Component/Carosel";
-import Festival from "../Pages/Homepage/Component/Festival";
-import ListOfGenaraltemp from "../Pages/Homepage/Component/ListOfGenaraltemp";
+import Carosel from "./Homepage/Component/Carosel";
+import Festival from "./Homepage/Component/Festival";
+import ListOfGenaraltemp from "./Homepage/Component/ListOfGenaraltemp";
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { fetchGeneralTemplates } from "../Pages/Homepage/Component/Services/GeneralTemplateService";
+import { fetchGeneralTemplates } from "./Homepage/Component/Services/GeneralTemplateService";
 import { useGeneralData } from "../Context/GeneralContext";
 import { db } from "@firebase-config";
 import { doc, getDoc } from "firebase/firestore";

@@ -3,10 +3,10 @@ import { Routes, Route, useNavigate } from "react-router";
 import Layout from "./Layout";
 import ProtectedRoute from "./Auth/ProtectedR";
 import PublicRoute from "./Auth/PublicRoute";
-import ProtectMlmProfile from "./Pages/SelectCompany/ProtectMlmProfile.jsx";
-import ProtectSelectComp from "./Pages/SelectCompany/ProtectSelectComp.jsx";
+import ProtectMlmProfile from "./pages/SelectCompany/ProtectMlmProfile";
+import ProtectSelectComp from "./pages/SelectCompany/ProtectSelectComp";
 
-const Home = lazy(() => import("./Pages/Home"));
+const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() =>
   import("./Auth/Login").then((m) => ({ default: m.Login })),
 );
@@ -20,18 +20,18 @@ const Logout = lazy(() =>
   import("./Auth/Logout").then((m) => ({ default: m.Logout })),
 );
 const MainSubscription = lazy(
-  () => import("./Pages/Subscription/MainSubscription"),
+  () => import("./pages/Subscription/MainSubscription"),
 );
-const MlmProfile = lazy(() => import("./Pages/Mymlmprofile/MlmProfile"));
-const SelectComp = lazy(() => import("./Pages/SelectCompany/SelectComp"));
+const MlmProfile = lazy(() => import("./pages/Mymlmprofile/MlmProfile"));
+const SelectComp = lazy(() => import("./pages/SelectCompany/SelectComp"));
 const AllTemplates = lazy(
-  () => import("./Pages/Homepage/Component/AllTemplates"),
+  () => import("./pages/Homepage/Component/AllTemplates"),
 );
 const SalesExecutiveForm = lazy(
-  () => import("./Pages/mainform/components/SalesExecutiveForm"),
+  () => import("./pages/mainform/components/SalesExecutiveForm"),
 );
-const MainEditor = lazy(() => import("./Pages/Editor/MainEditor"));
-const Myprofile = lazy(() => import("./Pages/Profile/Myprofile"));
+const MainEditor = lazy(() => import("./pages/Editor/MainEditor"));
+const Myprofile = lazy(() => import("./pages/Profile/Myprofile"));
 
 function PageSpinner() {
   return (
