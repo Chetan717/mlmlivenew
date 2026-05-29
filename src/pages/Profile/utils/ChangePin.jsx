@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal } from "@heroui/react";
 import { useNavigate } from "react-router";
 import {
   collection, getDocs, query, where, doc, updateDoc,
@@ -155,29 +156,18 @@ function ChangePin({ show, setChngePin }) {
     setChngePin(false);
   };
 
-  if (!show) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-start justify-start bg-black/70  backdrop-blur-sm px-4"
-      onClick={handleClose}
-    >
-      <div
-        className="relative w-full max-w-[400px] max-h-[90vh] top-10  bg-white  rounded-[28px] px-5 pt-5 pb-7 shadow-2xl animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="hidden" />
+    <Modal isOpen={show} onOpenChange={(open) => { if (!open) handleClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container placement="top">
+          <Modal.Dialog className="w-full max-w-[400px]">
+            <Modal.CloseTrigger className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 flex items-center justify-center transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </Modal.CloseTrigger>
 
-        {/* Close */}
-        <button
-          onClick={handleClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 flex items-center justify-center transition-colors"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-        </button>
-
+            <Modal.Body>
         {/* Success state */}
         {success ? (
           <div className="flex flex-col items-center justify-center py-8 gap-4">
@@ -251,8 +241,11 @@ function ChangePin({ show, setChngePin }) {
             )}
           </>
         )}
-      </div>
-    </div>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 

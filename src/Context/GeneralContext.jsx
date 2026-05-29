@@ -22,10 +22,12 @@ function GeneralContext({ children }) {
 
   const [cachedFestivalData, setCachedFestivalData] = useState({});
 
+  const [cachedTrending, setCachedTrending] = useState(null);
+
   return (
     <>
       <DataContextGen.Provider
-        value={{ theme, toggleTheme, theame_color, setSelType, selType, cachedFestivalData, setCachedFestivalData, cachedTemplates, setCachedTemplates, cachedGroupIndex, setCachedGroupIndex }}
+        value={{ theme, toggleTheme, theame_color, setSelType, selType, cachedFestivalData, setCachedFestivalData, cachedTemplates, setCachedTemplates, cachedGroupIndex, setCachedGroupIndex, cachedTrending, setCachedTrending }}
       >
         {children}
       </DataContextGen.Provider>

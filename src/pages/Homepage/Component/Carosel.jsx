@@ -11,26 +11,38 @@ import { useGeneralData } from "../../.././Context/GeneralContext";
 import { Skeleton } from "@heroui/react";
 
 export default function Carosel() {
-  const [slides, setSlides] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { setSelType } = useGeneralData();
+  const { setSelType, cachedTrending, setCachedTrending } = useGeneralData();
+  const [slides, setSlides] = useState(cachedTrending || []);
+  const [loading, setLoading] = useState(!cachedTrending);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (cachedTrending) {
+      setSlides(cachedTrending);
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
     const loadTrending = async () => {
       try {
         setLoading(true);
         const data = await TTrend_templateService();
+        if (!isMounted) return;
         setSlides(data);
+        setCachedTrending(data);
       } catch (error) {
         console.error("Failed to load carousel:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadTrending();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [cachedTrending, setCachedTrending]);
 
   const handleImagePress = (item) => {
     const selttype = {

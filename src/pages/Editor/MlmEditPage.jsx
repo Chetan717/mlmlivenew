@@ -92,7 +92,10 @@ function MlmEditPage({
   };
 
   // ── Derived text ──────────────────────────────────────────────
-  const topuplineURLs = mlmProfile?.topuplineURLs || [];
+  const showTopupline = localStorage.getItem("showTopuplineImages") ?? "yes";
+  const showLogo = localStorage.getItem("showCompanyLogo") ?? "yes";
+  const topuplineURLs = showTopupline === "no" ? [] : (mlmProfile?.topuplineURLs || []);
+  const logoURLs = showLogo === "no" ? [] : (mlmProfile?.logoURLs || []);
   const achieverName = mlmForm?.achiever?.name || "ACHIEVER NAME";
   const achieverCity = mlmForm?.achiever?.city || "ACHIEVER CITY";
   const profileName = mlmForm?.promoter?.name
@@ -121,9 +124,9 @@ function MlmEditPage({
     "anonymous",
   );
   const [StckerImage] = useImage(selected?.bannerId || "", "anonymous");
-  const [Imagel2] = useImage(mlmProfile?.logoURLs?.[0] || "", "anonymous");
-  const [Imagel3] = useImage(mlmProfile?.logoURLs?.[1] || "", "anonymous");
-  const [Imagel4] = useImage(mlmProfile?.logoURLs?.[2] || "", "anonymous");
+  const [Imagel2] = useImage(logoURLs?.[0] || "", "anonymous");
+  const [Imagel3] = useImage(logoURLs?.[1] || "", "anonymous");
+  const [Imagel4] = useImage(logoURLs?.[2] || "", "anonymous");
   const [ImagetopFrame] = useImage(selectedTopFrame?.value || "", "anonymous");
   const [Imagetop1] = useImage(topuplineURLs?.[0] || "", "anonymous");
   const [Imagetop2] = useImage(topuplineURLs?.[1] || "", "anonymous");

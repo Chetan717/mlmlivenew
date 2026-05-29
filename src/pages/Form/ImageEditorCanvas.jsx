@@ -3,49 +3,89 @@ import { useState, useRef, useCallback, useEffect } from "react";
 // ── Constants ─────────────────────────────────────────────────────
 const CW = 300;          // canvas display width  (px)
 const CH = 340;          // canvas display height (px)
-const RATIO = 2 / 2.5;    // crop box width/height = 1:2 portrait (locked)
-
-// Initial crop box: centred, fills ~80% of canvas width
-const initCrop = () => {
-  const w = 0.78;
-  const h = w / RATIO;          // 1.56 — taller than canvas, so clamp
-  const hClamped = Math.min(h, 0.92);
-  const wClamped = hClamped * RATIO;
-  return {
-    x: (1 - wClamped) / 2,
-    y: (1 - hClamped) / 2,
-    w: wClamped,
-    h: hClamped,
-  };
-};
-const INITIAL_CROP = initCrop();
+const RATIO = 2 / 2.5;   // FIXED crop ratio (portrait, locked)
 
 // ── Helpers ───────────────────────────────────────────────────────
-function containDims(imgW, imgH, boxW, boxH) {
+const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+// "cover" fit — image fully covers the box (may overflow on one axis)
+function coverDims(imgW, imgH, boxW, boxH) {
   const ia = imgW / imgH, ba = boxW / boxH;
-  return ia > ba
-    ? { dw: boxW, dh: boxW / ia }
-    : { dw: boxH * ia, dh: boxH };
+  return ia > ba ? { dw: boxH * ia, dh: boxH } : { dw: boxW, dh: boxW / ia };
+}
+
+// Fixed crop frame — centred inside the canvas, locked to `ratio`
+function computeFrame(canvasW, canvasH, ratio) {
+  const MARGIN = 0.92;
+  let fw = canvasW * MARGIN;
+  let fh = fw / ratio;
+  if (fh > canvasH * MARGIN) { fh = canvasH * MARGIN; fw = fh * ratio; }
+  return { fw, fh, fx: (canvasW - fw) / 2, fy: (canvasH - fh) / 2 };
 }
 
 // ── Component ─────────────────────────────────────────────────────
 export function ImageEditorCanvas({ src, onDone, onCancel }) {
-  const canvasRef  = useRef(null);
-  const imgRef     = useRef(null);
-  const dragRef    = useRef(null);
+  const canvasRef = useRef(null);
+  const imgRef    = useRef(null);
+  const dragRef   = useRef(null);
+  const rafRef    = useRef(null);
 
   const [rotation, setRotation] = useState(0);
   const [flipH,    setFlipH]    = useState(false);
   const [flipV,    setFlipV]    = useState(false);
-  const [imgScale, setImgScale] = useState(50);   // 10–150, image zoom
-  const [crop,     setCrop]     = useState(INITIAL_CROP);
+  // zoom: 100 = image exactly covers the frame; up to 300 = 3× zoom-in
+  const [zoom,     setZoom]     = useState(100);
   const [tab,      setTab]      = useState("crop");
+
+  // Image pan offset, normalised to the crop frame (x: fraction of fw, y: fraction of fh)
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const [offset, _setOffset] = useState({ x: 0, y: 0 });
+  const setOffset = useCallback((val) => {
+    const next = typeof val === "function" ? val(offsetRef.current) : val;
+    offsetRef.current = next;
+    _setOffset(next);
+  }, []);
+
+  // Mirror values in refs so draw() never reads stale state
+  const rotationRef = useRef(0);
+  const flipHRef    = useRef(false);
+  const flipVRef    = useRef(false);
+  const zoomRef     = useRef(100);
+  useEffect(() => { rotationRef.current = rotation; }, [rotation]);
+  useEffect(() => { flipHRef.current    = flipH;    }, [flipH]);
+  useEffect(() => { flipVRef.current    = flipV;    }, [flipV]);
+  useEffect(() => { zoomRef.current     = zoom;     }, [zoom]);
+
+  // ── Geometry shared by draw() and export ──────────────────────
+  const computeLayout = (img, fw, fh, rotation, zoomVal, offNorm) => {
+    const rot90 = rotation % 180 !== 0;
+    // Draw box keeps the true image aspect, but must cover the frame as seen
+    // AFTER rotation — so at 90°/270° we cover the swapped (fh × fw) box.
+    const boxW = rot90 ? fh : fw;
+    const boxH = rot90 ? fw : fh;
+    const cover = coverDims(img.naturalWidth, img.naturalHeight, boxW, boxH);
+    const dw = cover.dw * (zoomVal / 100);
+    const dh = cover.dh * (zoomVal / 100);
+    // On-screen footprint (post-rotation): width/height swap at 90°/270°
+    const screenW = rot90 ? dh : dw;
+    const screenH = rot90 ? dw : dh;
+    const maxPanX = Math.max(0, (screenW - fw) / 2);
+    const maxPanY = Math.max(0, (screenH - fh) / 2);
+    const panX = clamp(offNorm.x * fw, -maxPanX, maxPanX);
+    const panY = clamp(offNorm.y * fh, -maxPanY, maxPanY);
+    return { dw, dh, panX, panY };
+  };
 
   // ── Draw ──────────────────────────────────────────────────────
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const img    = imgRef.current;
     if (!canvas || !img) return;
+
+    const rotation = rotationRef.current;
+    const flipH    = flipHRef.current;
+    const flipV    = flipVRef.current;
+    const zoomVal  = zoomRef.current;
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width  = CW * dpr;
@@ -59,60 +99,59 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, CW, CH);
 
-    // ── Draw image (zoomed + rotated + flipped) ────────────────
-    const rot90  = rotation % 180 !== 0;
-    const srcW   = rot90 ? img.naturalHeight : img.naturalWidth;
-    const srcH   = rot90 ? img.naturalWidth  : img.naturalHeight;
-    const sf     = imgScale / 50;                       // 1.0 = "100%"
-    const { dw, dh } = containDims(srcW, srcH, CW * sf, CH * sf);
+    const { fw, fh, fx, fy } = computeFrame(CW, CH, RATIO);
+    const { dw, dh, panX, panY } = computeLayout(img, fw, fh, rotation, zoomVal, offsetRef.current);
 
+    // Draw image: centred on the (centred) frame + pan, rotated + flipped
     ctx.save();
-    ctx.translate(CW / 2, CH / 2);
+    ctx.translate(CW / 2 + panX, CH / 2 + panY);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    // ── Crop overlay (always visible) ─────────────────────────
-    const { x, y, w, h } = crop;
-    const px = x * CW, py = y * CH, pw = w * CW, ph = h * CH;
-
+    // Dim everything outside the fixed frame
     ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.52)";
-    ctx.fillRect(0,        0,        CW,           py);
-    ctx.fillRect(0,        py + ph,  CW,           CH - py - ph);
-    ctx.fillRect(0,        py,       px,           ph);
-    ctx.fillRect(px + pw,  py,       CW - px - pw, ph);
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, 0, CW, fy);
+    ctx.fillRect(0, fy + fh, CW, CH - fy - fh);
+    ctx.fillRect(0, fy, fx, fh);
+    ctx.fillRect(fx + fw, fy, CW - fx - fw, fh);
 
     // Border
-    ctx.strokeStyle = "rgba(255,255,255,0.88)";
-    ctx.lineWidth   = 1.6;
-    ctx.strokeRect(px, py, pw, ph);
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 1.6;
+    ctx.strokeRect(fx, fy, fw, fh);
 
     // Rule-of-thirds grid
     ctx.strokeStyle = "rgba(255,255,255,0.30)";
-    ctx.lineWidth   = 0.8;
+    ctx.lineWidth = 0.8;
     for (let i = 1; i < 3; i++) {
-      ctx.beginPath(); ctx.moveTo(px + (pw/3)*i, py); ctx.lineTo(px + (pw/3)*i, py+ph); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(px, py + (ph/3)*i); ctx.lineTo(px+pw, py + (ph/3)*i); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx + (fw / 3) * i, fy); ctx.lineTo(fx + (fw / 3) * i, fy + fh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx, fy + (fh / 3) * i); ctx.lineTo(fx + fw, fy + (fh / 3) * i); ctx.stroke();
     }
 
     // Corner L-brackets
     const BL = 18, BT = 3;
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth   = BT;
-    ctx.lineCap     = "square";
-    const corners = [
-      [px,      py,      1,  1],
-      [px+pw,   py,     -1,  1],
-      [px,      py+ph,   1, -1],
-      [px+pw,   py+ph,  -1, -1],
-    ];
-    corners.forEach(([cx, cy, sx, sy]) => {
-      ctx.beginPath(); ctx.moveTo(cx + sx*BL, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + sy*BL); ctx.stroke();
-    });
+    ctx.lineWidth = BT;
+    ctx.lineCap = "square";
+    [[fx, fy, 1, 1], [fx + fw, fy, -1, 1], [fx, fy + fh, 1, -1], [fx + fw, fy + fh, -1, -1]]
+      .forEach(([x, y, sx, sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(x + sx * BL, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * BL);
+        ctx.stroke();
+      });
     ctx.restore();
-  }, [rotation, flipH, flipV, imgScale, crop]);
+  }, []);
+
+  const scheduleDraw = useCallback(() => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      draw();
+    });
+  }, [draw]);
 
   // ── Load image ────────────────────────────────────────────────
   useEffect(() => {
@@ -121,16 +160,16 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     const img = new Image();
     img.crossOrigin = "anonymous";
     let objectUrl = null;
-    img.onload = () => { imgRef.current = img; draw(); };
+    img.onload = () => { imgRef.current = img; scheduleDraw(); };
     img.onerror = (e) => console.error("img load error", e);
     if (src instanceof Blob) { objectUrl = URL.createObjectURL(src); img.src = objectUrl; }
     else img.src = src;
     return () => { img.onload = null; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [src, draw]);
+  }, [src, scheduleDraw]);
 
-  useEffect(() => { if (imgRef.current) draw(); }, [draw]);
+  useEffect(() => { if (imgRef.current) scheduleDraw(); }, [rotation, flipH, flipV, zoom, offset, scheduleDraw]);
 
-  // ── Pointer helpers ───────────────────────────────────────────
+  // ── Pointer helpers — drag pans the IMAGE, frame stays fixed ──
   const normPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -138,106 +177,66 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     return { nx: (cx - rect.left) / rect.width, ny: (cy - rect.top) / rect.height };
   };
 
-  const hitTest = (nx, ny) => {
-    const { x, y, w, h } = crop;
-    const HX = 20 / CW, HY = 20 / CH;
-    for (const c of [
-      { t: "tl", cx: x,     cy: y     },
-      { t: "tr", cx: x + w, cy: y     },
-      { t: "bl", cx: x,     cy: y + h },
-      { t: "br", cx: x + w, cy: y + h },
-    ]) {
-      if (Math.abs(nx - c.cx) < HX && Math.abs(ny - c.cy) < HY) return c.t;
-    }
-    if (nx > x && nx < x+w && ny > y && ny < y+h) return "move";
-    return null;
-  };
-
   const onDown = (e) => {
     e.preventDefault();
     const { nx, ny } = normPos(e);
-    const type = hitTest(nx, ny);
-    if (!type) return;
-    dragRef.current = { type, sx: nx, sy: ny, oc: { ...crop } };
+    dragRef.current = { sx: nx, sy: ny, oc: { ...offsetRef.current } };
+    if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
   };
 
   const onMove = (e) => {
     if (!dragRef.current) return;
     e.preventDefault();
     const { nx, ny } = normPos(e);
-    const { type, sx, sy, oc } = dragRef.current;
-    const dx = nx - sx, dy = ny - sy;
-    const MIN = 0.08;
-
-    setCrop(() => {
-      let { x, y, w, h } = oc;
-
-      if (type === "move") {
-        x = Math.max(0, Math.min(1 - w, oc.x + dx));
-        y = Math.max(0, Math.min(1 - h, oc.y + dy));
-        return { x, y, w, h };
-      }
-
-      // Resize locked to 1:2 — drive from whichever drag axis gives more motion
-      const dMain = Math.abs(dx) > Math.abs(dy) ? dx : dy * RATIO;
-
-      if (type === "br") {
-        w = Math.max(MIN, oc.w + dMain);
-        h = w / RATIO;
-      } else if (type === "bl") {
-        w = Math.max(MIN, oc.w - dMain);
-        h = w / RATIO;
-        x = oc.x + oc.w - w;
-      } else if (type === "tr") {
-        w = Math.max(MIN, oc.w + dMain);
-        h = w / RATIO;
-        y = oc.y + oc.h - h;
-      } else if (type === "tl") {
-        w = Math.max(MIN, oc.w - dMain);
-        h = w / RATIO;
-        x = oc.x + oc.w - w;
-        y = oc.y + oc.h - h;
-      }
-
-      // Clamp inside canvas
-      x = Math.max(0, x);
-      y = Math.max(0, y);
-      if (x + w > 1) { w = 1 - x; h = w / RATIO; }
-      if (y + h > 1) { h = 1 - y; w = h * RATIO; }
-
-      return { x, y, w, h };
-    });
+    const { sx, sy, oc } = dragRef.current;
+    const { fw, fh } = computeFrame(CW, CH, RATIO);
+    const dFracX = ((nx - sx) * CW) / fw;
+    const dFracY = ((ny - sy) * CH) / fh;
+    offsetRef.current = { x: oc.x + dFracX, y: oc.y + dFracY };
+    scheduleDraw();
   };
 
-  const onUp = () => { dragRef.current = null; };
+  const onUp = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    if (canvasRef.current) canvasRef.current.style.cursor = "grab";
+    const img = imgRef.current;
+    if (img) {
+      const { fw, fh } = computeFrame(CW, CH, RATIO);
+      const { panX, panY } = computeLayout(img, fw, fh, rotationRef.current, zoomRef.current, offsetRef.current);
+      offsetRef.current = { x: fw ? panX / fw : 0, y: fh ? panY / fh : 0 };
+    }
+    _setOffset({ ...offsetRef.current });
+  };
 
-  // ── Export ────────────────────────────────────────────────────
+  // ── Export — render the fixed frame contents at high resolution ─
   const handleDone = () => {
     const img = imgRef.current;
     if (!img) return;
-    const OUT = Math.max(img.naturalWidth, img.naturalHeight, 1024);
-    const OUT_H = OUT * (CH / CW);
-    const rot90 = rotation % 180 !== 0;
-    const srcW = rot90 ? img.naturalHeight : img.naturalWidth;
-    const srcH = rot90 ? img.naturalWidth  : img.naturalHeight;
-    const sf = imgScale / 50;
-    const { dw, dh } = containDims(srcW, srcH, OUT * sf, OUT_H * sf);
 
-    const full = document.createElement("canvas");
-    full.width = OUT; full.height = OUT_H;
-    const ctx = full.getContext("2d");
+    const rotation = rotationRef.current;
+    const flipH    = flipHRef.current;
+    const flipV    = flipVRef.current;
+    const zoomVal  = zoomRef.current;
+
+    const TARGET = 1080;
+    const outW = RATIO >= 1 ? TARGET : Math.round(TARGET * RATIO);
+    const outH = RATIO >= 1 ? Math.round(TARGET / RATIO) : TARGET;
+
+    const { dw, dh, panX, panY } = computeLayout(img, outW, outH, rotation, zoomVal, offsetRef.current);
+
+    const out = document.createElement("canvas");
+    out.width = outW; out.height = outH;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.save();
-    ctx.translate(OUT / 2, OUT_H / 2);
+    ctx.translate(outW / 2 + panX, outH / 2 + panY);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-    ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    const { x, y, w, h } = crop;
-    const out = document.createElement("canvas");
-    out.width  = Math.round(w * OUT);
-    out.height = Math.round(h * OUT_H);
-    out.getContext("2d").drawImage(full, x*OUT, y*OUT_H, w*OUT, h*OUT_H, 0, 0, out.width, out.height);
     out.toBlob((blob) => onDone(blob), "image/png");
   };
 
@@ -246,7 +245,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     { id: "rotate", label: "Rotate", icon: "↺" },
     { id: "flip",   label: "Flip",   icon: "⇄" },
     { id: "crop",   label: "Crop",   icon: "⊡" },
-    { id: "scale",  label: "Scale",  icon: "⤢" },
+    { id: "scale",  label: "Zoom",   icon: "⤢" },
   ];
 
   const btnBase = {
@@ -271,7 +270,6 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
         borderBottom: "1px solid #2c2c2c",
       }}>
         <button onClick={onCancel} style={{ background:"none", border:"none", color:"#fff", fontSize:14, cursor:"pointer", padding:"4px 8px" }}>✕</button>
-        {/* <span style={{ color:"#fff", fontSize:17, fontWeight:600 }}>Edit Image</span> */}
         <button onClick={handleDone} style={{ background:"none", border:"none", color:"#f97316", fontSize:14, fontWeight:700, cursor:"pointer", padding:"4px 8px" }}>Done</button>
       </div>
 
@@ -279,10 +277,10 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
       <div style={{
         flex: 1, display:"flex", alignItems:"center", justifyContent:"center",
         backgroundColor: "#111", overflow:"hidden", minHeight: 30,
-      }}>0
+      }}>
         <canvas
           ref={canvasRef}
-          style={{ touchAction:"none", display:"block" }}
+          style={{ touchAction:"none", display:"block", cursor:"grab" }}
           onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
           onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
         />
@@ -310,26 +308,16 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
           </div>
         )}
         {tab === "crop" && (
-          null
-          // <div style={{ padding:"12px 20px", display:"flex", justifyContent:"center", alignItems:"center", gap:16 }}>
-          //   <span style={{ fontSize:13, color:"#888" }}>1 : 2 portrait · drag handles to resize</span>
-          //   <button onClick={() => setCrop(INITIAL_CROP)} style={{
-          //     padding:"6px 16px", backgroundColor:"#fff", border:"1px solid #ddd",
-          //     borderRadius:10, fontSize:13, color:"#555", cursor:"pointer",
-          //   }}>↺</button>
-          // </div>
-        )}
-        {/* {tab === "scale" && (
-          <div style={{ padding:"10px 20px 4px", display:"flex", justifyContent:"center" }}>
-            <span style={{ fontSize:13, color:"#888" }}>Drag slider below to zoom image</span>
+          <div style={{ padding:"8px 10px", textAlign:"center", fontSize:12, color:"#888" }}>
+            Drag the photo to reposition · frame is fixed
           </div>
-        )} */}
+        )}
       </div>
 
-      {/* ── Scale slider — always visible ── */}
+      {/* ── Zoom slider — always visible ── */}
       <div style={{ backgroundColor:"#f4f4f4", padding:"6px 20px 12px", borderTop:"1px solid #e8e8e8" }}>
         <div style={{ textAlign:"center", fontSize:15, fontWeight:700, color:"#f97316", marginBottom:6 }}>
-          {imgScale}%
+          {zoom}%
         </div>
         <div style={{ position:"relative", height:36, display:"flex", alignItems:"center" }}>
           <div style={{
@@ -341,13 +329,13 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
               <div key={i} style={{
                 width: 1.5,
                 height: i % 5 === 0 ? 14 : 7,
-                backgroundColor: i === 17 ? "#f97316" : "#bbb",
+                backgroundColor: i === 0 ? "#f97316" : "#bbb",
                 borderRadius: 1,
               }} />
             ))}
           </div>
-          <input type="range" min={10} max={150} step={1} value={imgScale}
-            onChange={(e) => setImgScale(Number(e.target.value))}
+          <input type="range" min={100} max={300} step={1} value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
             style={{ width:"100%", appearance:"none", WebkitAppearance:"none", background:"transparent", height:36, cursor:"pointer", position:"relative", zIndex:1 }}
           />
         </div>
@@ -361,7 +349,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
       <div style={{ backgroundColor:"#1e1e1e", display:"flex", borderTop:"1px solid #2a2a2a" }}>
         {/* Reset-all button */}
         <button
-          onClick={() => { setRotation(0); setFlipH(false); setFlipV(false); setImgScale(50); setCrop(INITIAL_CROP); }}
+          onClick={() => { setRotation(0); setFlipH(false); setFlipV(false); setZoom(100); setOffset({ x: 0, y: 0 }); }}
           style={{ ...btnBase }}
         >
           <span style={{ fontSize:20, color:"#888" }}>↺</span>

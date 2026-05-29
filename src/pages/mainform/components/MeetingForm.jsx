@@ -237,7 +237,7 @@ export default function MeetingForm() {
     try {
       localStorage.setItem("Meeting", JSON.stringify(payload));
       setSavedMessage("Meeting saved successfully.");
-      navigate("/Editor");
+      navigate("/editor");
       setIsSaved(true);
     } catch (err) {
       console.error(err);
@@ -644,22 +644,10 @@ export default function MeetingForm() {
         </div>
       </div>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-3xl overflow-hidden rounded-[30px] bg-background shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setEditingImage(null);
-                }}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Close
-              </button>
-            </div>
-            <div className="p-5">
+      <Modal isOpen={open} onOpenChange={(o) => { if (!o) { setOpen(false); setEditingImage(null); } }}>
+        <Modal.Backdrop>
+          <Modal.Container placement="center" size="full">
+            <Modal.Dialog className="w-full max-w-3xl bg-transparent shadow-none">
               <ImageEditorCanvas
                 src={editingImage}
                 onDone={(blob) => onImageDone && onImageDone(blob)}
@@ -671,10 +659,10 @@ export default function MeetingForm() {
                 editingType={editingType}
                 setEditingType={setEditingType}
               />
-            </div>
-          </div>
-        </div>
-      )}
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <Modal isOpen={showChiefImageModal} onOpenChange={setShowChiefImageModal}>
         <Modal.Backdrop>

@@ -58,8 +58,8 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
 
   return (
     <header className="sticky top-0 z-20 h-[60px] flex items-center px-4 gap-3 bg-background/95 backdrop-blur-xl border-b border-border transition-colors duration-300">
-      {/* Left: back button for sub-pages, hamburger for main pages */}
-      {isSubPage ? (
+      {/* Left: back button for sub-pages and editor, hamburger for main pages */}
+      {isSubPage || isEditor ? (
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-full text-foreground hover:bg-foreground/8 active:scale-95 transition-all flex-shrink-0"

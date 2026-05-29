@@ -8,9 +8,10 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
+import { Modal } from "@heroui/react";
 import ReferCard from "./ReferCard";
 import SettingsMenu from "./Settingsmenu";
-import { PencilLine, ArrowLeft, LogOut, X, Check } from "lucide-react";
+import { PencilLine, ArrowLeft, LogOut, Check } from "lucide-react";
 import { toast } from "../../utils/toast";
 
 function Myprofile() {
@@ -68,62 +69,62 @@ function Myprofile() {
   return (
     <>
       {/* Edit name modal */}
-      {editOpen && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
-          onClick={() => { setEditOpen(false); setNewName(userData.name); }}
-        >
-          <div
-            className="w-full max-w-sm max-h-[90vh] overflow-y-auto bg-background dark:bg-[#141824] rounded-[28px] p-6 shadow-2xl animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="hidden" />
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[17px] font-display font-bold text-foreground">Edit Name</h3>
-              <button
-                onClick={() => { setEditOpen(false); setNewName(userData.name); }}
-                className="w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 flex items-center justify-center transition-colors"
-              >
-                <X className="w-4 h-4 text-foreground" />
-              </button>
-            </div>
+      <Modal
+        isOpen={editOpen}
+        onOpenChange={(open) => { if (!open) { setEditOpen(false); setNewName(userData.name); } }}
+      >
+        <Modal.Backdrop>
+          <Modal.Container placement="center">
+            <Modal.Dialog className="w-full max-w-[400px]">
+              <Modal.CloseTrigger className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 flex items-center justify-center transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </Modal.CloseTrigger>
 
-            <label className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider block mb-2 ml-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl border border-border bg-background dark:bg-[#1a2236] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all text-[15px] font-medium text-foreground"
-              placeholder="Enter your name"
-              autoFocus
-            />
+              <Modal.Body>
+                <div className="mb-5">
+                  <h3 className="text-[18px] font-display font-bold text-foreground">Edit Name</h3>
+                </div>
 
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={() => { setEditOpen(false); setNewName(userData.name); }}
-                className="flex-1 h-12 rounded-xl font-semibold text-[14px] bg-muted/30 hover:bg-muted/50 text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEditSave}
-                disabled={loading || !newName.trim() || newName.trim() === userData.name}
-                className="flex-1 h-12 rounded-xl font-bold text-[14px] bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" /> Save
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <label className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider block mb-2 ml-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl border border-border bg-background dark:bg-[#1a2236] focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all text-[15px] font-medium text-foreground"
+                  placeholder="Enter your name"
+                  autoFocus
+                />
+
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => { setEditOpen(false); setNewName(userData.name); }}
+                    className="flex-1 h-12 rounded-xl font-semibold text-[14px] bg-muted/30 hover:bg-muted/50 text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEditSave}
+                    disabled={loading || !newName.trim() || newName.trim() === userData.name}
+                    className="flex-1 h-12 rounded-xl font-bold text-[14px] bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" /> Save
+                      </>
+                    )}
+                  </button>
+                </div>
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <div className="flex flex-col w-full min-h-screen bg-background pb-24 md:pb-10">
         {/* Hero header */}
@@ -142,11 +143,11 @@ function Myprofile() {
           {/* Avatar row */}
           <div className="relative z-10 flex items-end gap-4">
             <div className="relative group">
-              <div className="w-20 h-20 rounded-2xl border-2 border-white/30 shadow-xl overflow-hidden bg-white/10">
+              <div className="w-20 h-20 rounded-2xl border-2 border-white/30 shadow-xl overflow-hidden bg-white flex items-center justify-center">
                 <img
                   src={profileImageURL}
                   alt={userData.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">

@@ -97,7 +97,7 @@ function DeleteAcc({ show, setDeleteAcc }) {
   };
 
   return (
-    <Modal isOpen={show}>
+    <Modal isOpen={show} onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Backdrop>
         <Modal.Container>
           <Modal.Dialog className="sm:max-w-[360px]">

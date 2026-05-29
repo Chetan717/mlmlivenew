@@ -380,7 +380,7 @@ export default function SalesExecutiveForm() {
     };
 
     localStorage.setItem("mlmform", JSON.stringify(formData));
-    navigate("/Editor");
+    navigate("/editor");
   };
 
   // ─── Clear saved form (optional reset button) ──────────────────────────────
@@ -436,23 +436,7 @@ export default function SalesExecutiveForm() {
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
               <p className="text-[13px] font-bold text-foreground">Top Upline Photos</p>
             </div>
-            <div className="flex flex-row gap-3 items-center flex-wrap">
-              {selectedLinks?.length > 0 && (
-                <div className="flex gap-2 flex-wrap">
-                  {selectedLinks.map((link, i) => (
-                    <div key={i} className="relative">
-                      <img src={link} alt="" className="w-10 h-10 rounded-xl object-contain border border-border/60 bg-muted/20" />
-                      <button
-                        type="button"
-                        onClick={() => { toggleLink(link); clearError("topupline"); }}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-accent text-white text-[9px] flex items-center justify-center shadow-sm"
-                      >
-                        x
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="w-full">
               <MultiImagePicker
                 companyImages={company.topuplines || []}
                 selectedLinks={selectedLinks}
@@ -461,6 +445,7 @@ export default function SalesExecutiveForm() {
                 onAddCustomFiles={(files) => { setCustomFiles(files); clearError("topupline"); }}
                 onRemoveCustomFile={(i) => setCustomFiles((prev) => prev.filter((_, idx) => idx !== i))}
                 inputRef={inputRef}
+                inlineStrip
               />
             </div>
             <InlineError message={errors.topupline} />

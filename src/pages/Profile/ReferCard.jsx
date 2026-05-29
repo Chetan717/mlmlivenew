@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
+import { Modal } from "@heroui/react";
 import { Copy, Check, Xmark, Person } from "@gravity-ui/icons";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import referGraphic from "./refer.png";
 
-function ReferEarningsModal({ user, onClose }) {
+function ReferEarningsModal({ user, isOpen, onClose }) {
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isOpen) return;
     if (!user?.referCode) { setLoading(false); return; }
 
     const fetchReferrals = async () => {
@@ -28,7 +30,7 @@ function ReferEarningsModal({ user, onClose }) {
     };
 
     fetchReferrals();
-  }, [user?.referCode]);
+  }, [isOpen, user?.referCode]);
 
   const totalCredits = referrals.length * 10;
 
@@ -42,24 +44,15 @@ function ReferEarningsModal({ user, onClose }) {
   };
 
   return (
-    <div
-      className="fixed h-[100%] inset-0 z-[9999] flex items-start justify-start bg-black/70 backdrop-blur-sm px-4"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md max-h-[90vh] top-10 overflow-y-auto bg-background dark:bg-[#141824] rounded-[28px] p-6 shadow-2xl animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="hidden" />
+    <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container placement="top">
+          <Modal.Dialog className="w-full max-w-md">
+            <Modal.CloseTrigger className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
+              <Xmark className="w-4 h-4 text-foreground" />
+            </Modal.CloseTrigger>
 
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
-        >
-          <Xmark className="w-4 h-4 text-foreground" />
-        </button>
-
+            <Modal.Body className="overflow-y-auto">
         <h2 className="text-[18px] font-display font-bold text-foreground mb-1">Referral Earnings</h2>
         <p className="text-[13px] text-muted-foreground mb-5">People who joined using your code</p>
 
@@ -114,8 +107,11 @@ function ReferEarningsModal({ user, onClose }) {
             ))
           )}
         </div>
-      </div>
-    </div>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }
 
@@ -157,7 +153,7 @@ export default function ReferCard() {
 
   return (
     <>
-      {showModal && <ReferEarningsModal user={user} onClose={() => setShowModal(false)} />}
+      <ReferEarningsModal user={user} isOpen={showModal} onClose={() => setShowModal(false)} />
 
       <div className="w-full px-1">
         <div

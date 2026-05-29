@@ -46,7 +46,7 @@ import numRupee from "./amount_numberImage/rupee.png";
 
 const STAGE_WIDTH = 320;
 const STAGE_HEIGHT = 320;
-const EXPORT_PIXEL_RATIO = 3;
+const EXPORT_PIXEL_RATIO = 6;
 
 // Video export tuning — kept separate from the (frozen) image EXPORT_PIXEL_RATIO.
 // A smaller frame means far fewer pixels for FFmpeg to encode, so the
@@ -337,6 +337,8 @@ function GeneralEditPage({
   const [incomeFormData, setIncomeFormData] = useState(null); // loaded from localStorage
   const [meetingData, setMeetingData] = useState(null); // loaded from localStorage
   const [showSocial, setShowSocial] = useState("no");
+  const [showTopupline] = useState(() => localStorage.getItem("showTopuplineImages") ?? "yes");
+  const [showLogo] = useState(() => localStorage.getItem("showCompanyLogo") ?? "yes");
 
   // ── Music + export progress ─────────────────────────────────────────────
   const [selectedMusic, setSelectedMusic] = useState(null);
@@ -421,14 +423,14 @@ function GeneralEditPage({
   const Template_Type = selll?.type;
 
   const [profileAttrs, setProfileAttrs] = useState({
-    x: isRight ? 155 : 100,
+    x: isRight ? 164.5 : 0.5,
     y: 80,
-    width: 160,
+    width: 155,
     height: 210,
-    scaleX: 1,
-    offsetX: 0,
-    scaleY: 1, // ← add
-    offsetY: 0, // ← add
+    scaleX: isRight ? -1 : 1,
+    offsetX: isRight ? 155 : 0,
+    scaleY: 1,
+    offsetY: 0,
   });
   const isBonanza = Template_Type === "Bonanza";
   const isWelcomeClosing = Template_Type === "Welcome_Closing";
@@ -602,12 +604,14 @@ function GeneralEditPage({
   useEffect(() => {
     setProfileAttrs((prev) => ({
       ...prev,
-      x: isRight ? 155 : 165,
+      x: isRight ? 164.5 : 0.5,
       y: 80,
-      width: 160,
+      width: 155,
       height: 210,
       scaleX: isRight ? -1 : 1,
-      offsetX: 0,
+      offsetX: isRight ? 155 : 0,
+      scaleY: 1,
+      offsetY: 0,
     }));
     setRankAttrs(rankInitialAttrs);
     setStickerAttrs(stickerInitialAttrs);
@@ -621,46 +625,109 @@ function GeneralEditPage({
     }
   }
 
-  // ── REPLACE handleFlip with these three handlers ──────────────────────────
+  // ── Image gestures: tap = flip in place + select · drag = move · handles = resize ──
+  const justDraggedRef = useRef(false);
+  // Tracks an in-progress two-finger pinch: last finger distance + active flag.
+  const pinchRef = useRef({ dist: 0, active: false });
+
+  const getAttrsByType = (type) =>
+    type === "profile" ? profileAttrs : type === "rank" ? rankAttrs : stickerAttrs;
+
+  const setAttrsByType = (type, updater) => {
+    if (type === "profile") setProfileAttrs(updater);
+    else if (type === "rank") setRankAttrs(updater);
+    else if (type === "sticker") setStickerAttrs(updater);
+  };
+
+  // Horizontal flip that keeps the image's bounding box (position) fixed.
+  // Convention: scaleX === -1 → offsetX = width, x = left edge → box stays [left, left+W].
+  const flipImageInPlace = (type) => {
+    const prev = getAttrsByType(type);
+    if (!prev) return;
+    const W = prev.width;
+    // Current visual left edge, independent of which flip convention prev used.
+    const left = prev.scaleX === -1 ? prev.x + prev.offsetX - W : prev.x - prev.offsetX;
+    const newScaleX = prev.scaleX === -1 ? 1 : -1;
+    const next = {
+      ...prev,
+      scaleX: newScaleX,
+      offsetX: newScaleX === -1 ? W : 0,
+      x: left,
+    };
+    setAttrsByType(type, next);
+
+    // Mirror onto the live Konva node so the flip is instant and glitch-free.
+    const nodeMap = {
+      profile: profileImageRef.current,
+      rank: rankImageRef.current,
+      sticker: stickerImageRef.current,
+    };
+    const node = nodeMap[type];
+    if (node) {
+      node.scaleX(next.scaleX);
+      node.offsetX(next.offsetX);
+      node.x(next.x);
+      node.getLayer()?.batchDraw();
+      // Re-sync the Transformer so the next resize starts from the flipped box.
+      transformerRef.current?.forceUpdate();
+    }
+  };
 
   const handleImageClick = (type) => (e) => {
     e.cancelBubble = true;
-    if (selectedImageType === type && isImageSelected) {
-      // toggle off
-      setIsImageSelected(false);
-      setSelectedImageType(null);
-    } else {
-      setIsImageSelected(true);
-      setSelectedImageType(type);
-    }
+    // Always select so the resize handles (Transformer) show for finger-dragging.
+    setIsImageSelected(true);
+    setSelectedImageType(type);
+    // A click that immediately follows a drag must NOT flip (accidental flip guard).
+    if (justDraggedRef.current) return;
+    // Single tap flips the image horizontally, in place.
+    flipImageInPlace(type);
   };
   const handleTransformEnd = (type) => (e) => {
     const node = e.target;
-    const newWidth = Math.max(10, node.width() * Math.abs(node.scaleX()));
-    const newHeight = Math.max(10, node.height() * Math.abs(node.scaleY()));
-    const newX = node.x();
-    const newY = node.y();
-    const currentScaleX = node.scaleX() < 0 ? -1 : 1;
-    const currentScaleY = node.scaleY() < 0 ? -1 : 1; // ← add
+    const s = node.scaleX();
+    const sy = node.scaleY();
+    const ox = node.offsetX();
+    const oy = node.offsetY();
+    const w0 = node.width();
+    const h0 = node.height();
+    const px = node.x();
+    const py = node.y();
 
+    const newWidth = Math.max(10, w0 * Math.abs(s));
+    const newHeight = Math.max(10, h0 * Math.abs(sy));
+
+    // Visual top-left from the node's current transform (robust to flip + offset).
+    const left = Math.min(px + s * (0 - ox), px + s * (w0 - ox));
+    const top = Math.min(py + sy * (0 - oy), py + sy * (h0 - oy));
+
+    const currentScaleX = s < 0 ? -1 : 1;
+    const currentScaleY = sy < 0 ? -1 : 1;
+    const newOffsetX = currentScaleX === -1 ? newWidth : 0;
+    const newOffsetY = currentScaleY === -1 ? newHeight : 0;
+
+    // Normalise so the box is exactly [left, left+newWidth] x [top, top+newHeight].
     node.scaleX(currentScaleX);
-    node.scaleY(currentScaleY); // ← add
+    node.scaleY(currentScaleY);
     node.width(newWidth);
     node.height(newHeight);
-    if (currentScaleX === -1) node.offsetX(newWidth);
-    if (currentScaleY === -1) node.offsetY(newHeight); // ← add
+    node.offsetX(newOffsetX);
+    node.offsetY(newOffsetY);
+    node.x(left);
+    node.y(top);
     node.getLayer()?.batchDraw();
+    transformerRef.current?.forceUpdate();
 
     const update = (prev) => ({
       ...prev,
-      x: newX,
-      y: newY,
+      x: left,
+      y: top,
       width: newWidth,
       height: newHeight,
       scaleX: currentScaleX,
-      offsetX: currentScaleX === -1 ? newWidth : 0,
-      scaleY: currentScaleY, // ← add
-      offsetY: currentScaleY === -1 ? newHeight : 0, // ← add
+      offsetX: newOffsetX,
+      scaleY: currentScaleY,
+      offsetY: newOffsetY,
     });
 
     if (type === "profile") setProfileAttrs(update);
@@ -670,6 +737,16 @@ function GeneralEditPage({
 
   const handleDragEnd = (type) => (e) => {
     const node = e.target;
+    // Final-frame safety: a fast pointer release may skip the last dragmove and
+    // leave the node a few px outside the limit, so clamp once more before saving.
+    applyDragClamp(node, type);
+    // Suppress the click/tap that may fire right after a drag, then auto-clear.
+    justDraggedRef.current = true;
+    setTimeout(() => { justDraggedRef.current = false; }, 0);
+
+    setIsImageSelected(true);
+    setSelectedImageType(type);
+
     if (type === "profile") {
       setProfileAttrs((prev) => ({ ...prev, x: node.x(), y: node.y() }));
     } else if (type === "rank") {
@@ -680,16 +757,132 @@ function GeneralEditPage({
   };
 
   const boundBoxFunc = (oldBox, newBox) => {
-    if (newBox.width < 20 || newBox.height < 20) return oldBox;
+    // When the image is flipped, Konva can report a negative width/height here,
+    // so always work with absolute size and a normalised top-left corner.
+    const w = Math.abs(newBox.width);
+    const h = Math.abs(newBox.height);
+    if (w < 20 || h < 20) return oldBox;
+    const left = Math.min(newBox.x, newBox.x + newBox.width);
+    const top = Math.min(newBox.y, newBox.y + newBox.height);
     if (
-      newBox.x < 0 ||
-      newBox.y < 0 ||
-      newBox.x + newBox.width > STAGE_WIDTH ||
-      newBox.y + newBox.height > STAGE_HEIGHT
+      left < 0 ||
+      top < 0 ||
+      left + w > STAGE_WIDTH ||
+      top + h > STAGE_HEIGHT
     )
       return oldBox;
     return newBox;
   };
+
+  // The image is pinned to its fixed home position: it may only nudge up to
+  // MOVE_RANGE px on each axis (both directions) from that spot — no further.
+  const MOVE_RANGE = 20;
+  const homePos = {
+    profile: { x: isRight ? 164.5 : 0.5, y: 80 },
+    rank: { x: rankInitialAttrs.x, y: rankInitialAttrs.y },
+    sticker: { x: stickerInitialAttrs.x, y: stickerInitialAttrs.y },
+  };
+  // Clamp during drag using the node's TRUE visual bounding box (getClientRect),
+  // not its raw x/y. After a horizontal flip the node carries a negative scaleX
+  // plus an offsetX, so node.x() no longer lines up with the box's left edge the
+  // way it does before flipping — that mismatch is why a flipped image escaped
+  // the limit. getClientRect always returns the real on-screen box regardless of
+  // flip/scale/offset, so we measure overflow from it and nudge the node back by
+  // exactly that amount. Works identically before and after any flip.
+  const applyDragClamp = (node, type) => {
+    const home = homePos[type];
+    if (!node || !home) return;
+    const box = node.getClientRect({
+      relativeTo: node.getLayer(),
+      skipStroke: true,
+      skipShadow: true,
+    });
+    let dx = 0;
+    let dy = 0;
+    if (box.x < home.x - MOVE_RANGE) dx = home.x - MOVE_RANGE - box.x;
+    else if (box.x > home.x + MOVE_RANGE) dx = home.x + MOVE_RANGE - box.x;
+    if (box.y < home.y - MOVE_RANGE) dy = home.y - MOVE_RANGE - box.y;
+    else if (box.y > home.y + MOVE_RANGE) dy = home.y + MOVE_RANGE - box.y;
+    if (dx !== 0) node.x(node.x() + dx);
+    if (dy !== 0) node.y(node.y() + dy);
+  };
+  const makeDragMove = (type) => (e) => applyDragClamp(e.target, type);
+
+  // ── Pinch-to-resize (two fingers) ─────────────────────────────────────────
+  // Resize directly with two fingers: spread apart = bigger, pinch = smaller.
+  // Aspect ratio is kept; size is clamped between MIN_IMG_SIZE and the stage.
+  // The box top-left (x/y) stays put so the image grows toward bottom-right and
+  // the ±20px drag limit (which clamps the visual left/top) keeps holding.
+  const MIN_IMG_SIZE = 30;
+  const endPinch = () => {
+    pinchRef.current.dist = 0;
+    if (!pinchRef.current.active) return;
+    pinchRef.current.active = false;
+    // Debounce so the tap that fires as the fingers lift can't trigger a flip,
+    // even though touches drop below 2 before the gesture is fully finished.
+    setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 200);
+  };
+  const makePinchMove = (type) => (e) => {
+    const touches = e.evt.touches;
+    if (!touches || touches.length < 2) return;
+    e.evt.preventDefault();
+    e.cancelBubble = true;
+    const node = e.target;
+    node.stopDrag(); // a 2-finger gesture must resize, never drag
+    pinchRef.current.active = true;
+    // A pinch must not be mistaken for a tap (which flips the image).
+    justDraggedRef.current = true;
+
+    const [t1, t2] = [touches[0], touches[1]];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const last = pinchRef.current.dist;
+    pinchRef.current.dist = dist;
+    if (!last) return; // first frame just records the starting distance
+
+    // Measure from the LIVE node (not React state) so rapid touch frames that
+    // outrun React re-renders don't read a stale size and stall/jump.
+    const baseW = node.width();
+    const baseH = node.height();
+    const left = node.x(); // box-left/top in our flip convention
+    const top = node.y();
+    const sx = node.scaleX() < 0 ? -1 : 1;
+    const sy = node.scaleY() < 0 ? -1 : 1;
+
+    // Keep aspect ratio with one uniform factor, clamped so the image never
+    // shrinks below MIN_IMG_SIZE nor grows past the canvas edges from here.
+    let factor = dist / last;
+    factor = Math.min(
+      factor,
+      (STAGE_WIDTH - left) / baseW,
+      (STAGE_HEIGHT - top) / baseH,
+    );
+    factor = Math.max(factor, MIN_IMG_SIZE / baseW, MIN_IMG_SIZE / baseH);
+    const newW = baseW * factor;
+    const newH = baseH * factor;
+
+    // Mirror onto the live node for smooth, immediate feedback. x/y stay put;
+    // when flipped, offset must follow the new size so box-left/top stay fixed.
+    node.width(newW);
+    node.height(newH);
+    node.offsetX(sx === -1 ? newW : 0);
+    node.offsetY(sy === -1 ? newH : 0);
+    node.getLayer()?.batchDraw();
+    transformerRef.current?.forceUpdate();
+
+    setAttrsByType(type, (prev) => ({
+      ...prev,
+      width: newW,
+      height: newH,
+      offsetX: sx === -1 ? newW : 0,
+      offsetY: sy === -1 ? newH : 0,
+    }));
+  };
+  const handlePinchEnd = (e) => {
+    if (!e.evt.touches || e.evt.touches.length < 2) endPinch();
+  };
+  const handleTouchCancel = () => endPinch();
 
   // ── Load mlm form/profile from localStorage ───────────────────────────────
   useEffect(() => {
@@ -785,9 +978,9 @@ function GeneralEditPage({
   const updateToolbarPos = () => {
     const attrs = getSelectedImageAttrs();
     if (!attrs) return;
-    const { x, y, width, scaleX } = attrs;
-    const leftEdge = scaleX === -1 ? x - width : x;
-    setToolbarPos({ x: leftEdge, y, width });
+    const { x, y, width } = attrs;
+    // Box stays [x, x+width] regardless of flip (normalised convention).
+    setToolbarPos({ x, y, width });
   };
 
   useEffect(() => {
@@ -859,7 +1052,8 @@ function GeneralEditPage({
           ? 80
           : 2;
 
-  const topuplineURLs = mlmProfile?.topuplineURLs || [];
+  const topuplineURLs = showTopupline === "no" ? [] : (mlmProfile?.topuplineURLs || []);
+  const logoURLs = showLogo === "no" ? [] : (mlmProfile?.logoURLs || []);
   const profileName = mlmForm?.promoter?.name
     ? mlmForm.promoter.name
     : mlmProfile?.fullName || "";
@@ -1006,9 +1200,9 @@ function GeneralEditPage({
   }
 
   const [Imagefooter] = useImage(selectedFooterFrame?.value, "anonymous");
-  const [Imagel2] = useImage(mlmProfile?.logoURLs?.[0] || "", "anonymous");
-  const [Imagel3] = useImage(mlmProfile?.logoURLs?.[1] || "", "anonymous");
-  const [Imagel4] = useImage(mlmProfile?.logoURLs?.[2] || "", "anonymous");
+  const [Imagel2] = useImage(logoURLs?.[0] || "", "anonymous");
+  const [Imagel3] = useImage(logoURLs?.[1] || "", "anonymous");
+  const [Imagel4] = useImage(logoURLs?.[2] || "", "anonymous");
 
   const [Imagef1] = useImage(achievementForm?.features?.[0] || "", "anonymous");
   const [Imagef2] = useImage(achievementForm?.features?.[1] || "", "anonymous");
@@ -1179,7 +1373,7 @@ function GeneralEditPage({
       });
 
       // 5️⃣ Trigger actual download / RN bridge
-      if (uri) {
+      if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(
           JSON.stringify({
             type: "DOWNLOAD_IMAGE",
@@ -1859,16 +2053,22 @@ function GeneralEditPage({
               <Image
                 ref={profileImageRef}
                 image={ImageProfile}
-                x={isRight ? 319.5 : 0.5}
-                y={80}
-                width={155}
-                height={210}
-                scaleX={isRight ? -1 : 1}
-                offsetX={0}
+                x={profileAttrs.x}
+                y={profileAttrs.y}
+                width={profileAttrs.width}
+                height={profileAttrs.height}
+                scaleX={profileAttrs.scaleX}
+                offsetX={profileAttrs.offsetX}
+                scaleY={profileAttrs.scaleY}
+                offsetY={profileAttrs.offsetY}
                 draggable
                 onClick={handleImageClick("profile")}
                 onTap={handleImageClick("profile")}
+                onDragMove={makeDragMove("profile")}
                 onDragEnd={handleDragEnd("profile")}
+                onTouchMove={makePinchMove("profile")}
+                onTouchEnd={handlePinchEnd}
+                onTouchCancel={handleTouchCancel}
                 onTransformEnd={handleTransformEnd("profile")}
               />
             ) : isSubGeneralType2 || isAchievement ? null : (
@@ -1884,10 +2084,13 @@ function GeneralEditPage({
                 scaleY={rankAttrs.scaleY} // ← add
                 offsetY={rankAttrs.offsetY}
                 draggable
-                // ADD these 3 props:
                 onClick={handleImageClick("rank")}
                 onTap={handleImageClick("rank")}
+                onDragMove={makeDragMove("rank")}
                 onDragEnd={handleDragEnd("rank")}
+                onTouchMove={makePinchMove("rank")}
+                onTouchEnd={handlePinchEnd}
+                onTouchCancel={handleTouchCancel}
                 onTransformEnd={handleTransformEnd("rank")}
               />
             )}
@@ -1902,11 +2105,16 @@ function GeneralEditPage({
                 height={stickerAttrs.height}
                 scaleX={stickerAttrs.scaleX}
                 offsetX={stickerAttrs.offsetX}
+                scaleY={stickerAttrs.scaleY}
+                offsetY={stickerAttrs.offsetY}
                 draggable
-                // ADD these 3 props:
                 onClick={handleImageClick("sticker")}
                 onTap={handleImageClick("sticker")}
+                onDragMove={makeDragMove("sticker")}
                 onDragEnd={handleDragEnd("sticker")}
+                onTouchMove={makePinchMove("sticker")}
+                onTouchEnd={handlePinchEnd}
+                onTouchCancel={handleTouchCancel}
                 onTransformEnd={handleTransformEnd("sticker")}
               />
             )}
@@ -2791,23 +2999,10 @@ function GeneralEditPage({
               ref={transformerRef}
               keepRatio={false}
               rotateEnabled={false}
+              resizeEnabled={false}
+              borderEnabled={false}
               boundBoxFunc={boundBoxFunc}
-              enabledAnchors={[
-                "top-left",
-                "top-right",
-                "bottom-left",
-                "bottom-right",
-                "middle-left",
-                "middle-right",
-                "top-center",
-                "bottom-center",
-              ]}
-              anchorFill="#6366f1"
-              anchorStroke="#fff"
-              anchorSize={8}
-              borderStroke="#6366f1"
-              borderStrokeWidth={1.5}
-              borderDash={[4, 3]}
+              enabledAnchors={[]}
             />
           </Layer>
         </Stage>

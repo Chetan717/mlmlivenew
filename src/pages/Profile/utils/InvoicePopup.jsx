@@ -6,6 +6,7 @@ function InvoicePopup({show, setInvShow}) {
     <>
       <Modal
        isOpen={show}
+       onOpenChange={(open) => { if (!open) setInvShow(false); }}
       >
         <Modal.Backdrop>
           <Modal.Container>

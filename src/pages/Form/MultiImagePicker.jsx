@@ -14,6 +14,7 @@ export default function MultiImagePicker({
   thumbHeight = "h-10",
   type,
   maxImages = 7,
+  inlineStrip = false,
 }) {
   const [tab, setTab]   = useState("company");
   const [open, setOpen] = useState(false);
@@ -32,31 +33,87 @@ export default function MultiImagePicker({
 
   return (
     <>
-      {/* ── Trigger button ── */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 border-dashed border-border hover:border-accent/60 bg-muted/20 hover:bg-accent/5 cursor-pointer transition-all duration-200 group"
-      >
-        <div className="w-9 h-9 rounded-xl bg-muted/40 border border-border group-hover:bg-accent/10 group-hover:border-accent/30 flex items-center justify-center transition-all duration-200 flex-shrink-0">
-          <img src={photoupload} alt="" className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-[13px] font-semibold text-foreground group-hover:text-accent transition-colors">
-            {totalSelected > 0 ? `${totalSelected} image${totalSelected > 1 ? "s" : ""} selected` : "Upload Image"}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            {totalSelected > 0 ? `Tap to manage · max ${allowed}` : `From company or your gallery · max ${allowed}`}
-          </p>
-        </div>
-        {totalSelected > 0 && (
-          <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
+      {inlineStrip ? (
+        /* ── Inline layout: scrollable thumbnails + pinned upload, one combined border ── */
+        <div className="w-full flex items-center gap-2 rounded-2xl border border-border p-2">
+          {/* Horizontally scrollable thumbnails area */}
+          <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {totalSelected === 0 && (
+              <span className="text-[11px] text-muted-foreground px-2 py-3">No images selected yet</span>
+            )}
+            {selectedLinks.map((link, i) => (
+              <div key={link || `sel-${i}`} className="relative flex-shrink-0">
+                <img
+                  src={link}
+                  alt=""
+                  className="w-14 h-14 rounded-full object-cover border-2 border-border bg-muted/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => onToggleLink(link)}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center shadow ring-2 ring-background"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {customFiles.map((item, i) => (
+              <div key={item.previewURL || `cus-${i}`} className="relative flex-shrink-0">
+                <img
+                  src={item.previewURL}
+                  alt=""
+                  className="w-14 h-14 rounded-full object-cover border-2 border-accent/50 bg-muted/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemoveCustomFile(i)}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center shadow ring-2 ring-background"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </button>
+          {/* Circular upload icon pinned at the end (does not scroll) */}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            disabled={isLimitReached}
+            className="flex-shrink-0 w-14 h-14 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
+            title={isLimitReached ? "Limit reached" : "Add image"}
+          >
+            <img src={photoupload} alt="Upload" className="w-5 h-5 opacity-70" />
+          </button>
+        </div>
+      ) : (
+        /* ── Trigger button ── */
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 border-dashed border-border hover:border-accent/60 bg-muted/20 hover:bg-accent/5 cursor-pointer transition-all duration-200 group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-muted/40 border border-border group-hover:bg-accent/10 group-hover:border-accent/30 flex items-center justify-center transition-all duration-200 flex-shrink-0">
+            <img src={photoupload} alt="" className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[13px] font-semibold text-foreground group-hover:text-accent transition-colors">
+              {totalSelected > 0 ? `${totalSelected} image${totalSelected > 1 ? "s" : ""} selected` : "Upload Image"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {totalSelected > 0 ? `Tap to manage · max ${allowed}` : `From company or your gallery · max ${allowed}`}
+            </p>
+          </div>
+          {totalSelected > 0 && (
+            <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+          )}
+        </button>
+      )}
 
       {/* ── Modal ── */}
       <Modal isOpen={open} onOpenChange={handleClose}>

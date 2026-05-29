@@ -355,6 +355,7 @@ export default function MLMProfilePage() {
   const [editorSrc, setEditorSrc] = useState(null);
   const [editingProfileIndex, setEditingProfileIndex] = useState(null);
   const [removingBg, setRemovingBg] = useState(false);
+  const [pendingProfileFile, setPendingProfileFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -365,6 +366,20 @@ export default function MLMProfilePage() {
   const handleShowSocialChange = (val) => {
     setShowSocial(val);
     localStorage.setItem("socialradio", val);
+  };
+  const [showTopuplineImages, setShowTopuplineImages] = useState(() => {
+    return localStorage.getItem("showTopuplineImages") ?? "yes";
+  });
+  const handleShowTopuplineChange = (val) => {
+    setShowTopuplineImages(val);
+    localStorage.setItem("showTopuplineImages", val);
+  };
+  const [showCompanyLogo, setShowCompanyLogo] = useState(() => {
+    return localStorage.getItem("showCompanyLogo") ?? "yes";
+  });
+  const handleShowCompanyLogoChange = (val) => {
+    setShowCompanyLogo(val);
+    localStorage.setItem("showCompanyLogo", val);
   };
   // Delete states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -513,13 +528,17 @@ export default function MLMProfilePage() {
     }));
 
   // ── Profile photo ──────────────────────────────────────────
-  const handleProfileFileSelect = async (e) => {
+  const handleProfileFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setPendingProfileFile(file);
+    e.target.value = "";
+  };
+
+  const processProfileFile = async (file, shouldRemoveBg) => {
     setRemovingBg(true);
     try {
-      const noBgBlob = await removeBackground(file);
-      const blob = noBgBlob || file;
+      const blob = shouldRemoveBg ? (await removeBackground(file)) || file : file;
       setEditorSrc(URL.createObjectURL(blob));
       setEditingProfileIndex("new");
       setForm((f) => ({ ...f, _pendingProfileBlobs: [] }));
@@ -528,8 +547,13 @@ export default function MLMProfilePage() {
       console.error(err);
     } finally {
       setRemovingBg(false);
-      e.target.value = "";
     }
+  };
+
+  const handleProfileChoice = (shouldRemoveBg) => {
+    const file = pendingProfileFile;
+    setPendingProfileFile(null);
+    if (file) processProfileFile(file, shouldRemoveBg);
   };
 
   const handleEditorDone = (blob) => {
@@ -832,6 +856,46 @@ export default function MLMProfilePage() {
         />
       )}
 
+      {/* Background choice modal */}
+      {pendingProfileFile && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xs rounded-2xl bg-background dark:bg-zinc-900 border border-border shadow-2xl p-5">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-accent/10 flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                  <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z"/>
+                </svg>
+              </div>
+              <p className="text-[14px] font-bold text-foreground">How should we use this photo?</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Choose whether to keep the image as is or remove its background.</p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleProfileChoice(true)}
+                className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-[13px] font-bold hover:opacity-90 transition-opacity"
+              >
+                Remove Background
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProfileChoice(false)}
+                className="w-full py-3 rounded-xl bg-muted/60 border border-border text-foreground text-[13px] font-bold hover:bg-muted transition-colors"
+              >
+                Keep Original
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingProfileFile(null)}
+                className="w-full py-2 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-lg mx-auto p-2 bg-background">
         {/* Page header */}
         <div className="mb-2">
@@ -846,31 +910,7 @@ export default function MLMProfilePage() {
             <label className="block text-[11px] font-bold text-foreground/60 mb-2">
               Company Logo
             </label>
-            <div className="flex flex-col gap-2 items-center">
-              {form.logoSelectedLinks.length > 0 && (
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {form.logoSelectedLinks.map((link, i) => (
-                    <div key={i} className="relative group">
-                      <img
-                        src={link}
-                        alt="Logo"
-                        className="w-14 h-14 rounded-full object-contain border-2 border-border bg-muted/30"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLogoToggleLink(link);
-                        }}
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center shadow"
-                        title="Deselect"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="flex flex-col gap-2">
               <MultiImagePicker
                 companyImages={logos}
                 selectedLinks={form.logoSelectedLinks}
@@ -882,6 +922,7 @@ export default function MLMProfilePage() {
                 companyGridCols={4}
                 thumbHeight="h-14"
                 type="Logo"
+                inlineStrip
               />
             </div>
           </div>
@@ -970,29 +1011,7 @@ export default function MLMProfilePage() {
             <label className="block text-sm font-semibold text-foreground/80 mb-6">
               Topup Line Images
             </label>
-            <div className="flex flex-col gap-2 items-center">
-              {form.topupSelectedLinks.length > 0 && (
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {form.topupSelectedLinks.map((link, i) => (
-                    <div key={i} className="relative group">
-                      <img
-                        src={link}
-                        alt="Topup"
-                        className="w-14 h-14 rounded-full object-contain border-2 border-border bg-muted/30"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleTopupToggleLink(link)}
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center shadow "
-                        title="Deselect"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
+            <div className="flex flex-col gap-2">
               <MultiImagePicker
                 companyImages={topuplines}
                 selectedLinks={form.topupSelectedLinks}
@@ -1004,6 +1023,7 @@ export default function MLMProfilePage() {
                 companyGridCols={3}
                 thumbHeight="h-16"
                 type="TopupLine"
+                inlineStrip
               />
             </div>
           </div>
@@ -1012,80 +1032,57 @@ export default function MLMProfilePage() {
             <label className="block text-sm font-semibold text-foreground/80 mb-5">
               Profile Photo
             </label>
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex flex-wrap items-start gap-3 w-full">
-                {allProfileImages.length > 0 ? (
-                  allProfileImages.map(({ url, isExisting }, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-1">
-                      <div className="relative">
-                        <img
-                          src={url}
-                          alt={`Profile ${idx + 1}`}
-                          className="w-20 h-20 rounded-xl object-contain border-2 border-border bg-muted/30"
-                        />
-                        {isExisting && (
-                          <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-tight">
-                            saved
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveProfileImage(idx);
-                          }}
-                          className=" w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center shadow "
-                        >
-                          ✕
-                        </button>
-                      </div>
+            <div className="flex flex-col gap-2">
+              {/* Scrollable thumbnails + pinned upload, one combined border */}
+              <div className="w-full flex items-center gap-2 rounded-2xl border border-border p-2">
+                {/* Horizontally scrollable thumbnails area */}
+                <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  {allProfileImages.length === 0 && (
+                    <span className="text-[11px] text-muted-foreground px-2 py-3">No images selected yet</span>
+                  )}
+                  {allProfileImages.map(({ url, isExisting }, idx) => (
+                    <div key={url || `prof-${idx}`} className="relative flex-shrink-0">
+                      <img
+                        src={url}
+                        alt={`Profile ${idx + 1}`}
+                        className="w-20 h-20 rounded-full object-cover border-2 border-border bg-muted/30"
+                      />
+                      {isExisting && (
+                        <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[8px] px-1 rounded-full leading-tight ring-2 ring-background">
+                          saved
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveProfileImage(idx);
+                        }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] flex items-center justify-center shadow ring-2 ring-background"
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
                     </div>
-                  ))
-                ) : (
-                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-border bg-muted/20 flex items-center justify-center text-muted-foreground/70 text-xs text-center px-2">
-                    No photo
-                  </div>
-                )}
-              </div>
-              <div
-                onClick={() => !removingBg && profileInputRef.current?.click()}
-                className={`text-xs font-semibold w-full flex justify-center items-center gap-2 p-2.5 rounded-lg bg-muted/40 border text-foreground/70 hover:bg-accent/5 transition ${removingBg ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-              >
-                {removingBg ? (
-                  <>
-                    <svg
-                      className="animate-spin w-4 h-4 text-accent"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
+                  ))}
+                </div>
+                {/* Circular upload icon pinned at the end (does not scroll) */}
+                <button
+                  type="button"
+                  onClick={() => !removingBg && profileInputRef.current?.click()}
+                  disabled={removingBg}
+                  className="flex-shrink-0 w-20 h-20 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={removingBg ? "Removing background…" : "Upload profile image"}
+                >
+                  {removingBg ? (
+                    <svg className="animate-spin w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                    Removing BG…
-                  </>
-                ) : (
-                  <>
-                    <img
-                      src={photoupload}
-                      alt="Upload"
-                      className="w-4 h-4 text-accent"
-                    />
-                    <p className="text-[10px] text-muted-foreground">Upload Profile Image</p>
-                  </>
-                )}
+                  ) : (
+                    <img src={photoupload} alt="Upload" className="w-7 h-7 opacity-70" />
+                  )}
+                </button>
               </div>
               <input
                 ref={profileInputRef}
@@ -1096,6 +1093,69 @@ export default function MLMProfilePage() {
               />
             </div>
           </div>
+
+          {/* ── DISPLAY SETTINGS (only when a profile is available) ── */}
+          {allProfileImages.length > 0 && (
+            <div className="bg-background rounded-2xl border border-border/60 shadow-sm p-4 space-y-5">
+              <label className="block text-sm font-semibold text-foreground/80">
+                Display Settings
+              </label>
+
+              {/* Show Topupline Images */}
+              <div>
+                <p className="text-sm font-medium text-foreground/70 mb-2">Show Topupline Images</p>
+                <div className="flex gap-3">
+                  {["yes", "no"].map((val) => (
+                    <label
+                      key={val}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 cursor-pointer transition font-medium text-sm capitalize ${
+                        showTopuplineImages === val
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-muted/20 text-muted-foreground hover:border-accent"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="topuplineradio"
+                        value={val}
+                        checked={showTopuplineImages === val}
+                        onChange={() => handleShowTopuplineChange(val)}
+                        className="accent-accent"
+                      />
+                      {val === "yes" ? "Yes" : "No"}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Show Company Logo */}
+              <div>
+                <p className="text-sm font-medium text-foreground/70 mb-2">Show Company Logo</p>
+                <div className="flex gap-3">
+                  {["yes", "no"].map((val) => (
+                    <label
+                      key={val}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 cursor-pointer transition font-medium text-sm capitalize ${
+                        showCompanyLogo === val
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-muted/20 text-muted-foreground hover:border-accent"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="companylogoradio"
+                        value={val}
+                        checked={showCompanyLogo === val}
+                        onChange={() => handleShowCompanyLogoChange(val)}
+                        className="accent-accent"
+                      />
+                      {val === "yes" ? "Yes" : "No"}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── SHOW SOCIAL MEDIA RADIO ──────────────────────── 
           <div className="bg-background rounded-2xl border border-border/60 shadow-sm p-4">

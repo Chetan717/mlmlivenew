@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Modal } from "@heroui/react";
 import ImageEditorCanvas from './ImageEditorCanvas';
 
 const ImageUploadSquare = ({ onImageSelect, previewImage, label = "Upload Proof Image" }) => {
@@ -142,20 +143,22 @@ const ImageUploadSquare = ({ onImageSelect, previewImage, label = "Upload Proof 
       )}
 
       {/* Editor Modal */}
-      {openEditor && (
-        <div className="fixed inset-0 z-[9999] bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-[660px] max-h-[90vh] bg-background rounded-2xl overflow-hidden shadow-2xl border border-border">
-            <ImageEditorCanvas
-              src={editingImage}
-              onDone={handleEditorDone}
-              onCancel={handleEditorCancel}
-              setOpen={setOpenEditor}
-              editingType="proof"
-              setEditingType={() => {}}
-            />
-          </div>
-        </div>
-      )}
+      <Modal isOpen={openEditor} onOpenChange={(o) => { if (!o) handleEditorCancel(); }}>
+        <Modal.Backdrop>
+          <Modal.Container placement="center" size="full">
+            <Modal.Dialog className="w-full max-w-[660px] bg-transparent shadow-none">
+              <ImageEditorCanvas
+                src={editingImage}
+                onDone={handleEditorDone}
+                onCancel={handleEditorCancel}
+                setOpen={setOpenEditor}
+                editingType="proof"
+                setEditingType={() => {}}
+              />
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </div>
   );
 };
