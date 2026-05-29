@@ -46,7 +46,7 @@ import numRupee from "./amount_numberImage/rupee.png";
 
 const STAGE_WIDTH = 320;
 const STAGE_HEIGHT = 320;
-const EXPORT_PIXEL_RATIO = 6;
+const EXPORT_PIXEL_RATIO = 3;
 
 // Video export tuning — kept separate from the (frozen) image EXPORT_PIXEL_RATIO.
 // A smaller frame means far fewer pixels for FFmpeg to encode, so the

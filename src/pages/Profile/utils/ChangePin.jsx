@@ -163,7 +163,7 @@ function ChangePin({ show, setChngePin }) {
       onClick={handleClose}
     >
       <div
-        className="relative w-full max-w-[400px] max-h-[90vh] top-10 overflow-y-auto bg-white  rounded-[28px] px-5 pt-5 pb-7 shadow-2xl animate-slide-up"
+        className="relative w-full max-w-[400px] max-h-[90vh] top-10  bg-white  rounded-[28px] px-5 pt-5 pb-7 shadow-2xl animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="hidden" />

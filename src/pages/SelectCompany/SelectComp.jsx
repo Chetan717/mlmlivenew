@@ -100,7 +100,7 @@ export default function SelectComp() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+    <div className="flex flex-col  bg-background relative overflow-hidden">
       {/* Decorative Background */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-accent/10 to-transparent pointer-events-none" />
 
@@ -187,7 +187,7 @@ export default function SelectComp() {
         </div>
 
         {/* Floating Action Bar */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-background via-background to-transparent z-50 pointer-events-none">
+        <div className="fixed bottom-30 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-background via-background to-transparent z-50 pointer-events-none">
           <div className="max-w-md mx-auto pointer-events-auto">
             <Button 
               onClick={handleContinue} 
