@@ -10,7 +10,7 @@ const TABS = [
 export default function TabBar() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const hide = ["/editor", "/Editor","selectcomp"].includes(location.pathname);
+  const hide = ["/editor", "/Editor","/selectcomp"].includes(location.pathname);
   if (hide) return null;
 
   return (
