@@ -3,8 +3,8 @@ import { Routes, Route, useNavigate } from "react-router";
 import Layout from "./Layout";
 import ProtectedRoute from "./Auth/ProtectedR";
 import PublicRoute from "./Auth/PublicRoute";
-import ProtectMlmProfile from "./Pages/SelectCompany/ProtectMlmProfile";
-import ProtectSelectComp from "./Pages/SelectCompany/ProtectSelectComp";
+import ProtectMlmProfile from "./Pages/SelectCompany/ProtectMlmProfile.jsx";
+import ProtectSelectComp from "./Pages/SelectCompany/ProtectSelectComp.jsx";
 
 const Home = lazy(() => import("./Pages/Home"));
 const Login = lazy(() =>
