@@ -6,7 +6,7 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     // App scrolls inside .layout-scroll-container (not the window),
-    // so reset both to guarantee every page opens at the top.
+    // so reset both to guarantee every page opens at the top.klnkl
     window.scrollTo(0, 0);
     const scrollEl = document.querySelector(".layout-scroll-container");
     if (scrollEl) scrollEl.scrollTo({ top: 0, left: 0, behavior: "auto" });
