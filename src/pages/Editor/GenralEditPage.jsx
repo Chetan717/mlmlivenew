@@ -337,8 +337,12 @@ function GeneralEditPage({
   const [incomeFormData, setIncomeFormData] = useState(null); // loaded from localStorage
   const [meetingData, setMeetingData] = useState(null); // loaded from localStorage
   const [showSocial, setShowSocial] = useState("no");
-  const [showTopupline] = useState(() => localStorage.getItem("showTopuplineImages") ?? "yes");
-  const [showLogo] = useState(() => localStorage.getItem("showCompanyLogo") ?? "yes");
+  const [showTopupline] = useState(
+    () => localStorage.getItem("showTopuplineImages") ?? "yes",
+  );
+  const [showLogo] = useState(
+    () => localStorage.getItem("showCompanyLogo") ?? "yes",
+  );
 
   // ── Music + export progress ─────────────────────────────────────────────
   const [selectedMusic, setSelectedMusic] = useState(null);
@@ -631,7 +635,11 @@ function GeneralEditPage({
   const pinchRef = useRef({ dist: 0, active: false });
 
   const getAttrsByType = (type) =>
-    type === "profile" ? profileAttrs : type === "rank" ? rankAttrs : stickerAttrs;
+    type === "profile"
+      ? profileAttrs
+      : type === "rank"
+        ? rankAttrs
+        : stickerAttrs;
 
   const setAttrsByType = (type, updater) => {
     if (type === "profile") setProfileAttrs(updater);
@@ -646,7 +654,8 @@ function GeneralEditPage({
     if (!prev) return;
     const W = prev.width;
     // Current visual left edge, independent of which flip convention prev used.
-    const left = prev.scaleX === -1 ? prev.x + prev.offsetX - W : prev.x - prev.offsetX;
+    const left =
+      prev.scaleX === -1 ? prev.x + prev.offsetX - W : prev.x - prev.offsetX;
     const newScaleX = prev.scaleX === -1 ? 1 : -1;
     const next = {
       ...prev,
@@ -742,7 +751,9 @@ function GeneralEditPage({
     applyDragClamp(node, type);
     // Suppress the click/tap that may fire right after a drag, then auto-clear.
     justDraggedRef.current = true;
-    setTimeout(() => { justDraggedRef.current = false; }, 0);
+    setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 0);
 
     setIsImageSelected(true);
     setSelectedImageType(type);
@@ -764,12 +775,7 @@ function GeneralEditPage({
     if (w < 20 || h < 20) return oldBox;
     const left = Math.min(newBox.x, newBox.x + newBox.width);
     const top = Math.min(newBox.y, newBox.y + newBox.height);
-    if (
-      left < 0 ||
-      top < 0 ||
-      left + w > STAGE_WIDTH ||
-      top + h > STAGE_HEIGHT
-    )
+    if (left < 0 || top < 0 || left + w > STAGE_WIDTH || top + h > STAGE_HEIGHT)
       return oldBox;
     return newBox;
   };
@@ -1052,8 +1058,9 @@ function GeneralEditPage({
           ? 80
           : 2;
 
-  const topuplineURLs = showTopupline === "no" ? [] : (mlmProfile?.topuplineURLs || []);
-  const logoURLs = showLogo === "no" ? [] : (mlmProfile?.logoURLs || []);
+  const topuplineURLs =
+    showTopupline === "no" ? [] : mlmProfile?.topuplineURLs || [];
+  const logoURLs = showLogo === "no" ? [] : mlmProfile?.logoURLs || [];
   const profileName = mlmForm?.promoter?.name
     ? mlmForm.promoter.name
     : mlmProfile?.fullName || "";
@@ -2378,7 +2385,7 @@ function GeneralEditPage({
                   width={180}
                   height={30}
                   text={meetingData?.hostName.toUpperCase()}
-                  fontSize={8}
+                  fontSize={7}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2436,6 +2443,36 @@ function GeneralEditPage({
                 onTap={() => setIsOpenFtr(true)}
               />
             )}
+
+            {isMeeting ? (
+             isRight ?  <Text
+                x={12}
+                y={40}
+                width={180}
+                height={30}
+                text={meetingData?.teamName.toUpperCase()}
+                fontSize={9}
+                fontStyle="1000"
+                
+                fill={`white`}
+                letterSpacing={0}
+                verticalAlign="center"
+                align={"center"}
+              ></Text> :  <Text
+                x={125}
+                y={40}
+                width={180}
+                height={30}
+                text={meetingData?.teamName.toUpperCase()}
+                fontSize={9}
+                fontStyle="1000"
+                
+                fill={`white`}
+                letterSpacing={0}
+                verticalAlign="center"
+                align={"center"}
+              ></Text>
+            ) : null}
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
                 meetingData?.platformType === "instagram" ||
@@ -2470,7 +2507,7 @@ function GeneralEditPage({
                     ></Text>
                   </Group>
                 ) : (
-                  <Group x={isRight ? 135 : 0} y={285}>
+                  <Group x={isRight ? 175 : 0} y={285}>
                     <Image
                       image={
                         meetingData?.platformType === "zoom"
@@ -2672,12 +2709,12 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
-                        x={30}
+                        x={28}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={10.5}
+                        fontSize={10}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -2886,12 +2923,12 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
-                        x={0}
+                        x={2.5}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={10.5}
+                        fontSize={10}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -3131,7 +3168,11 @@ function GeneralEditPage({
         <div className="flex flex-row items-center gap-2 mr-3 flex-shrink-0">
           {/* Music toggle — compact icon button next to download to save space */}
           <button
-            title={selectedMusic ? `Music: ${selectedMusic.name}` : "Add background music"}
+            title={
+              selectedMusic
+                ? `Music: ${selectedMusic.name}`
+                : "Add background music"
+            }
             onClick={() => setMusicModalOpen(true)}
             className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${
               selectedMusic
@@ -3139,17 +3180,34 @@ function GeneralEditPage({
                 : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
             </svg>
             {selectedMusic && (
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center">
                 <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-                  <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline
+                    points="1.5,5 4,7.5 8.5,2.5"
+                    stroke="#16a34a"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </span>
             )}
-          </button> 
+          </button>
           {/* Refer credits badge */}
           {/* {referCredits > 0 && (
             <span

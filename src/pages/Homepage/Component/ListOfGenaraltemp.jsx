@@ -1,16 +1,8 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useGeneralData } from "../../../Context/GeneralContext";
 import { useNavigate } from "react-router";
 import { ArrowUpRight, Sparkles } from "@gravity-ui/icons";
-import {
-  clearTemplateCache,
-  preloadImage,
-} from "./templateCacheUtils";
+import { clearTemplateCache, preloadImage } from "./templateCacheUtils";
 
 const GENERAL_SELECT_TYPES = new Set([
   "Trending",
@@ -66,8 +58,18 @@ const TemplateCard = React.memo(({ card, isSelected, onSelect }) => (
     )}
     {isSelected && (
       <div className="absolute top-2 right-2 w-6 h-6 bg-accent rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200">
-        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        <svg
+          className="w-3.5 h-3.5 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={3}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M5 13l4 4L19 7"
+          />
         </svg>
       </div>
     )}
@@ -78,8 +80,16 @@ const CheckIcon = ({ size = "sm" }) => {
   const dim = size === "sm" ? "w-5 h-5" : "w-6 h-6";
   const icon = size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5";
   return (
-    <div className={`absolute top-2 right-2 ${dim} bg-accent rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200`}>
-      <svg className={`${icon} text-white`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+    <div
+      className={`absolute top-2 right-2 ${dim} bg-accent rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200`}
+    >
+      <svg
+        className={`${icon} text-white`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={3}
+      >
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     </div>
@@ -131,11 +141,29 @@ function ListOfGenaraltemp({ templates, loading }) {
     },
     [navigate, setSelType],
   );
+  const handleReset = () => {
+    localStorage.removeItem("mlmform");
+    const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile"));
+    const formDAta = {
+      tab: "team",
+      achiever: {
+        title: ".",
+        name: "",
+        achieverName: "",
+        city: "",
+        amount: "",
+        image: "",
+      },
+      promoter: null,
+      selectedLinks: mlmProfile?.topuplineURLs || [],
+    };
+    localStorage.setItem("mlmform", JSON.stringify(formDAta));
+  };
 
   const handleImagePress = useCallback(
     (item) => {
       setSelectedTemp(item);
-
+      handleReset();
       const selttype = {
         id: item.id,
         type: item.type,
@@ -299,7 +327,9 @@ function ListOfGenaraltemp({ templates, loading }) {
         <div className="w-12 h-12 bg-gradient-to-br from-accent/20 to-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-accent/10">
           <Sparkles className="w-5 h-5 text-accent" />
         </div>
-        <h3 className="font-display font-bold text-foreground mb-1">More templates coming soon</h3>
+        <h3 className="font-display font-bold text-foreground mb-1">
+          More templates coming soon
+        </h3>
         <p className="text-sm text-muted-foreground">
           We're constantly adding new designs to help your business grow.
         </p>
