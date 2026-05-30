@@ -146,7 +146,7 @@ export default function ReferCard() {
   }, [user?.referCode]);
 
   const handleShare = useCallback(() => {
-    const msg = `Hey! Use my refer code ${referCode} and get 1 month FREE on MLM Booster. Join now!`;
+    const msg = `Hey! Use my refer code ${referCode} and get 1 month FREE on MLM LIVE. Join now!`;
     if (navigator.share) navigator.share({ title: "Refer & Earn", text: msg });
     else navigator.clipboard.writeText(msg).catch(() => {});
   }, [referCode]);

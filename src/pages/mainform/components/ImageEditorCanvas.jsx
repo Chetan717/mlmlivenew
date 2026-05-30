@@ -347,8 +347,8 @@ export default function ImageEditorCanvas({
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "10px 16px", borderBottom: "1px solid #2c2c2c", flexShrink: 0,
       }}>
-        <button onClick={onCancelClick} style={{ background:"none", border:"none", color:"#aaa", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>✕</button>
-        <button onClick={handleDone} style={{ background:"none", border:"none", color:"#f97316", fontSize:15, fontWeight:700, cursor:"pointer", padding:"4px 6px" }}>Done</button>
+        <button onTouchStart={onCancelClick} onClick={onCancelClick} style={{ background:"none", border:"none", color:"#aaa", fontSize:15, cursor:"pointer", padding:"4px 6px" }}>✕</button>
+        <button onTouchStart={handleDone} onClick={handleDone} style={{ background:"none", border:"none", color:"#f97316", fontSize:15, fontWeight:700, cursor:"pointer", padding:"4px 6px" }}>Done</button>
       </div>
 
       {/* ── Canvas ── */}

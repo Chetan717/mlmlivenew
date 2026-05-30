@@ -53,7 +53,7 @@ function ShareModal({ imageUri, onClose }) {
         const blob = await res.blob();
         const file = new File([blob], "mlmbooster.png", { type: "image/png" });
         await navigator.share({
-          title: "MLM Booster",
+          title: "MLM LIVE",
           text: "Check this out!",
           files: [file],
         });

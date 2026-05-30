@@ -119,14 +119,14 @@ export function Login() {
 
         <div className="relative z-10 flex flex-col items-center justify-center h-full gap-4 px-6">
           <div className="w-20 h-20 bg-white rounded-[20px] shadow-2xl flex items-center justify-center border-2 border-white/20 p-2">
-            <img src={logo} alt="MLM Booster" className="w-full h-full object-contain" />
+            <img src={logo} alt="MLM LIVE" className="w-full h-full object-contain" />
           </div>
           <div className="text-center">
             <h1 className="text-white font-display font-bold text-2xl leading-tight">
               Welcome Back
             </h1>
             <p className="text-white/70 text-sm mt-1 font-medium">
-              Sign in to continue to MLM Booster
+              Sign in to continue to MLM LIVE
             </p>
           </div>
         </div>

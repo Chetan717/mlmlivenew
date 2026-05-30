@@ -1,4 +1,4 @@
-# MLM Booster — Frontend
+# MLM LIVE — Frontend
 
 A mobile-first React + Vite app for creating, customizing, and sharing branded
 marketing images. This package contains **only the frontend UI** (React + Vite),

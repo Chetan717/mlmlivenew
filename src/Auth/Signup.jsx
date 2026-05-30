@@ -164,7 +164,7 @@ export function Signup() {
   };
 
   const stepTitles = ["", "Create Account", "Verify OTP"];
-  const stepSubs = ["", "Join MLM Booster today", `OTP sent to +91 ${userMobile}`];
+  const stepSubs = ["", "Join MLM LIVE today", `OTP sent to +91 ${userMobile}`];
 
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-hidden">
@@ -177,7 +177,7 @@ export function Signup() {
 
         <div className="relative z-10 flex flex-col items-center justify-center h-full gap-3 px-6">
           <div className="w-16 h-16 bg-white rounded-[18px] shadow-2xl flex items-center justify-center border-2 border-white/20 p-2">
-            <img src={logo} alt="MLM Booster" className="w-full h-full object-contain" />
+            <img src={logo} alt="MLM LIVE" className="w-full h-full object-contain" />
           </div>
           <div className="text-center">
             <h1 className="text-white font-display font-bold text-2xl leading-tight">

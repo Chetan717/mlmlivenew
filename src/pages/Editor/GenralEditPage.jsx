@@ -3270,7 +3270,7 @@ function GeneralEditPage({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-1">
+            {/* <div className="flex items-center justify-between mb-1">
               <h3 className="text-base font-bold text-foreground">Add Music</h3>
               <button
                 onClick={() => setMusicModalOpen(false)}
@@ -3289,13 +3289,13 @@ function GeneralEditPage({
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">
+            </div> */}
+            {/* <p className="text-xs text-muted-foreground mb-4">
               Tracks are trimmed to 20 seconds for a quick, lightweight video.
-            </p>
+            </p> */}
 
-            {/* Currently selected */}
-            {selectedMusic && (
+          
+            {/* {selectedMusic && (
               <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-2xl bg-green-500/10 border border-green-500/30">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500 text-white flex-shrink-0">
@@ -3325,10 +3325,10 @@ function GeneralEditPage({
                   Remove
                 </button>
               </div>
-            )}
+            )} */}
 
-            {/* Upload from device */}
-            <button
+         
+            {/* <button
               onClick={() => musicInputRef.current?.click()}
               disabled={deviceLoading}
               className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors mb-4 ${
@@ -3385,15 +3385,13 @@ function GeneralEditPage({
                     : "Pick an audio file from your phone"}
                 </span>
               </span>
-            </button>
-
-            {/* Preset tracks */}
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            </button> */}
+            {/* <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Choose a track
-            </div>
+            </div> */}
             {PRESET_AUDIOS.length === 0 ? (
               <div className="text-sm text-muted-foreground text-center py-6 px-3 rounded-2xl border border-dashed border-border">
-                More tracks coming soon.
+                Music Feature coming soon!.
               </div>
             ) : (
               <div className="flex flex-col gap-2">

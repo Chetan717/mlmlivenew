@@ -30,7 +30,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
   try { selectedCompany = JSON.parse(localStorage.getItem("selectedCompany") || "null"); } catch {}
   try { selectedProfile = JSON.parse(localStorage.getItem("mlmProfile")      || "null"); } catch {}
 
-  const companyName = selectedCompany?.name || selectedProfile?.companyName || "MLM Booster";
+  const companyName = selectedCompany?.name || selectedProfile?.companyName || "MLM LIVE";
   const companyLogo = selectedCompany?.logos?.[0]?.link || selectedProfile?.logoURLs?.[0] || "";
   const fullName    = selectedProfile?.fullName || "";
   const mobile      = selectedProfile?.mobile   || "";

@@ -111,7 +111,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
           className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
         >
           <ArrowRotateLeft
-            className={`size-[17px] text-muted-foreground transition-transform duration-500 ${refreshing ? "animate-spin" : ""}`}
+            className={`size-[17px] text-accent dark:text-white transition-transform duration-500 ${refreshing ? "animate-spin" : ""}`}
           />
         </button>
 
@@ -124,7 +124,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
           {isDark ? (
             <Sun className="size-[18px] text-yellow-400" />
           ) : (
-            <Moon className="size-[18px] text-muted-foreground" />
+            <Moon className="size-[18px] text-accent" />
           )}
         </button>
 
@@ -135,7 +135,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
             className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
             title="Banner Settings"
           >
-            <Gear className="size-[18px] text-accent" />
+            <Gear className="size-[18px] text-accent dark:text-white" />
           </button>
         )}
       </div>
