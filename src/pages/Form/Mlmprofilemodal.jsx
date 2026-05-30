@@ -19,7 +19,7 @@ import {
 } from "firebase/storage";
 import MultiImagePicker from "./MultiImagePicker";
 import { ImageEditorCanvas } from "./ImageEditorCanvas";
-import { toast, Button } from "@heroui/react";
+import { toast, Button, Switch } from "@heroui/react";
 import { useNavigate } from "react-router";
 import photoupload from "./photoupload.png";
 const storage = getStorage(app);
@@ -1102,57 +1102,25 @@ export default function MLMProfilePage() {
               </label>
 
               {/* Show Topupline Images */}
-              <div>
-                <p className="text-sm font-medium text-foreground/70 mb-2">Show Topupline Images</p>
-                <div className="flex gap-3">
-                  {["yes", "no"].map((val) => (
-                    <label
-                      key={val}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 cursor-pointer transition font-medium text-sm capitalize ${
-                        showTopuplineImages === val
-                          ? "border-accent bg-accent/10 text-accent"
-                          : "border-border bg-muted/20 text-muted-foreground hover:border-accent"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="topuplineradio"
-                        value={val}
-                        checked={showTopuplineImages === val}
-                        onChange={() => handleShowTopuplineChange(val)}
-                        className="accent-accent"
-                      />
-                      {val === "yes" ? "Yes" : "No"}
-                    </label>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground/70">Show Topupline Images</p>
+                <Switch
+                  isSelected={showTopuplineImages === "yes"}
+                  onValueChange={(checked) => handleShowTopuplineChange(checked ? "yes" : "no")}
+                  color="success"
+                  size="sm"
+                />
               </div>
 
               {/* Show Company Logo */}
-              <div>
-                <p className="text-sm font-medium text-foreground/70 mb-2">Show Company Logo</p>
-                <div className="flex gap-3">
-                  {["yes", "no"].map((val) => (
-                    <label
-                      key={val}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 cursor-pointer transition font-medium text-sm capitalize ${
-                        showCompanyLogo === val
-                          ? "border-accent bg-accent/10 text-accent"
-                          : "border-border bg-muted/20 text-muted-foreground hover:border-accent"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="companylogoradio"
-                        value={val}
-                        checked={showCompanyLogo === val}
-                        onChange={() => handleShowCompanyLogoChange(val)}
-                        className="accent-accent"
-                      />
-                      {val === "yes" ? "Yes" : "No"}
-                    </label>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground/70">Show Company Logo</p>
+                <Switch
+                  isSelected={showCompanyLogo === "yes"}
+                  onValueChange={(checked) => handleShowCompanyLogoChange(checked ? "yes" : "no")}
+                  color="success"
+                  size="sm"
+                />
               </div>
             </div>
           )}

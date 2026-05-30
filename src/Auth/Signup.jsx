@@ -54,7 +54,7 @@ export function Signup() {
     await axios({
       method: "get",
       maxBodyLength: Infinity,
-      url: `https://2factor.in/API/V1/3b24364e-e422-11ee-8cbb-0200cd936042/SMS/${"91" + phoneNumber}/${otp}/MLMBOOSTER`,
+      url: `https://2factor.in/API/V1/${import.meta.env.VITE_TWOFACTOR_API_KEY}/SMS/${"91" + phoneNumber}/${otp}/MLMBOOSTER`,
       headers: {},
     });
     return otp;

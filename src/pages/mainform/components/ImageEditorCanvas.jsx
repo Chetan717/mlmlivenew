@@ -3,13 +3,11 @@ import { useState, useRef, useCallback, useEffect } from "react";
 // ── Helpers ───────────────────────────────────────────────────────
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
-// "cover" fit — image fully covers the box (may overflow on one axis)
 function coverDims(imgW, imgH, boxW, boxH) {
   const ia = imgW / imgH, ba = boxW / boxH;
   return ia > ba ? { dw: boxH * ia, dh: boxH } : { dw: boxW, dh: boxW / ia };
 }
 
-// Fixed crop frame — centred inside the canvas, locked to `ratio`
 function computeFrame(canvasW, canvasH, ratio) {
   const MARGIN = 0.92;
   let fw = canvasW * MARGIN;
@@ -21,6 +19,12 @@ function computeFrame(canvasW, canvasH, ratio) {
 function getSelType() {
   try { return JSON.parse(localStorage.getItem("selType")) || {}; }
   catch { return {}; }
+}
+
+function getTouchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -35,7 +39,6 @@ export default function ImageEditorCanvas({
   const [currentSrc,   setCurrentSrc]   = useState(src);
   const [reopenedOnce, setReopenedOnce] = useState(false);
 
-  // ── Ratio logic (FIXED crop ratio) ────────────────────────────
   const selll  = getSelType();
   const isAchv = selll?.type === "Achievements";
 
@@ -45,11 +48,11 @@ export default function ImageEditorCanvas({
     editingType === "main"    ? 2 / 1 :
                                 2 / 2.5;
 
-  // ── Refs ──────────────────────────────────────────────────────
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
   const imgRef       = useRef(null);
   const dragRef      = useRef(null);
+  const pinchRef     = useRef(null);
   const rafRef       = useRef(null);
 
   const [canvasW, setCanvasW] = useState(300);
@@ -72,16 +75,12 @@ export default function ImageEditorCanvas({
     return () => ro.disconnect();
   }, [ASPECT_RATIO]);
 
-  // ── Core state ────────────────────────────────────────────────
   const [rotation, setRotation] = useState(0);
   const [flipH,    setFlipH]    = useState(false);
   const [flipV,    setFlipV]    = useState(false);
-  // zoom: 100 = image exactly covers the frame; up to 300 = 3× zoom-in
   const [zoom,     setZoom]     = useState(100);
   const [tab,      setTab]      = useState("crop");
 
-  // Image pan offset, normalised to the crop frame (x: fraction of fw, y: fraction of fh).
-  // Lives in a ref for zero-lag dragging + state for reset-driven re-renders.
   const offsetRef = useRef({ x: 0, y: 0 });
   const [offset, _setOffset] = useState({ x: 0, y: 0 });
   const setOffset = useCallback((val) => {
@@ -90,7 +89,6 @@ export default function ImageEditorCanvas({
     _setOffset(next);
   }, []);
 
-  // Mirror mutable values in refs so draw() never reads stale state
   const rotationRef = useRef(0);
   const flipHRef    = useRef(false);
   const flipVRef    = useRef(false);
@@ -106,22 +104,20 @@ export default function ImageEditorCanvas({
     setReopenedOnce(false);
     offsetRef.current = { x: 0, y: 0 };
     _setOffset({ x: 0, y: 0 });
-    setRotation(0); setFlipH(false); setFlipV(false); setZoom(100);
+    rotationRef.current = 0; setRotation(0);
+    flipHRef.current = false; setFlipH(false);
+    flipVRef.current = false; setFlipV(false);
+    zoomRef.current = 100; setZoom(100);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  // ── Geometry used by both draw() and export ───────────────────
-  // Returns the displayed image size + clamped pan (in px) for a given frame.
   const computeLayout = (img, fw, fh, rotation, zoomVal, offNorm) => {
     const rot90 = rotation % 180 !== 0;
-    // Draw box keeps the true image aspect, but must cover the frame as seen
-    // AFTER rotation — so at 90°/270° we cover the swapped (fh × fw) box.
     const boxW = rot90 ? fh : fw;
     const boxH = rot90 ? fw : fh;
     const cover = coverDims(img.naturalWidth, img.naturalHeight, boxW, boxH);
     const dw = cover.dw * (zoomVal / 100);
     const dh = cover.dh * (zoomVal / 100);
-    // On-screen footprint (post-rotation): width/height swap at 90°/270°
     const screenW = rot90 ? dh : dw;
     const screenH = rot90 ? dw : dh;
     const maxPanX = Math.max(0, (screenW - fw) / 2);
@@ -131,7 +127,6 @@ export default function ImageEditorCanvas({
     return { dw, dh, panX, panY, maxPanX, maxPanY };
   };
 
-  // ── Draw — reads ONLY from refs ───────────────────────────────
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const img    = imgRef.current;
@@ -158,7 +153,6 @@ export default function ImageEditorCanvas({
     const { fw, fh, fx, fy } = computeFrame(cw, ch, ASPECT_RATIO);
     const { dw, dh, panX, panY } = computeLayout(img, fw, fh, rotation, zoomVal, offsetRef.current);
 
-    // Draw image: centred on the (centred) frame + pan, rotated + flipped
     ctx.save();
     ctx.translate(cw / 2 + panX, ch / 2 + panY);
     ctx.rotate((rotation * Math.PI) / 180);
@@ -166,7 +160,6 @@ export default function ImageEditorCanvas({
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    // Dim everything outside the fixed frame
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, 0, cw, fy);
@@ -174,12 +167,10 @@ export default function ImageEditorCanvas({
     ctx.fillRect(0, fy, fx, fh);
     ctx.fillRect(fx + fw, fy, cw - fx - fw, fh);
 
-    // Frame border
     ctx.strokeStyle = "rgba(255,255,255,0.9)";
     ctx.lineWidth = 1.6;
     ctx.strokeRect(fx, fy, fw, fh);
 
-    // Rule-of-thirds grid
     ctx.strokeStyle = "rgba(255,255,255,0.28)";
     ctx.lineWidth = 0.8;
     for (let i = 1; i < 3; i++) {
@@ -187,7 +178,6 @@ export default function ImageEditorCanvas({
       ctx.beginPath(); ctx.moveTo(fx, fy + (fh / 3) * i); ctx.lineTo(fx + fw, fy + (fh / 3) * i); ctx.stroke();
     }
 
-    // L-bracket corners
     const BL = 16, BT = 3;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = BT;
@@ -201,7 +191,6 @@ export default function ImageEditorCanvas({
     ctx.restore();
   }, [ASPECT_RATIO]);
 
-  // ── Schedule a single rAF draw (deduplicated) ─────────────────
   const scheduleDraw = useCallback(() => {
     if (rafRef.current) return;
     rafRef.current = requestAnimationFrame(() => {
@@ -210,10 +199,14 @@ export default function ImageEditorCanvas({
     });
   }, [draw]);
 
-  // ── Load image ────────────────────────────────────────────────
+  // ── Load image — always start centered at cover zoom ──────────
   useEffect(() => {
     if (!currentSrc) return;
     imgRef.current = null;
+    offsetRef.current = { x: 0, y: 0 };
+    _setOffset({ x: 0, y: 0 });
+    zoomRef.current = 100;
+    setZoom(100);
     const img = new Image();
     img.crossOrigin = "anonymous";
     let objectUrl = null;
@@ -227,12 +220,11 @@ export default function ImageEditorCanvas({
     };
   }, [currentSrc, scheduleDraw]);
 
-  // Re-draw whenever state-driven values change (not during drag)
   useEffect(() => {
     if (imgRef.current) scheduleDraw();
   }, [rotation, flipH, flipV, zoom, offset, canvasW, canvasH, scheduleDraw]);
 
-  // ── Pointer helpers — drag pans the IMAGE, frame stays fixed ──
+  // ── Pointer helpers ───────────────────────────────────────────
   const normPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -242,32 +234,52 @@ export default function ImageEditorCanvas({
 
   const onDown = (e) => {
     e.preventDefault();
+    if (e.touches && e.touches.length >= 2) {
+      pinchRef.current = { dist: getTouchDist(e.touches), zoom0: zoomRef.current };
+      dragRef.current = null;
+      return;
+    }
+    pinchRef.current = null;
     const { nx, ny } = normPos(e);
     dragRef.current = { sx: nx, sy: ny, oc: { ...offsetRef.current } };
     if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
   };
 
   const onMove = (e) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current && !pinchRef.current) return;
     e.preventDefault();
+    // Pinch-to-zoom (two fingers)
+    if (e.touches && e.touches.length >= 2 && pinchRef.current) {
+      const newDist = getTouchDist(e.touches);
+      const scale = newDist / pinchRef.current.dist;
+      const newZoom = clamp(Math.round(pinchRef.current.zoom0 * scale), 100, 300);
+      zoomRef.current = newZoom;
+      setZoom(newZoom);
+      scheduleDraw();
+      return;
+    }
+    if (!dragRef.current) return;
     const { nx, ny } = normPos(e);
     const { sx, sy, oc } = dragRef.current;
     const { w: cw, h: ch } = canvasSizeRef.current;
     const { fw, fh } = computeFrame(cw, ch, ASPECT_RATIO);
 
-    // pointer delta (px) → frame-normalised offset delta
     const dFracX = ((nx - sx) * cw) / fw;
     const dFracY = ((ny - sy) * ch) / fh;
     offsetRef.current = { x: oc.x + dFracX, y: oc.y + dFracY };
     scheduleDraw();
   };
 
-  const onUp = () => {
+  const onUp = (e) => {
+    if (e && e.touches && e.touches.length > 0) {
+      if (e.touches.length < 2) pinchRef.current = null;
+      return;
+    }
+    pinchRef.current = null;
     if (!dragRef.current) return;
     dragRef.current = null;
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
 
-    // Re-clamp the stored offset against the current zoom, then sync to state
     const img = imgRef.current;
     if (img) {
       const { w: cw, h: ch } = canvasSizeRef.current;
@@ -278,7 +290,7 @@ export default function ImageEditorCanvas({
     _setOffset({ ...offsetRef.current });
   };
 
-  // ── Export — render the fixed frame contents at high resolution ─
+  // ── Export ────────────────────────────────────────────────────
   const handleDone = () => {
     const img = imgRef.current;
     if (!img) return;
@@ -288,7 +300,6 @@ export default function ImageEditorCanvas({
     const flipV    = flipVRef.current;
     const zoomVal  = zoomRef.current;
 
-    // Output frame dimensions keep the locked aspect ratio
     const TARGET = 1080;
     const outW = ASPECT_RATIO >= 1 ? TARGET : Math.round(TARGET * ASPECT_RATIO);
     const outH = ASPECT_RATIO >= 1 ? Math.round(TARGET / ASPECT_RATIO) : TARGET;
@@ -387,7 +398,7 @@ export default function ImageEditorCanvas({
         )}
         {tab === "crop" && (
           <div style={{ padding:"7px 8px", textAlign:"center", fontSize:12, color:"#888" }}>
-            Drag the photo to reposition · frame is fixed
+            Drag to reposition · Pinch to zoom · Frame is fixed
           </div>
         )}
       </div>

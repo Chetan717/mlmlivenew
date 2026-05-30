@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   FieldError,
@@ -21,10 +21,17 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [pin, setPin] = useState("");
+  const [lockout, setLockout] = useState(0);
+  const failCountRef = useRef(0);
 
   const onSubmit = async (e) => {
     e.preventDefault();
 
+    if (lockout > Date.now()) {
+      const secs = Math.ceil((lockout - Date.now()) / 1000);
+      setFormError(`Too many failed attempts. Try again in ${secs}s.`);
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     const data = {};
     formData.forEach((value, key) => {
@@ -64,9 +71,19 @@ export function Login() {
       }
 
       if (userData.password !== pin) {
-        setFormError("Incorrect PIN. Please try again.");
+        failCountRef.current += 1;
+        if (failCountRef.current >= 5) {
+          const until = Date.now() + 30_000;
+          setLockout(until);
+          failCountRef.current = 0;
+          setFormError("Too many failed attempts. Please wait 30 seconds.");
+        } else {
+          setFormError(`Incorrect PIN. Please try again. (${failCountRef.current}/5)`);
+        }
         return;
       }
+      failCountRef.current = 0;
+      setLockout(0);
 
       const userToStore = {
         id: userDoc.id,
