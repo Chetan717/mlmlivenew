@@ -162,7 +162,7 @@ export default function SelectComp() {
                         className="w-full h-full object-contain rounded-xl"
                         src={getLogo(item)}
                         alt={item.name}
-                        loading="lazy"
+                        
                       />
                     </div>
                     

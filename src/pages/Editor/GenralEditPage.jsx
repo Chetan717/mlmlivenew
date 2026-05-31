@@ -1214,7 +1214,7 @@ function GeneralEditPage({
   const incomeDay = incomeFormData?.noOfDay || "";
   const incomeType = incomeFormData?.typeOfIncome || "";
 
-  const [bgImage] = useImage(`${selected?.url || ""}`, "anonymous");
+  const [bgImage, bgStatus] = useImage(`${selected?.url || ""}`, "anonymous");
 
   // A video template selected from the Video tab carries a videoUrl. When one
   // is selected we play it on the canvas (same crossOrigin "anonymous" as images).
@@ -2153,6 +2153,29 @@ function GeneralEditPage({
         className="relative mt-2 flex-shrink-0"
         style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT }}
       >
+        {/* ── Canvas loading skeleton ── */}
+        {bgStatus === "loading" && (
+          <div
+            className="absolute inset-0 z-1  overflow-hidden pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)",
+              backgroundSize: "400% 100%",
+              animation: "canvasShimmer 1.4s ease infinite",
+            }}
+          >
+            <style>{`
+              @keyframes canvasShimmer {
+                0%   { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+              }
+            `}</style>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/40 animate-pulse" />
+              <div className="h-2.5 w-24 rounded-full bg-white/40 animate-pulse" />
+            </div>
+          </div>
+        )}
         <Stage
           ref={stageRef}
           width={STAGE_WIDTH}

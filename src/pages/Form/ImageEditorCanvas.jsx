@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { Button } from "@heroui/react";
 
 // ── Constants ─────────────────────────────────────────────────────
 const CW = 300;
@@ -40,6 +41,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
   const [flipV,    setFlipV]    = useState(false);
   const [zoom,     setZoom]     = useState(100);
   const [tab,      setTab]      = useState("crop");
+  const [isDoing,  setIsDoing]  = useState(false);
 
   const offsetRef = useRef({ x: 0, y: 0 });
   const [offset, _setOffset] = useState({ x: 0, y: 0 });
@@ -153,6 +155,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     _setOffset({ x: 0, y: 0 });
     zoomRef.current = 100;
     setZoom(100);
+    setIsDoing(false);
     const img = new Image();
     img.crossOrigin = "anonymous";
     let objectUrl = null;
@@ -188,7 +191,6 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
 
   const onMove = (e) => {
     e.preventDefault();
-    // Pinch-to-zoom (two fingers)
     if (e.touches && e.touches.length >= 2 && pinchRef.current) {
       const newDist = getTouchDist(e.touches);
       const scale = newDist / pinchRef.current.dist;
@@ -228,8 +230,11 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
 
   // ── Export ────────────────────────────────────────────────────
   const handleDone = () => {
+    if (isDoing) return;
     const img = imgRef.current;
     if (!img) return;
+
+    setIsDoing(true);
 
     const rotation = rotationRef.current;
     const flipH    = flipHRef.current;
@@ -254,7 +259,10 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    out.toBlob((blob) => onDone(blob), "image/png");
+    out.toBlob((blob) => {
+      setIsDoing(false);
+      onDone(blob);
+    }, "image/png");
   };
 
   // ── Tabs ──────────────────────────────────────────────────────
@@ -286,8 +294,37 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
         padding: "7px 10px",
         borderBottom: "1px solid #2c2c2c",
       }}>
-        <button onTouchStart={onCancel} onClick={onCancel} style={{ background:"none", border:"none", color:"#fff", fontSize:14, cursor:"pointer", padding:"4px 8px" }}>✕</button>
-        <button onTouchStart={handleDone} onClick={handleDone} style={{ background:"none", border:"none", color:"#f97316", fontSize:14, fontWeight:700, cursor:"pointer", padding:"4px 8px" }}>Done</button>
+        <button
+          onClick={onCancel}
+          style={{ background:"none", border:"none", color:"#fff", fontSize:14, cursor:"pointer", padding:"4px 8px", touchAction:"manipulation" }}
+        >✕</button>
+
+        <Button
+          onPress={handleDone}
+          isLoading={isDoing}
+          isDisabled={isDoing}
+          size="sm"
+          style={{
+            background: isDoing ? "rgba(249,115,22,0.15)" : "linear-gradient(135deg,#ea580c,#f97316)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14,
+            borderRadius: 12,
+            minWidth: 72,
+            minHeight: 36,
+            border: "none",
+            touchAction: "manipulation",
+          }}
+          spinner={
+            <span style={{
+              display: "inline-block", width: 14, height: 14,
+              border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff",
+              borderRadius: "50%", animation: "spin 0.7s linear infinite",
+            }} />
+          }
+        >
+          {isDoing ? "Saving…" : "Done"}
+        </Button>
       </div>
 
       {/* ── Canvas ── */}
@@ -359,6 +396,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
         <style>{`
           input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:5px;height:28px;background:#f97316;border-radius:3px;cursor:pointer;}
           input[type=range]::-webkit-slider-runnable-track{background:transparent;height:36px;}
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </div>
 

@@ -1,22 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@firebase-config";
-import lazyloadImage from "../../../lazyi.webp";
 
 const BATCH_SIZE = 20;
 
-// Sample background videos shown in the "Video" tab when no Firebase video
-// templates exist yet. Public Wikimedia Commons clips (CORS-enabled), so they
-// play on the Konva canvas with crossOrigin "anonymous" without tainting it.
-const PRESET_VIDEO_ITEMS = [
-  // {
-  //   id: "sample-video-physics",
-  //   name: "Physics Demo",
-  //   videoUrl:
-  //     "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c4/Physicsworks.ogv/Physicsworks.ogv.240p.vp9.webm",
-  // },
-  
-];
+const PRESET_VIDEO_ITEMS = [];
 
 function getSelType() {
   try { return JSON.parse(localStorage.getItem("selType")) || {}; }
@@ -29,26 +17,57 @@ function cleanItem(item) {
   return clean;
 }
 
-/* ── LazyImage ──────────────────────────────────────────────────────────── */
+/* ── LazyImage — IntersectionObserver + CSS shimmer skeleton ────────────── */
 function LazyImage({ src, alt }) {
   const wrapperRef = useRef(null);
   const [realSrc, setRealSrc] = useState(null);
-  const [loaded, setLoaded]   = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setRealSrc(src); observer.disconnect(); }
-    }, { rootMargin: "150px" });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRealSrc(src);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, [src]);
 
   return (
-    <div ref={wrapperRef} className="relative w-full h-full">
-      <img src={lazyloadImage} alt="" aria-hidden className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-0" : "opacity-100"}`} />
-      {realSrc && <img src={realSrc} alt={alt} onLoad={() => setLoaded(true)} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`} />}
+    <div ref={wrapperRef} className="absolute inset-0 w-full h-full overflow-hidden">
+      {/* Shimmer skeleton shown until the real image loads */}
+      {!loaded && (
+        <div
+          className="absolute inset-0 bg-muted/40"
+          style={{
+            background: "linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 37%,#e8e8e8 63%)",
+            backgroundSize: "400% 100%",
+            animation: "shimmerSlide 1.2s ease infinite",
+          }}
+        />
+      )}
+      {realSrc && (
+        <img
+          src={realSrc}
+          alt={alt}
+          onLoad={() => setLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
+            loaded ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      )}
+      <style>{`
+        @keyframes shimmerSlide {
+          0%   { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -87,8 +106,23 @@ function LoadingGrid() {
   return (
     <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="aspect-square rounded-xl bg-muted/40 animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
+        <div
+          key={i}
+          className="aspect-square rounded-xl overflow-hidden"
+          style={{
+            background: "linear-gradient(90deg,#e8e8e8 25%,#f5f5f5 37%,#e8e8e8 63%)",
+            backgroundSize: "400% 100%",
+            animation: `shimmerSlide 1.2s ease infinite`,
+            animationDelay: `${i * 50}ms`,
+          }}
+        />
       ))}
+      <style>{`
+        @keyframes shimmerSlide {
+          0%   { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -170,15 +204,15 @@ export default function ListOfTemplates({ selected, setSelected }) {
   const filterType    = selType?.type || "";
   const filterSubType = selType?.Subtype || "";
 
-  const [allItems, setAllItems]       = useState([]);
+  const [allItems, setAllItems]         = useState([]);
   const [visibleItems, setVisibleItems] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [loadingMore, setLoadingMore]   = useState(false);
   const [error, setError]               = useState(null);
-  const [activeTab, setActiveTab]       = useState("image"); // "image" | "video"
+  const [activeTab, setActiveTab]       = useState("image");
 
-  const sentinelRef    = useRef(null);
-  const renderedCount  = useRef(0);
+  const sentinelRef   = useRef(null);
+  const renderedCount = useRef(0);
 
   /* ── Fetch ── */
   useEffect(() => {
@@ -227,8 +261,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
         setAllItems(filteredItems);
         renderedCount.current = 0;
 
-        // Auto-select the first item of the ACTIVE tab, but never clobber a
-        // selection the user already made (e.g. switched to Video while loading).
         setSelected((prev) => {
           if (prev) return prev;
           const imgs = filteredItems.filter((i) => !i.videoUrl && !i.VideoUrl);
@@ -255,12 +287,10 @@ export default function ListOfTemplates({ selected, setSelected }) {
   }, [filterType, filterSubType]);
 
   /* ── Tab-filtered items ── */
-  const imageItems = allItems.filter((item) => !item.videoUrl && !item.VideoUrl);
+  const imageItems   = allItems.filter((item) => !item.videoUrl && !item.VideoUrl);
   const fbVideoItems = allItems.filter((item) => !!(item.videoUrl || item.VideoUrl));
-  // Fall back to the bundled sample clips until real video templates exist.
-  const videoItems = fbVideoItems.length > 0 ? fbVideoItems : PRESET_VIDEO_ITEMS;
-
-  const tabItems = activeTab === "video" ? videoItems : imageItems;
+  const videoItems   = fbVideoItems.length > 0 ? fbVideoItems : PRESET_VIDEO_ITEMS;
+  const tabItems     = activeTab === "video" ? videoItems : imageItems;
 
   /* ── Visible items derived from tabItems ── */
   const [visibleTabItems, setVisibleTabItems] = useState([]);
@@ -299,17 +329,12 @@ export default function ListOfTemplates({ selected, setSelected }) {
   const handleTab = (tab) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
-    // Switching tabs swaps the canvas to that tab's first item — first video
-    // when entering Video, first image when entering Image — keeping image and
-    // video selection mutually exclusive (selecting one clears the other).
     const items = tab === "video" ? videoItems : imageItems;
     setSelected(items.length > 0 ? cleanItem(items[0]) : null);
   };
 
   const handleSelect = (item) => {
     const already = selected?.id === item.id;
-    // Re-tapping the selected item reverts to the first item of the CURRENT tab
-    // (don't jump back to an image while browsing videos).
     setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
   };
 

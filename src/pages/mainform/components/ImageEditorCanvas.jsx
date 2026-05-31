@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { Button } from "@heroui/react";
 
 // ── Helpers ───────────────────────────────────────────────────────
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
@@ -38,6 +39,7 @@ export default function ImageEditorCanvas({
 }) {
   const [currentSrc,   setCurrentSrc]   = useState(src);
   const [reopenedOnce, setReopenedOnce] = useState(false);
+  const [isDoing,      setIsDoing]      = useState(false);
 
   const selll  = getSelType();
   const isAchv = selll?.type === "Achievements";
@@ -102,6 +104,7 @@ export default function ImageEditorCanvas({
   useEffect(() => {
     setCurrentSrc(src);
     setReopenedOnce(false);
+    setIsDoing(false);
     offsetRef.current = { x: 0, y: 0 };
     _setOffset({ x: 0, y: 0 });
     rotationRef.current = 0; setRotation(0);
@@ -248,7 +251,6 @@ export default function ImageEditorCanvas({
   const onMove = (e) => {
     if (!dragRef.current && !pinchRef.current) return;
     e.preventDefault();
-    // Pinch-to-zoom (two fingers)
     if (e.touches && e.touches.length >= 2 && pinchRef.current) {
       const newDist = getTouchDist(e.touches);
       const scale = newDist / pinchRef.current.dist;
@@ -292,8 +294,11 @@ export default function ImageEditorCanvas({
 
   // ── Export ────────────────────────────────────────────────────
   const handleDone = () => {
+    if (isDoing) return;
     const img = imgRef.current;
     if (!img) return;
+
+    setIsDoing(true);
 
     const rotation = rotationRef.current;
     const flipH    = flipHRef.current;
@@ -321,9 +326,17 @@ export default function ImageEditorCanvas({
     out.toBlob((blob) => {
       onDone(blob);
       if (isAchv) {
-        if (!reopenedOnce) { setReopenedOnce(true); setCurrentSrc(blob); return; }
-        setOpen(false); return;
+        if (!reopenedOnce) {
+          setReopenedOnce(true);
+          setCurrentSrc(blob);
+          setIsDoing(false);
+          return;
+        }
+        setIsDoing(false);
+        setOpen(false);
+        return;
       }
+      setIsDoing(false);
       setOpen(false);
     }, "image/png");
   };
@@ -356,18 +369,39 @@ export default function ImageEditorCanvas({
       {/* ── Top bar ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 16px", borderBottom: "1px solid #2c2c2c", flexShrink: 0,
+        padding: "8px 12px", borderBottom: "1px solid #2c2c2c", flexShrink: 0,
       }}>
         <button
-          onTouchStart={(e) => { e.preventDefault(); onCancelClick(); }}
           onClick={onCancelClick}
           style={{ background:"none", border:"none", color:"#aaa", fontSize:15, cursor:"pointer", padding:"8px 12px", minWidth:44, minHeight:44, touchAction:"manipulation" }}
         >✕</button>
-        <button
-          onTouchStart={(e) => { e.preventDefault(); handleDone(); }}
-          onClick={handleDone}
-          style={{ background:"none", border:"none", color:"#f97316", fontSize:15, fontWeight:700, cursor:"pointer", padding:"8px 12px", minWidth:44, minHeight:44, touchAction:"manipulation" }}
-        >Done</button>
+
+        <Button
+          onPress={handleDone}
+          isLoading={isDoing}
+          isDisabled={isDoing}
+          size="sm"
+          style={{
+            background: isDoing ? "rgba(249,115,22,0.15)" : "linear-gradient(135deg,#ea580c,#f97316)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14,
+            borderRadius: 12,
+            minWidth: 72,
+            minHeight: 36,
+            border: "none",
+            touchAction: "manipulation",
+          }}
+          spinner={
+            <span style={{
+              display: "inline-block", width: 14, height: 14,
+              border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff",
+              borderRadius: "50%", animation: "spin 0.7s linear infinite",
+            }} />
+          }
+        >
+          {isDoing ? "Saving…" : "Done"}
+        </Button>
       </div>
 
       {/* ── Canvas ── */}
@@ -439,6 +473,7 @@ export default function ImageEditorCanvas({
         <style>{`
           input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:5px;height:26px;background:#f97316;border-radius:3px;cursor:pointer;}
           input[type=range]::-webkit-slider-runnable-track{background:transparent;height:34px;}
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </div>
 

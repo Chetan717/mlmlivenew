@@ -21,7 +21,18 @@ const TYPE_GROUPS = [
   ],
 ];
 
-// Helper to normalize a Firestore doc into the template shape
+// ── Module-level cache — survives component unmount/remount ──────────────────
+// Key: groupIndex (number), Value: array of group objects
+const _cache = new Map();
+
+export function getTemplateCache() {
+  return _cache;
+}
+
+export function clearTemplateCache() {
+  _cache.clear();
+}
+
 const normalizeDoc = (doc) => ({
   id: doc.id,
   image: doc.data().Showcase_url,
@@ -31,8 +42,13 @@ const normalizeDoc = (doc) => ({
   serial: doc.data().serial,
 });
 
-// ✅ No companyName parameter — fetched internally
 export const fetchGeneralTemplates = async (groupIndex, company) => {
+  // Return from cache if already fetched
+  const cacheKey = `${groupIndex}__${company || ""}`;
+  if (_cache.has(cacheKey)) {
+    return _cache.get(cacheKey);
+  }
+
   try {
     const selectedTypes = TYPE_GROUPS[groupIndex];
     if (!selectedTypes) return [];
@@ -40,7 +56,6 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
     const result = [];
 
     for (const type of selectedTypes) {
-      // ── 1. Fetch General templates ────────────────────────────────────────
       const generalQuery = query(
         collection(db, "mlmtemplate"),
         where("MainType", "==", "General"),
@@ -53,9 +68,7 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
       const generalSnapshot = await getDocs(generalQuery);
       const generalTemplates = generalSnapshot.docs.map(normalizeDoc);
 
-      // ── 2. Fetch MLM (company-specific) templates ─────────────────────────
       let mlmTemplates = [];
-
       if (company) {
         const mlmQuery = query(
           collection(db, "mlmtemplate"),
@@ -66,20 +79,14 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
           where("Launched", "==", true),
           orderBy("serial"),
         );
-
         const mlmSnapshot = await getDocs(mlmQuery);
         mlmTemplates = mlmSnapshot.docs.map(normalizeDoc);
       }
 
-      // ── 3. Merge: MLM first, then General ─────────────────────────────────
-      const merged = [...mlmTemplates, ...generalTemplates];
-
-      result.push({
-        type,
-        templates: merged,
-      });
+      result.push({ type, templates: [...mlmTemplates, ...generalTemplates] });
     }
 
+    _cache.set(cacheKey, result);
     return result;
   } catch (error) {
     console.error("General fetch error:", error);

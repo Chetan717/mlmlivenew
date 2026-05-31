@@ -92,7 +92,7 @@ export default function Carosel() {
               onClick={() => handleImagePress(item)}
               alt="trending template"
               className="relative z-20 w-full h-full object-contain hover:scale-105 transition-transform duration-700 ease-out"
-              loading="lazy"
+              
             />
             {/* Optional overlay indicator for clickability */}
             <div className="absolute inset-0 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none bg-black/10 backdrop-blur-[1px]">

@@ -4,9 +4,13 @@ import { useNavigate } from "react-router";
 import { ArrowUpRight, Sparkles } from "@gravity-ui/icons";
 import { clearTemplateCache, preloadImage } from "./templateCacheUtils";
 
+// ── Module-level set: tracks images loaded at least once this session ────────
+// Survives component unmount/remount so returning to home never re-shows skeleton
+const _seenImages = new Set();
+
 // ── Image with skeleton placeholder ──────────────────────────────────────────
 const ImageWithSkeleton = React.memo(({ src, alt, className, style }) => {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(() => _seenImages.has(src));
   return (
     <div className="relative w-full h-full">
       {!loaded && (
@@ -22,8 +26,8 @@ const ImageWithSkeleton = React.memo(({ src, alt, className, style }) => {
         alt={alt}
         className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         style={style}
-        onLoad={() => setLoaded(true)}
-        loading="lazy"
+        onLoad={() => { _seenImages.add(src); setLoaded(true); }}
+        
       />
     </div>
   );
@@ -118,7 +122,7 @@ const TemplateCard = React.memo(({ card, isSelected, onSelect }) => (
       src={card.image}
       alt="template"
       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-      loading="lazy"
+      
     />
     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
     {isSelected && (

@@ -185,7 +185,7 @@ export default function AllTemplates() {
                   src={card.image}
                   alt={card.Subtype || "Template design"}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
+                  
                 />
                 
                 {/* Gradient overlay */}

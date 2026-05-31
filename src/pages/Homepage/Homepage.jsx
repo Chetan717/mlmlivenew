@@ -2,27 +2,46 @@ import Carosel from "./Component/Carosel";
 import Festival from "./Component/Festival";
 import ListOfGenaraltemp from "./Component/ListOfGenaraltemp";
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { fetchGeneralTemplates } from "./Component/Services/GeneralTemplateService";
+import {
+  fetchGeneralTemplates,
+  getTemplateCache,
+} from "./Component/Services/GeneralTemplateService";
 import { useNavigate } from "react-router";
 
 const TOTAL_GROUPS = 4;
 
+// Build initial state from whatever the cache already holds
+function getInitialState() {
+  const cache = getTemplateCache();
+  if (cache.size === 0) return { templates: [], groupIndex: 0 };
 
+  // Merge all cached groups in order
+  const merged = [];
+  const seen = new Set();
+  for (let i = 0; i < TOTAL_GROUPS; i++) {
+    const key = `${i}__`;          // company is "" on first render
+    const alt = `${i}__undefined`; // guard for any old keys
+    const data = cache.get(key) || cache.get(alt) || [];
+    data.forEach((g) => {
+      if (!seen.has(g.type)) { seen.add(g.type); merged.push(g); }
+    });
+  }
+  // How many groups are already cached?
+  let loaded = 0;
+  for (let i = 0; i < TOTAL_GROUPS; i++) {
+    if (cache.has(`${i}__`)) loaded = i + 1;
+    else break;
+  }
+  return { templates: merged, groupIndex: loaded };
+}
 
 function Homepage() {
-  const [templates, setTemplates] = useState([]);
-  const [groupIndex, setGroupIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const initial = getInitialState();
+  const [templates, setTemplates] = useState(initial.templates);
+  const [loading, setLoading]     = useState(false);
 
-  // ✅ Read directly from localStorage on first render — no child dependency
- 
-
-  const loadingRef = useRef(false);
-  const groupIndexRef = useRef(0);
-  const navigate = useNavigate();
-
-  // ✅ Keep ref in sync so scroll handler / callbacks always see latest value
- 
+  const loadingRef      = useRef(false);
+  const groupIndexRef   = useRef(initial.groupIndex);
 
   const loadTemplates = useCallback(async () => {
     if (loadingRef.current || groupIndexRef.current >= TOTAL_GROUPS) return;
@@ -30,11 +49,7 @@ function Homepage() {
     loadingRef.current = true;
     setLoading(true);
 
-    // ✅ Always uses latest companyName via ref — safe inside stale closures
-    const data = await fetchGeneralTemplates(
-      groupIndexRef.current,
-     
-    );
+    const data = await fetchGeneralTemplates(groupIndexRef.current);
 
     setTemplates((prev) => {
       const existingTypes = new Set(prev.map((g) => g.type));
@@ -42,17 +57,18 @@ function Homepage() {
     });
 
     groupIndexRef.current += 1;
-    setGroupIndex(groupIndexRef.current);
-
     loadingRef.current = false;
     setLoading(false);
-  }, []); // no deps needed — uses refs internally
-
-  useEffect(() => {
-    loadTemplates();
   }, []);
 
-  // ✅ Attach scroll listener to the Layout's scroll container
+  // Only fetch on mount if there's data still to load
+  useEffect(() => {
+    if (groupIndexRef.current < TOTAL_GROUPS) {
+      loadTemplates();
+    }
+  }, []);
+
+  // Infinite-scroll: load next batch when near bottom
   useEffect(() => {
     const scrollEl = document.querySelector(".layout-scroll-container");
     if (!scrollEl) return;
@@ -73,10 +89,7 @@ function Homepage() {
     <div className="flex flex-col w-full gap-3">
       <Carosel />
       <Festival />
-      <ListOfGenaraltemp
-        templates={templates}
-        loading={loading}
-      />
+      <ListOfGenaraltemp templates={templates} loading={loading} />
     </div>
   );
 }
