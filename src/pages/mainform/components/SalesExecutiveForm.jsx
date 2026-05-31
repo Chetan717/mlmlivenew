@@ -193,6 +193,8 @@ export default function SalesExecutiveForm() {
 
   const [company, setCompany] = useState(null);
   const [open, setOpen] = useState(false);
+  const [bonanzaDays, setBonanzaDays] = useState("1 Night/2 Day");
+  const [bonanzaForWhom, setBonanzaForWhom] = useState("SELF");
 
   const navigate = useNavigate();
   const [selectedLinks, setSelectedLinks] = useState([]);
@@ -564,6 +566,56 @@ export default function SalesExecutiveForm() {
                 <InlineError message={errors.achieverImage} />
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Bonanza: Days + For Whom ── */}
+        {isBonanza && (
+          <div className="rounded-2xl border border-border bg-background p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
+              <p className="text-[13px] font-bold text-foreground">Bonanza Details</p>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-foreground/60 mb-2">Days</p>
+              <div className="flex gap-2 flex-wrap">
+                {["1 Night/2 Day", "2 Night/3 Day", "3 Night/4 Day"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setBonanzaDays(opt)}
+                    className={`px-3 py-2 rounded-xl text-[12px] font-semibold border transition-all active:scale-95 ${
+                      bonanzaDays === opt
+                        ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                        : "bg-muted/30 text-foreground border-border"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-foreground/60 mb-2">For Whom</p>
+              <div className="flex gap-2">
+                {["SELF", "FAMILY"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setBonanzaForWhom(opt)}
+                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold border transition-all active:scale-95 ${
+                      bonanzaForWhom === opt
+                        ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                        : "bg-muted/30 text-foreground border-border"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

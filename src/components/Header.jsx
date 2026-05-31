@@ -22,7 +22,7 @@ const PAGE_TITLES = {
 };
 
 export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
-  const { theme, toggleTheme } = useGeneralData();
+  const { theme, toggleTheme, selType } = useGeneralData();
   const isDark = theme === "dark";
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +50,15 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
   const isHome    = location.pathname === "/";
   const isEditor  = location.pathname === "/editor";
   const isSubPage = !!pageTitle;
+  const isForm    = location.pathname === "/mlmform";
+
+  const typeName = (() => {
+    let t = selType?.type;
+    if (!t) {
+      try { t = JSON.parse(localStorage.getItem("selType") || "{}")?.type; } catch { t = ""; }
+    }
+    return t ? t.replaceAll("_", " ") : "";
+  })();
 
   const handleMenuClick = () => {
     if (window.innerWidth < 768) setMobileOpen((p) => !p);
@@ -78,7 +87,11 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
 
       {/* Center: page title or home brand */}
       <div className="flex-1 min-w-0 flex items-center">
-        {pageTitle ? (
+        {(isEditor || isForm) && typeName ? (
+          <h1 className="text-[15px] font-display font-bold text-foreground truncate leading-tight capitalize">
+            {typeName}
+          </h1>
+        ) : pageTitle ? (
           <h1 className="text-[15px] font-display font-bold text-foreground truncate leading-tight">
             {pageTitle}
           </h1>
@@ -131,7 +144,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
         {/* Editor: banner settings */}
         {isEditor && (
           <button
-            onClick={() => navigate("/mlmprofile")}
+            onClick={() => navigate("/mlmprofile?mode=settings")}
             className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
             title="Banner Settings"
           >

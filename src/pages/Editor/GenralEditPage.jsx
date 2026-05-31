@@ -6,6 +6,7 @@ import React, {
   useMemo,
 } from "react";
 import { Stage, Layer, Text, Image, Transformer, Group } from "react-konva";
+import Konva from "konva";
 import useImage from "use-image";
 import ListOfTemplates from "./components/ListOfTemplates";
 import AiRetouchModal from "./AiRetouchModal";
@@ -63,6 +64,124 @@ const VIDEO_CREDIT_COST = 2; // image+music video = 2 credits
 // They will appear as selectable options in the music modal.
 const PRESET_AUDIOS = [];
 
+// ── Video background drawn onto the Konva canvas ──────────────────────────────
+// Follows the Konva "video on canvas" pattern: an off-DOM <video> element is
+// fed into a Konva.Image, and a Konva.Animation redraws the layer each frame
+// while the clip is playing so the moving frames are visible on the stage.
+const VideoCanvas = React.memo(function VideoCanvas({
+  src,
+  playing,
+  width,
+  height,
+  onError,
+  videoElRef,
+}) {
+  const imageRef = useRef(null);
+
+  const videoEl = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const el = document.createElement("video");
+    // crossOrigin must be set BEFORE src so the request is made in CORS mode
+    // (same as images via useImage(..., "anonymous")) and the canvas isn't tainted.
+    el.crossOrigin = "anonymous";
+    el.loop = true;
+    // Sound on. If the browser blocks autoplay-with-sound we fall back to muted
+    // playback (see tryPlay below); tapping the center play button re-enables it.
+    el.muted = false;
+    el.playsInline = true;
+    el.preload = "auto";
+    el.src = src;
+    return el;
+  }, [src]);
+
+  // Expose the <video> element to the parent so the video-export path can pull
+  // its audio track when recording the canvas.
+  useEffect(() => {
+    if (videoElRef) videoElRef.current = videoEl || null;
+    return () => {
+      if (videoElRef) videoElRef.current = null;
+    };
+  }, [videoEl, videoElRef]);
+
+  // Surface load/decode failures (codec, CORS, network) so the parent can
+  // drop out of the "playing" state instead of showing a blank canvas.
+  useEffect(() => {
+    if (!videoEl) return;
+    const handleError = () => onError && onError();
+    videoEl.addEventListener("error", handleError);
+    return () => videoEl.removeEventListener("error", handleError);
+  }, [videoEl, onError]);
+
+  useEffect(() => {
+    if (!videoEl || !imageRef.current) return;
+    const layer = imageRef.current.getLayer();
+    let anim;
+    let cancelled = false;
+
+    const startAnim = () => {
+      if (cancelled) return;
+      anim = new Konva.Animation(() => {}, layer);
+      anim.start();
+    };
+
+    if (playing) {
+      // Wait for the clip to be decodable before play() to avoid a silent
+      // no-op when the source was just swapped and is not ready yet.
+      const tryPlay = () => {
+        const p = videoEl.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {
+            // Autoplay with sound blocked — play muted so frames still show.
+            videoEl.muted = true;
+            videoEl.play().catch(() => {});
+          });
+        }
+        startAnim();
+      };
+      if (videoEl.readyState >= 2) {
+        tryPlay();
+      } else {
+        videoEl.addEventListener("canplay", tryPlay, { once: true });
+      }
+      return () => {
+        cancelled = true;
+        videoEl.removeEventListener("canplay", tryPlay);
+        if (anim) anim.stop();
+      };
+    }
+
+    videoEl.pause();
+    layer && layer.batchDraw();
+    return () => {
+      cancelled = true;
+      if (anim) anim.stop();
+    };
+  }, [playing, videoEl]);
+
+  useEffect(() => {
+    return () => {
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+      }
+    };
+  }, [videoEl]);
+
+  if (!videoEl) return null;
+  return (
+    <Image
+      ref={imageRef}
+      image={videoEl}
+      x={0}
+      y={0}
+      width={width}
+      height={height}
+      listening={false}
+    />
+  );
+});
+
 export const GENERAL_SELECT_TYPES = [
   { name: "Motivational", value: "Motivational" },
   {
@@ -82,6 +201,19 @@ export const GENERAL_SELECT_TYPES2 = [
 ];
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
+
+// Categories whose banners should NOT show the ImageFooter overlay
+const NO_FOOTER_TYPES = new Set([
+  "Rank_Promotion",
+  "Bonanza",
+  "Welcome_Closing",
+  "Greeting_Wishes",
+  "Achievements",
+  "Anniversary_Birthday",
+  "Income",
+  "Meeting",
+  "Capping",
+]);
 
 // ── Parse "DD MMM YYYY" → Date ────────────────────────────────────────────────
 const parseExpiryDate = (dateStr) => {
@@ -313,6 +445,7 @@ function GeneralEditPage({
   setmiddaleImage,
 }) {
   const stageRef = useRef(null);
+  const videoElRef = useRef(null); // off-DOM <video> from VideoCanvas (for export audio)
   const profileImageRef = useRef(null);
   const rankImageRef = useRef(null);
   const stickerImageRef = useRef(null);
@@ -348,6 +481,8 @@ function GeneralEditPage({
   const [selectedMusic, setSelectedMusic] = useState(null);
   const [musicExporting, setMusicExporting] = useState(false);
   const [musicModalOpen, setMusicModalOpen] = useState(false);
+  // ── Video background: play/pause for the clip chosen in the Video tab ─────
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const [presetLoadingUrl, setPresetLoadingUrl] = useState(null);
   const [deviceLoading, setDeviceLoading] = useState(false);
   const [progressTarget, setProgressTarget] = useState(0);
@@ -445,6 +580,7 @@ function GeneralEditPage({
   const isIncome = selll?.type === "Income";
   const isCapping = selll?.type === "Capping";
   const isMeeting = selll?.type === "Meeting";
+  const showImageFooter = !NO_FOOTER_TYPES.has(Template_Type);
 
   const rankInitialAttrs = useMemo(() => {
     return {
@@ -1079,6 +1215,13 @@ function GeneralEditPage({
   const incomeType = incomeFormData?.typeOfIncome || "";
 
   const [bgImage] = useImage(`${selected?.url || ""}`, "anonymous");
+
+  // A video template selected from the Video tab carries a videoUrl. When one
+  // is selected we play it on the canvas (same crossOrigin "anonymous" as images).
+  const selectedVideoUrl = selected?.videoUrl || selected?.VideoUrl || null;
+  useEffect(() => {
+    setVideoPlaying(!!selectedVideoUrl);
+  }, [selectedVideoUrl]);
   const [Sticker] = useImage(`${selected?.bannerId || ""}`, "anonymous");
   const [AchiveFrame] = useImage(
     `${selected?.nameImageUrl || ""}`,
@@ -1406,6 +1549,174 @@ function GeneralEditPage({
       console.error("Export error:", err);
       showToast("Export failed. Please try again.", "error");
     } finally {
+      setExportLoading(false);
+      exportInProgressRef.current = false;
+    }
+  };
+
+  // ── Export the selected background video (its own path) ────────────────────
+  // Separate from the image/music export: NO ffmpeg, NO music merge. Records the
+  // live canvas (design overlays + moving video) plus the clip's own audio via
+  // MediaRecorder and downloads a .webm.
+  const handleExportVideo = async () => {
+    if (exportInProgressRef.current) return;
+    const stage = stageRef.current;
+    const videoEl = videoElRef.current;
+    if (!stage || !videoEl) {
+      showToast("Select a video first.", "error");
+      return;
+    }
+    const canCapture =
+      typeof videoEl.captureStream === "function" ||
+      typeof videoEl.mozCaptureStream === "function";
+    if (
+      typeof MediaRecorder === "undefined" ||
+      typeof stage.toCanvas !== "function" ||
+      !canCapture
+    ) {
+      showToast("Video download isn't supported on this device.", "error");
+      return;
+    }
+
+    // Unmute + (re)start playback NOW, while still inside the click gesture, so
+    // the browser allows sound. Unmuting an already-playing element is fine.
+    videoEl.muted = false;
+    const startPlay = videoEl.play();
+    if (startPlay && typeof startPlay.catch === "function")
+      startPlay.catch(() => {});
+    setVideoPlaying(true);
+
+    if (!checkCredits(VIDEO_CREDIT_COST)) return;
+    exportInProgressRef.current = true;
+
+    setExportLoading(true);
+    setIsImageSelected(false);
+    setSelectedImageType(null);
+    await new Promise((res) => setTimeout(res, 80)); // let transformer deselect
+
+    let rafId = null;
+    let recorder = null;
+    let stream = null;
+    let audioCap = null;
+    try {
+      // Sound is required for a video export — grab the clip's audio track.
+      audioCap = videoEl.captureStream
+        ? videoEl.captureStream()
+        : videoEl.mozCaptureStream();
+      const audioTrack =
+        audioCap && audioCap.getAudioTracks
+          ? audioCap.getAudioTracks()[0]
+          : null;
+      if (!audioTrack) {
+        // No credits spent — finally cleans up.
+        showToast(
+          "Couldn't capture the video's sound on this device.",
+          "error",
+        );
+        return;
+      }
+      if (videoEl.paused) {
+        try {
+          await videoEl.play();
+        } catch (_) {}
+      }
+
+      const ratio = 2;
+      const rec = document.createElement("canvas");
+      rec.width = STAGE_WIDTH * ratio;
+      rec.height = STAGE_HEIGHT * ratio;
+      const ctx = rec.getContext("2d");
+
+      // Continuously copy the composited stage (all layers + video frames) onto
+      // the recording canvas so MediaRecorder captures the full design.
+      const drawFrame = () => {
+        try {
+          const c = stage.toCanvas({ pixelRatio: ratio });
+          ctx.drawImage(c, 0, 0, rec.width, rec.height);
+        } catch (_) {}
+        rafId = requestAnimationFrame(drawFrame);
+      };
+      drawFrame();
+
+      stream = rec.captureStream(30);
+      stream.addTrack(audioTrack);
+
+      const mime =
+        [
+          "video/webm;codecs=vp9,opus",
+          "video/webm;codecs=vp8,opus",
+          "video/webm",
+        ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
+
+      recorder = new MediaRecorder(stream, { mimeType: mime });
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size) chunks.push(e.data);
+      };
+      const stopped = new Promise((resolve) => {
+        recorder.onstop = resolve;
+      });
+      recorder.start();
+
+      // Record one loop of the clip, capped so exports stay quick.
+      const clip =
+        isFinite(videoEl.duration) && videoEl.duration > 0
+          ? videoEl.duration
+          : 8;
+      const recordMs = Math.min(clip, 15) * 1000;
+      await new Promise((res) => setTimeout(res, recordMs));
+
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (recorder.state !== "inactive") recorder.stop();
+      await stopped;
+
+      const blob = new Blob(chunks, { type: "video/webm" });
+      if (!blob.size) throw new Error("Empty recording");
+      const fileName = `mlmbooster_${Date.now()}.webm`;
+      if (window.ReactNativeWebView) {
+        const base64 = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result);
+          reader.onerror = () => rej(new Error("Could not encode video"));
+          reader.readAsDataURL(blob);
+        });
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            type: "DOWNLOAD_VIDEO",
+            base64,
+            fileName,
+            mimeType: "video/webm",
+          }),
+        );
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 8000);
+      }
+
+      await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
+    } catch (err) {
+      console.error("Video export error:", err);
+      showToast("Video download failed. Please try again.", "error");
+    } finally {
+      if (rafId) cancelAnimationFrame(rafId);
+      try {
+        if (recorder && recorder.state !== "inactive") recorder.stop();
+      } catch (_) {}
+      try {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+      try {
+        if (audioCap) audioCap.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
       setExportLoading(false);
       exportInProgressRef.current = false;
     }
@@ -1808,9 +2119,10 @@ function GeneralEditPage({
   );
 
   // Credits this export will spend: video (image+music) = 2, image = 1.
-  const exportCost = selectedMusic?.file
-    ? VIDEO_CREDIT_COST
-    : IMAGE_CREDIT_COST;
+  const exportCost =
+    selectedVideoUrl || selectedMusic?.file
+      ? VIDEO_CREDIT_COST
+      : IMAGE_CREDIT_COST;
 
   // ── Download button label ─────────────────────────────────────────────────
   const downloadBtnLabel = () => {
@@ -1857,6 +2169,19 @@ function GeneralEditPage({
               width={STAGE_WIDTH}
               height={STAGE_HEIGHT}
             />
+            {/*   {selectedVideoUrl && (
+              <VideoCanvas
+                src={selectedVideoUrl}
+                playing={videoPlaying}
+                videoElRef={videoElRef}
+                width={STAGE_WIDTH}
+                height={STAGE_HEIGHT}
+                onError={() => {
+                  setVideoPlaying(false);
+                  showToast("Could not load this video. Try another one.", "error");
+                }}
+              />
+            )}*/}
             <Image image={Imagel2} x={3} y={2} width={25} height={25} />
             <Image image={Imagel3} x={260} y={2} width={25} height={25} />
             <Image image={Imagel4} x={290} y={2} width={25} height={25} />
@@ -2420,7 +2745,7 @@ function GeneralEditPage({
                 ></Text>
               </Group>
             ) : null}
-            {isMeeting ? null : isRight ? (
+            {isMeeting || !showImageFooter ? null : isRight ? (
               <Image
                 scaleX={-1}
                 scaleY={1}
@@ -2445,33 +2770,35 @@ function GeneralEditPage({
             )}
 
             {isMeeting ? (
-             isRight ?  <Text
-                x={12}
-                y={40}
-                width={180}
-                height={30}
-                text={meetingData?.teamName.toUpperCase()}
-                fontSize={9}
-                fontStyle="1000"
-                
-                fill={`white`}
-                letterSpacing={0}
-                verticalAlign="center"
-                align={"center"}
-              ></Text> :  <Text
-                x={125}
-                y={40}
-                width={180}
-                height={30}
-                text={meetingData?.teamName.toUpperCase()}
-                fontSize={9}
-                fontStyle="1000"
-                
-                fill={`white`}
-                letterSpacing={0}
-                verticalAlign="center"
-                align={"center"}
-              ></Text>
+              isRight ? (
+                <Text
+                  x={12}
+                  y={40}
+                  width={180}
+                  height={30}
+                  text={meetingData?.teamName.toUpperCase()}
+                  fontSize={9}
+                  fontStyle="1000"
+                  fill={`white`}
+                  letterSpacing={0}
+                  verticalAlign="center"
+                  align={"center"}
+                ></Text>
+              ) : (
+                <Text
+                  x={125}
+                  y={40}
+                  width={180}
+                  height={30}
+                  text={meetingData?.teamName.toUpperCase()}
+                  fontSize={9}
+                  fontStyle="1000"
+                  fill={`white`}
+                  letterSpacing={0}
+                  verticalAlign="center"
+                  align={"center"}
+                ></Text>
+              )
             ) : null}
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
@@ -3043,6 +3370,43 @@ function GeneralEditPage({
             />
           </Layer>
         </Stage>
+
+        {/* Center play / pause control for the video background */}
+        {selectedVideoUrl && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <button
+              onClick={() => {
+                // Tapping play is a user gesture — re-enable sound if autoplay
+                // had to fall back to muted.
+                if (videoElRef.current) videoElRef.current.muted = false;
+                setVideoPlaying((p) => !p);
+              }}
+              title={videoPlaying ? "Pause" : "Play"}
+              className="pointer-events-auto w-14 h-14 rounded-full bg-black/45 backdrop-blur-sm text-white flex items-center justify-center shadow-lg transition-all active:scale-90 hover:bg-black/60"
+            >
+              {videoPlaying ? (
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <rect x="6" y="5" width="4" height="14" rx="1" />
+                  <rect x="14" y="5" width="4" height="14" rx="1" />
+                </svg>
+              ) : (
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {isAmountModalOpen && (
@@ -3225,7 +3589,13 @@ function GeneralEditPage({
           )} */}
           <Button
             size="sm"
-            onClick={selectedMusic ? handleExportWithMusic : handleExport}
+            onClick={
+              selectedVideoUrl
+                ? handleExportVideo
+                : selectedMusic
+                  ? handleExportWithMusic
+                  : handleExport
+            }
             disabled={!canExport || musicExporting}
             style={{
               opacity: canExport ? 1 : 0.5,
@@ -3294,7 +3664,6 @@ function GeneralEditPage({
               Tracks are trimmed to 20 seconds for a quick, lightweight video.
             </p> */}
 
-          
             {/* {selectedMusic && (
               <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-2xl bg-green-500/10 border border-green-500/30">
                 <div className="flex items-center gap-2 min-w-0">
@@ -3327,7 +3696,6 @@ function GeneralEditPage({
               </div>
             )} */}
 
-         
             {/* <button
               onClick={() => musicInputRef.current?.click()}
               disabled={deviceLoading}

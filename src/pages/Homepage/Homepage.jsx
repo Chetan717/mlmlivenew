@@ -70,7 +70,7 @@ function Homepage() {
   }, [loadTemplates]);
 
   return (
-    <div className="flex flex-col h-full justify-center items-center w-full gap-3">
+    <div className="flex flex-col w-full gap-3">
       <Carosel />
       <Festival />
       <ListOfGenaraltemp

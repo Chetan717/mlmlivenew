@@ -19,8 +19,8 @@ import {
 } from "firebase/storage";
 import MultiImagePicker from "./MultiImagePicker";
 import { ImageEditorCanvas } from "./ImageEditorCanvas";
-import { toast, Button, Switch } from "@heroui/react";
-import { useNavigate } from "react-router";
+import { toast, Button } from "@heroui/react";
+import { useNavigate, useLocation } from "react-router";
 import photoupload from "./photoupload.png";
 const storage = getStorage(app);
 
@@ -344,6 +344,78 @@ function DeleteConfirmModal({ userMobile, onConfirm, onCancel, deleting }) {
 // ════════════════════════════════════════════════════════════
 // PAGE COMPONENT
 // ════════════════════════════════════════════════════════════
+function DisplaySettings({ accent = false }) {
+  const [showTopupline, setShowTopupline] = useState(
+    () => localStorage.getItem("showTopuplineImages") ?? "yes"
+  );
+  const [showLogo, setShowLogo] = useState(
+    () => localStorage.getItem("showCompanyLogo") ?? "yes"
+  );
+
+  const toggleTopupline = () => {
+    const next = showTopupline === "yes" ? "no" : "yes";
+    setShowTopupline(next);
+    localStorage.setItem("showTopuplineImages", next);
+  };
+  const toggleLogo = () => {
+    const next = showLogo === "yes" ? "no" : "yes";
+    setShowLogo(next);
+    localStorage.setItem("showCompanyLogo", next);
+  };
+
+  return (
+    <div className="bg-background rounded-2xl border border-border/60 shadow-sm p-4 space-y-5">
+      <label
+        className={`block text-sm font-semibold ${
+          accent ? "text-accent" : "text-foreground/80"
+        }`}
+      >
+        Display Settings
+      </label>
+
+      {/* Show Topupline Images */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground/70">Show Topupline Images</p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showTopupline === "yes"}
+          onClick={toggleTopupline}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+            showTopupline === "yes" ? "bg-green-500" : "bg-foreground/20"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              showTopupline === "yes" ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Show Company Logo */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground/70">Show Company Logo</p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showLogo === "yes"}
+          onClick={toggleLogo}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+            showLogo === "yes" ? "bg-green-500" : "bg-foreground/20"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              showLogo === "yes" ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MLMProfilePage() {
   const navigate = useNavigate();
   const userMlm = getUserMlm();
@@ -367,20 +439,6 @@ export default function MLMProfilePage() {
     setShowSocial(val);
     localStorage.setItem("socialradio", val);
   };
-  const [showTopuplineImages, setShowTopuplineImages] = useState(() => {
-    return localStorage.getItem("showTopuplineImages") ?? "yes";
-  });
-  const handleShowTopuplineChange = (val) => {
-    setShowTopuplineImages(val);
-    localStorage.setItem("showTopuplineImages", val);
-  };
-  const [showCompanyLogo, setShowCompanyLogo] = useState(() => {
-    return localStorage.getItem("showCompanyLogo") ?? "yes";
-  });
-  const handleShowCompanyLogoChange = (val) => {
-    setShowCompanyLogo(val);
-    localStorage.setItem("showCompanyLogo", val);
-  };
   // Delete states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -390,6 +448,9 @@ export default function MLMProfilePage() {
   const topupInputRef = useRef(null);
 
   const isEditMode = !!existingDocId;
+  const location = useLocation();
+  const isSettingsMode =
+    new URLSearchParams(location.search).get("mode") === "settings";
 
   const company = (() => {
     try {
@@ -905,6 +966,9 @@ export default function MLMProfilePage() {
         </div>
 
         <div className="flex flex-col gap-2">
+          {/* Settings mode: Display Settings shown first (accent heading) */}
+          {isSettingsMode && <DisplaySettings accent />}
+
           {/* ── LOGO ──────────────────────────────────────────── */}
           <div className="bg-background rounded-2xl border border-border p-4">
             <label className="block text-[11px] font-bold text-foreground/60 mb-2">
@@ -928,6 +992,7 @@ export default function MLMProfilePage() {
           </div>
 
           {/* ── FULL NAME + MOBILE + DESIGNATION ─────────────── */}
+          {!isSettingsMode && (
           <div className="bg-background rounded-2xl border border-border p-4">
             {/* Full Name */}
             <label className="block text-[11px] font-bold text-foreground/60 mb-2">
@@ -1006,6 +1071,7 @@ export default function MLMProfilePage() {
               <p className="text-xs text-red-500 mt-1">{errors.designation}</p>
             )}
           </div>
+          )}
           {/* ── TOPUP LINE ────────────────────────────────────── */}
           <div className="bg-background rounded-2xl border border-border p-4">
             <label className="block text-sm font-semibold text-foreground/80 mb-6">
@@ -1094,36 +1160,8 @@ export default function MLMProfilePage() {
             </div>
           </div>
 
-          {/* ── DISPLAY SETTINGS (only when a profile is available) ── */}
-          {allProfileImages.length > 0 && (
-            <div className="bg-background rounded-2xl border border-border/60 shadow-sm p-4 space-y-5">
-              <label className="block text-sm font-semibold text-foreground/80">
-                Display Settings
-              </label>
-
-              {/* Show Topupline Images */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground/70">Show Topupline Images</p>
-                <Switch
-                  isSelected={showTopuplineImages === "yes"}
-                  onValueChange={(checked) => handleShowTopuplineChange(checked ? "yes" : "no")}
-                  color="success"
-                  size="sm"
-                />
-              </div>
-
-              {/* Show Company Logo */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground/70">Show Company Logo</p>
-                <Switch
-                  isSelected={showCompanyLogo === "yes"}
-                  onValueChange={(checked) => handleShowCompanyLogoChange(checked ? "yes" : "no")}
-                  color="success"
-                  size="sm"
-                />
-              </div>
-            </div>
-          )}
+          {/* ── DISPLAY SETTINGS (shown at bottom in full profile mode) ── */}
+          {!isSettingsMode && <DisplaySettings />}
 
           {/* ── SHOW SOCIAL MEDIA RADIO ──────────────────────── 
           <div className="bg-background rounded-2xl border border-border/60 shadow-sm p-4">
@@ -1264,7 +1302,7 @@ export default function MLMProfilePage() {
           </button>
 
           {/* ── DELETE PROFILE SECTION ────────────────────────── */}
-          {isEditMode && (
+          {isEditMode && !isSettingsMode && (
             // <div className="rounded-2xl mt-4 w-full border border-red-100 bg-red-50/60 p-4">
             <Button
               type="button"

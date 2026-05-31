@@ -4,6 +4,74 @@ import { useNavigate } from "react-router";
 import { ArrowUpRight, Sparkles } from "@gravity-ui/icons";
 import { clearTemplateCache, preloadImage } from "./templateCacheUtils";
 
+// ── Image with skeleton placeholder ──────────────────────────────────────────
+const ImageWithSkeleton = React.memo(({ src, alt, className, style }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-full h-full">
+      {!loaded && (
+        <div className="absolute inset-0 bg-muted/50 animate-pulse rounded-xl overflow-hidden">
+          <div
+            className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
+            style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)" }}
+          />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={style}
+        onLoad={() => setLoaded(true)}
+        loading="lazy"
+      />
+    </div>
+  );
+});
+
+// ── Professional "Create Profile" modal ──────────────────────────────────────
+function CreateProfileModal({ onConfirm, onDismiss }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onDismiss}
+    >
+      <div
+        className="bg-background w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl p-6 pb-10 sm:pb-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-center mb-5">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M6 20v-2a6 6 0 0112 0v2"/>
+            </svg>
+          </div>
+        </div>
+        <h2 className="text-[17px] font-bold text-foreground text-center mb-2">
+          Create Your Profile First
+        </h2>
+        <p className="text-[13px] text-muted-foreground text-center mb-6 leading-relaxed">
+          To personalise your designs with your name, photo and details, please set up your MLM profile.
+        </p>
+        <button
+          onClick={onConfirm}
+          className="w-full py-3.5 rounded-2xl text-white font-bold text-[14px] transition-all active:scale-[0.98] shadow-lg shadow-accent/20 mb-2"
+          style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)" }}
+        >
+          Create Profile →
+        </button>
+        <button
+          onClick={onDismiss}
+          className="w-full py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors text-center"
+        >
+          Maybe later
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const GENERAL_SELECT_TYPES = new Set([
   "Trending",
   "Festival",
@@ -98,6 +166,7 @@ const CheckIcon = ({ size = "sm" }) => {
 
 function ListOfGenaraltemp({ templates, loading }) {
   const [selectedTemp, setSelectedTemp] = useState(null);
+  const [profileModalPending, setProfileModalPending] = useState(null);
   const navigate = useNavigate();
   const { selType: contextSelType, setSelType } = useGeneralData();
 
@@ -181,7 +250,7 @@ function ListOfGenaraltemp({ templates, loading }) {
           GENERAL_SELECT_TYPES.has(selttype.type) ? "/editor" : "/mlmform",
         );
       } else {
-        navigate("/mlmprofile");
+        setProfileModalPending(selttype);
       }
     },
     [navigate, setSelType],
@@ -209,7 +278,7 @@ function ListOfGenaraltemp({ templates, loading }) {
         const displayName = group.type.replaceAll("_", " ");
 
         return (
-          <div key={group.type} className="w-full mb-8">
+          <div key={group.type} className="w-full mb-5">
             {!isGrid && (
               <div className="flex items-center justify-between mb-4 px-1">
                 <div className="flex items-center gap-3">
@@ -240,12 +309,13 @@ function ListOfGenaraltemp({ templates, loading }) {
                         : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
                     }`}
                   >
-                    <img
-                      src={item.image}
-                      className="w-full aspect-[2/1] object-cover transition-transform duration-700 group-hover:scale-105"
-                      alt={item.Subtype || displayName}
-                      loading="lazy"
-                    />
+                    <div className="w-full aspect-[2/1] overflow-hidden">
+                      <ImageWithSkeleton
+                        src={item.image}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        alt={item.Subtype || displayName}
+                      />
+                    </div>
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
                     {selectedTemp?.id === item?.id && <CheckIcon />}
                   </div>
@@ -274,12 +344,13 @@ function ListOfGenaraltemp({ templates, loading }) {
                           : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
                       }`}
                     >
-                      <img
-                        src={item.image}
-                        className="w-full aspect-[3/2] object-cover transition-transform duration-700 group-hover:scale-105"
-                        alt={item.Subtype || displayName}
-                        loading="lazy"
-                      />
+                      <div className="w-full aspect-[3/2] overflow-hidden">
+                        <ImageWithSkeleton
+                          src={item.image}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          alt={item.Subtype || displayName}
+                        />
+                      </div>
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
                       {selectedTemp?.id === item?.id && <CheckIcon />}
                     </div>
@@ -287,7 +358,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                 </div>
               </div>
             ) : !isFull ? (
-              <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 hide-scrollbar snap-x">
+              <div className="flex gap-4 overflow-x-auto pb-1 pt-1 px-1 hide-scrollbar snap-x">
                 {group?.templates?.map((item) => (
                   <div
                     key={item.id}
@@ -301,11 +372,10 @@ function ListOfGenaraltemp({ templates, loading }) {
                           : "border-border shadow-sm group-hover:shadow-md group-hover:border-accent/50"
                       }`}
                     >
-                      <img
+                      <ImageWithSkeleton
                         src={item.image}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         alt={item.Subtype || displayName}
-                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                       {selectedTemp?.id === item?.id && <CheckIcon />}
@@ -322,6 +392,17 @@ function ListOfGenaraltemp({ templates, loading }) {
           </div>
         );
       })}
+
+      {/* ── Create Profile modal ── */}
+      {profileModalPending && (
+        <CreateProfileModal
+          onConfirm={() => {
+            setProfileModalPending(null);
+            navigate("/mlmprofile");
+          }}
+          onDismiss={() => setProfileModalPending(null)}
+        />
+      )}
 
       <div className="mt-8 w-full bg-gradient-to-br from-accent/5 to-indigo-500/5 dark:from-accent/10 dark:to-indigo-500/10 border border-accent/10 rounded-2xl p-6 text-center">
         <div className="w-12 h-12 bg-gradient-to-br from-accent/20 to-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-accent/10">

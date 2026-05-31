@@ -5,6 +5,19 @@ import lazyloadImage from "../../../lazyi.webp";
 
 const BATCH_SIZE = 20;
 
+// Sample background videos shown in the "Video" tab when no Firebase video
+// templates exist yet. Public Wikimedia Commons clips (CORS-enabled), so they
+// play on the Konva canvas with crossOrigin "anonymous" without tainting it.
+const PRESET_VIDEO_ITEMS = [
+  // {
+  //   id: "sample-video-physics",
+  //   name: "Physics Demo",
+  //   videoUrl:
+  //     "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c4/Physicsworks.ogv/Physicsworks.ogv.240p.vp9.webm",
+  // },
+  
+];
+
 function getSelType() {
   try { return JSON.parse(localStorage.getItem("selType")) || {}; }
   catch { return {}; }
@@ -90,8 +103,8 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
           : "border-border hover:border-accent/50 hover:scale-95"
       }`}
     >
-      {isVideo && item.videoUrl ? (
-        <LazyVideo src={item.videoUrl} />
+      {isVideo && (item.videoUrl || item.VideoUrl) ? (
+        <LazyVideo src={item.videoUrl || item.VideoUrl} />
       ) : item.suggestionImage ? (
         <LazyImage src={item.suggestionImage} alt="template" />
       ) : (
@@ -214,8 +227,18 @@ export default function ListOfTemplates({ selected, setSelected }) {
         setAllItems(filteredItems);
         renderedCount.current = 0;
 
-        // Auto-select first
-        if (items.length > 0) setSelected(cleanItem(items[0]));
+        // Auto-select the first item of the ACTIVE tab, but never clobber a
+        // selection the user already made (e.g. switched to Video while loading).
+        setSelected((prev) => {
+          if (prev) return prev;
+          const imgs = filteredItems.filter((i) => !i.videoUrl && !i.VideoUrl);
+          const vids = filteredItems.filter((i) => !!(i.videoUrl || i.VideoUrl));
+          const pool =
+            activeTab === "video"
+              ? (vids.length > 0 ? vids : PRESET_VIDEO_ITEMS)
+              : imgs;
+          return pool.length > 0 ? cleanItem(pool[0]) : null;
+        });
 
         const firstBatch = filteredItems.slice(0, BATCH_SIZE);
         setVisibleItems(firstBatch);
@@ -229,11 +252,13 @@ export default function ListOfTemplates({ selected, setSelected }) {
     }
 
     fetchTemplates();
-  }, [filterType]);
+  }, [filterType, filterSubType]);
 
   /* ── Tab-filtered items ── */
   const imageItems = allItems.filter((item) => !item.videoUrl && !item.VideoUrl);
-  const videoItems = allItems.filter((item) => !!(item.videoUrl || item.VideoUrl));
+  const fbVideoItems = allItems.filter((item) => !!(item.videoUrl || item.VideoUrl));
+  // Fall back to the bundled sample clips until real video templates exist.
+  const videoItems = fbVideoItems.length > 0 ? fbVideoItems : PRESET_VIDEO_ITEMS;
 
   const tabItems = activeTab === "video" ? videoItems : imageItems;
 
@@ -271,9 +296,21 @@ export default function ListOfTemplates({ selected, setSelected }) {
     return () => observer.disconnect();
   }, [loadMore, loadingMore]);
 
+  const handleTab = (tab) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    // Switching tabs swaps the canvas to that tab's first item — first video
+    // when entering Video, first image when entering Image — keeping image and
+    // video selection mutually exclusive (selecting one clears the other).
+    const items = tab === "video" ? videoItems : imageItems;
+    setSelected(items.length > 0 ? cleanItem(items[0]) : null);
+  };
+
   const handleSelect = (item) => {
     const already = selected?.id === item.id;
-    setSelected(already ? (allItems.length > 0 ? cleanItem(allItems[0]) : null) : cleanItem(item));
+    // Re-tapping the selected item reverts to the first item of the CURRENT tab
+    // (don't jump back to an image while browsing videos).
+    setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
   };
 
   const isItemSelected = (item) => selected?.id === item.id;
@@ -284,7 +321,7 @@ export default function ListOfTemplates({ selected, setSelected }) {
       <div className="flex items-center gap-1.5 p-2 bg-muted/20 border-t border-border flex-shrink-0">
         <TabBtn
           active={activeTab === "image"}
-          onClick={() => setActiveTab("image")}
+          onClick={() => handleTab("image")}
           label="Image"
           count={imageItems.length || null}
           icon={
@@ -295,7 +332,7 @@ export default function ListOfTemplates({ selected, setSelected }) {
         />
         <TabBtn
           active={activeTab === "video"}
-          onClick={() => setActiveTab("video")}
+          onClick={() => handleTab("video")}
           label="Video"
           count={videoItems.length || null}
           icon={
