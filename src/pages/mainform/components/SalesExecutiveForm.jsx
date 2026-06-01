@@ -224,7 +224,7 @@ export default function SalesExecutiveForm() {
   useEffect(() => {
     try {
       localStorage.setItem("close_filter", closeFilter);
-    } catch { }
+    } catch {}
   }, [closeFilter]);
 
   function getSelType() {
@@ -242,7 +242,7 @@ export default function SalesExecutiveForm() {
   const isIncome = selll?.type === "Income";
   const isMeeting = selll?.type === "Meeting";
   const isBonanza = selll?.type === "Bonanza";
-  const formImage = String(selll?.ShowCaseForm) || ""
+  const formImage = String(selll?.ShowCaseForm) || "";
 
   // ── Restore state from localStorage on mount ──────────────────────────────
   useEffect(() => {
@@ -259,33 +259,6 @@ export default function SalesExecutiveForm() {
     const saved = JSON.parse(localStorage.getItem("mlmform"));
 
     if (saved) {
-      // Restore tab
-
-      if (saved.tab) setTab(saved.tab);
-
-      // Restore achiever (image stays as base64 string; components handle both Blob & string)
-      if (saved.achiever) {
-        const parsed = parseAchieverName(saved.achiever);
-        setAchiever({
-          ...saved.achiever,
-          title: parsed.title,
-          name: parsed.name,
-          achieverName:
-            saved.achiever.achieverName ||
-            `${parsed.title} ${parsed.name}`.trim(),
-          image: saved.achiever.image || null,
-        });
-      }
-
-      // Restore promoter
-      if (saved.promoter) {
-        setPromoter({
-          ...saved.promoter,
-          image: saved.promoter.image || null,
-        });
-      }
-
-      // Restore selected upline links (saved form overrides mlmProfile)
       if (saved.selectedLinks?.length) {
         setSelectedLinks(saved.selectedLinks);
       } else if (mlmProfile?.topuplineURLs?.length) {
@@ -300,52 +273,50 @@ export default function SalesExecutiveForm() {
   // ─── Validation ────────────────────────────────────────────────────────────
   const validate = isAchievment
     ? () => {
-      const newErrors = {};
-      if (!achiever.title?.trim()) newErrors.title = "Title is required";
-      if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
-      if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
+        const newErrors = {};
+        if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
+        if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
 
-      if (tab === "self") {
-        if (!promoter.name?.trim())
-          newErrors.promoterName = "Name is required";
-        if (!promoter.role) newErrors.promoterRole = "Role is required";
-        if (!promoter.mobile?.trim())
-          newErrors.promoterMobile = "Mobile is required";
-        if (!promoter.image) newErrors.promoterImage = "Photo is required";
+        if (tab === "self") {
+          if (!promoter.name?.trim())
+            newErrors.promoterName = "Name is required";
+          if (!promoter.role) newErrors.promoterRole = "Role is required";
+          if (!promoter.mobile?.trim())
+            newErrors.promoterMobile = "Mobile is required";
+          if (!promoter.image) newErrors.promoterImage = "Photo is required";
+        }
+        if (selectedLinks.length === 0 && customFiles.length === 0)
+          newErrors.topupline = "Select at least 1 image";
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
       }
-      if (selectedLinks.length === 0 && customFiles.length === 0)
-        newErrors.topupline = "Select at least 1 image";
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    }
     : () => {
-      const newErrors = {};
-      if (!achiever.title?.trim()) newErrors.title = "Title is required";
-      if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
-      if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
-      if (
-        selectedType !== "Bonanza" &&
-        isWelcome &&
-        isAchievment &&
-        !achiever.amount?.toString().trim()
-      )
-        newErrors.achieverAmount = "Amount is required";
+        const newErrors = {};
+        if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
+        if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
+        if (
+          selectedType !== "Bonanza" &&
+          isWelcome &&
+          isAchievment &&
+          !achiever.amount?.toString().trim()
+        )
+          newErrors.achieverAmount = "Amount is required";
 
-      if (!achiever.image) newErrors.achieverImage = "Photo is required";
+        if (!achiever.image) newErrors.achieverImage = "Photo is required";
 
-      if (tab === "self") {
-        if (!promoter.name?.trim())
-          newErrors.promoterName = "Name is required";
-        if (!promoter.role) newErrors.promoterRole = "Role is required";
-        if (!promoter.mobile?.trim())
-          newErrors.promoterMobile = "Mobile is required";
-        if (!promoter.image) newErrors.promoterImage = "Photo is required";
-      }
-      if (selectedLinks.length === 0 && customFiles.length === 0)
-        newErrors.topupline = "Select at least 1 image";
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    };
+        if (tab === "self") {
+          if (!promoter.name?.trim())
+            newErrors.promoterName = "Name is required";
+          if (!promoter.role) newErrors.promoterRole = "Role is required";
+          if (!promoter.mobile?.trim())
+            newErrors.promoterMobile = "Mobile is required";
+          if (!promoter.image) newErrors.promoterImage = "Photo is required";
+        }
+        if (selectedLinks.length === 0 && customFiles.length === 0)
+          newErrors.topupline = "Select at least 1 image";
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+      };
 
   const clearError = (key) => {
     if (errors[key])
@@ -370,20 +341,21 @@ export default function SalesExecutiveForm() {
       tab,
       achiever: {
         ...achiever,
-        achieverName: `${achiever.title || "Mr."} ${achiever.name || ""}`.trim(),
+        achieverName:
+          `${achiever.title || "Mr."} ${achiever.name || ""}`.trim(),
         // If image is already a base64 string (restored), keep it; else convert Blob
         image: achiever.image ? await toBase64(achiever.image) : null,
       },
       promoter:
         tab === "self"
           ? {
-            ...promoter,
-            image: promoter.image ? await toBase64(promoter.image) : null,
-          }
+              ...promoter,
+              image: promoter.image ? await toBase64(promoter.image) : null,
+            }
           : null,
       selectedLinks,
       bonanzaForWhom,
-      bonanzaDays
+      bonanzaDays,
     };
 
     localStorage.setItem("mlmform", JSON.stringify(formData));
@@ -394,7 +366,7 @@ export default function SalesExecutiveForm() {
   const handleReset = () => {
     localStorage.removeItem("mlmform");
     setTab("team");
-    setAchiever({ title: "Mr.", name: "", achieverName: "Mr." });
+    setAchiever({});
     setPromoter({});
     setSelectedLinks(() => {
       const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile"));
@@ -409,7 +381,11 @@ export default function SalesExecutiveForm() {
       {/* ── Hero header image ── */}
       {formImage ? (
         <div className="relative w-full overflow-hidden rounded-b-[24px] ">
-          <img src={formImage} alt="" className="w-full h-[130px] object-contain" />
+          <img
+            src={formImage}
+            alt=""
+            className="w-full h-[130px] object-contain"
+          />
         </div>
       ) : null}
 
@@ -418,15 +394,26 @@ export default function SalesExecutiveForm() {
         {isMeeting ? null : (
           <div className="flex gap-1.5 p-1 bg-muted/30 rounded-2xl border border-border/50">
             {[
-              { key: "team", label: "For Team", icon: <Persons width={13} height={13} /> },
-              { key: "self", label: "For Self", icon: <Person width={13} height={13} /> },
+              {
+                key: "team",
+                label: "For Team",
+                icon: <Persons width={13} height={13} />,
+              },
+              {
+                key: "self",
+                label: "For Self",
+                icon: <Person width={13} height={13} />,
+              },
             ].map(({ key, label, icon }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-200 ${tab === key ? "bg-accent text-white shadow-md shadow-accent/20" : "text-muted-foreground"
-                  }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-200 ${
+                  tab === key
+                    ? "bg-accent text-white shadow-md shadow-accent/20"
+                    : "text-muted-foreground"
+                }`}
               >
                 {icon}
                 {label}
@@ -440,16 +427,26 @@ export default function SalesExecutiveForm() {
           <div className="rounded-2xl border border-border bg-background p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
-              <p className="text-[13px] font-bold text-foreground">Top Upline Photos</p>
+              <p className="text-[13px] font-bold text-foreground">
+                Top Upline Photos
+              </p>
             </div>
             <div className="w-full">
               <MultiImagePicker
                 companyImages={company.topuplines || []}
                 selectedLinks={selectedLinks}
-                onToggleLink={(link) => { toggleLink(link); clearError("topupline"); }}
+                onToggleLink={(link) => {
+                  toggleLink(link);
+                  clearError("topupline");
+                }}
                 customFiles={customFiles}
-                onAddCustomFiles={(files) => { setCustomFiles(files); clearError("topupline"); }}
-                onRemoveCustomFile={(i) => setCustomFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                onAddCustomFiles={(files) => {
+                  setCustomFiles(files);
+                  clearError("topupline");
+                }}
+                onRemoveCustomFile={(i) =>
+                  setCustomFiles((prev) => prev.filter((_, idx) => idx !== i))
+                }
                 inputRef={inputRef}
                 inlineStrip
               />
@@ -467,29 +464,44 @@ export default function SalesExecutiveForm() {
           <div className="rounded-2xl border border-border bg-background p-4 space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
-              <p className="text-[13px] font-bold text-foreground">Achiever Details</p>
+              <p className="text-[13px] font-bold text-foreground">
+                Achiever Details
+              </p>
             </div>
 
-            <div className="flex gap-2 items-end">
-              <div className="w-[80px]">
-                <Select
-                  placeholder="Title"
-                  selectedKey={achiever.title || "Mr."}
-                  onSelectionChange={(key) => {
-                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key}${p.name || ""}`.trim() }));
+            <div className="flex gap-2 items-center">
+              <div className="w-[82px] flex-shrink-0">
+                <select
+                  value={achiever.title || "Mr."}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setAchiever((p) => ({
+                      ...p,
+                      title: key,
+                      achieverName: `${key || "Mr."} ${p.name || ""}`.trim(),
+                    }));
                   }}
-                  className="w-full text-[11px]"
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: "0 8px",
+                    background: "var(--heroui-background, #fff)",
+                    color: "var(--heroui-foreground, #202020)",
+                    appearance: "auto",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
                 >
-                  <Label className="text-[11px] text-foreground/60 font-semibold">Title</Label>
-                  <Select.Trigger><Select.Value style={{ fontSize: 12 }} /><Select.Indicator /></Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      {["Mr.", "Mrs.", "Dr."].map((opt) => (
-                        <ListBox.Item key={opt} id={opt} textValue={opt} style={{ fontSize: 12 }}>{opt}<ListBox.ItemIndicator /></ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
+                  {["Mr.", "Mrs.", "Dr."].map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex-1">
                 <IconTextField
@@ -498,7 +510,11 @@ export default function SalesExecutiveForm() {
                   value={achiever.name || ""}
                   onChange={(v) => {
                     const sanitized = sanitizeName(v);
-                    setAchiever((p) => ({ ...p, name: sanitized, achieverName: `${p.title || "Mr."} ${sanitized}`.trim() }));
+                    setAchiever((p) => ({
+                      ...p,
+                      name: sanitized,
+                      achieverName: `${p.title || "Mr."} ${sanitized}`.trim(),
+                    }));
                     clearError("achieverName");
                   }}
                   error={errors.achieverName}
@@ -509,11 +525,17 @@ export default function SalesExecutiveForm() {
 
             {achiever.name?.trim() && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/8 border border-accent/20">
-                <Person width={12} height={12} className="text-accent flex-shrink-0" />
+                <Person
+                  width={12}
+                  height={12}
+                  className="text-accent flex-shrink-0"
+                />
                 <p className="text-[11px] text-accent font-semibold truncate">
                   {`${achiever.title || "Mr."} ${achiever.name}`.trim()}
                 </p>
-                <span className="ml-auto text-[9px] text-accent/60 font-medium uppercase tracking-wide flex-shrink-0">Preview</span>
+                <span className="ml-auto text-[9px] text-accent/60 font-medium uppercase tracking-wide flex-shrink-0">
+                  Preview
+                </span>
               </div>
             )}
 
@@ -522,7 +544,10 @@ export default function SalesExecutiveForm() {
               placeholder="City or Team Name"
               icon={LocationArrow}
               value={achiever.city || ""}
-              onChange={(v) => { setAchiever((p) => ({ ...p, city: sanitizeFormValue(v, 40) })); clearError("achieverCity"); }}
+              onChange={(v) => {
+                setAchiever((p) => ({ ...p, city: sanitizeFormValue(v, 40) }));
+                clearError("achieverCity");
+              }}
               error={errors.achieverCity}
               maxLength={40}
             />
@@ -535,12 +560,20 @@ export default function SalesExecutiveForm() {
                   onSelectionChange={(k) => setCloseFilter(k)}
                   className="w-full text-xs"
                 >
-                  <Label className="text-xs text-accent/70 font-medium">Filter</Label>
-                  <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                  <Label className="text-xs text-accent/70 font-medium">
+                    Filter
+                  </Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
                   <Select.Popover>
                     <ListBox>
                       {["SP", "BV", "SI", "PV"].map((k) => (
-                        <ListBox.Item key={k} id={k} textValue={k}>{k}<ListBox.ItemIndicator /></ListBox.Item>
+                        <ListBox.Item key={k} id={k} textValue={k}>
+                          {k}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
                       ))}
                     </ListBox>
                   </Select.Popover>
@@ -548,14 +581,21 @@ export default function SalesExecutiveForm() {
               </div>
             )}
 
-            {isAchievment || isWelcome || isAnyversary || isIncome || isBonanza ? null : (
+            {isAchievment ||
+            isWelcome ||
+            isAnyversary ||
+            isIncome ||
+            isBonanza ? null : (
               <IconTextField
                 label={isClosing ? `Enter ${closeFilter} Amount` : "Amount (₹)"}
                 placeholder="XXXX"
                 type="number"
                 icon={CircleDollar}
                 value={achiever.amount || ""}
-                onChange={(v) => { setAchiever((p) => ({ ...p, amount: sanitizeAmount(v) })); clearError("achieverAmount"); }}
+                onChange={(v) => {
+                  setAchiever((p) => ({ ...p, amount: sanitizeAmount(v) }));
+                  clearError("achieverAmount");
+                }}
                 error={errors.achieverAmount}
                 maxLength={7}
                 inputMode="numeric"
@@ -564,13 +604,23 @@ export default function SalesExecutiveForm() {
 
             {isAchievment ? null : (
               <div>
-                <p className="text-[11px] font-semibold text-foreground/60 mb-2">Achiever Photo</p>
+                <p className="text-[11px] font-semibold text-foreground/60 mb-2">
+                  Achiever Photo
+                </p>
                 <ImageUploadWithBgRemove
-                  onImageReady={(img) => { setAchiever((p) => ({ ...p, image: img })); clearError("achieverImage"); }}
+                  onImageReady={(img) => {
+                    setAchiever((p) => ({ ...p, image: img }));
+                    clearError("achieverImage");
+                  }}
                   setEditingImage={setEditingImage}
                   setOnImageDone={setOnImageDone}
                   currentImage={achiever.image}
-                  trigger={<UploadZone label="Upload achiever photo" hasError={!!errors.achieverImage} />}
+                  trigger={
+                    <UploadZone
+                      label="Upload achiever photo"
+                      hasError={!!errors.achieverImage}
+                    />
+                  }
                   setOpen={setOpen}
                   open={open}
                   type="form"
@@ -588,40 +638,50 @@ export default function SalesExecutiveForm() {
           <div className="rounded-2xl border border-border bg-background p-4 space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
-              <p className="text-[13px] font-bold text-foreground">Bonanza Details</p>
+              <p className="text-[13px] font-bold text-foreground">
+                Bonanza Details
+              </p>
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-foreground/60 mb-2">Days</p>
+              <p className="text-[11px] font-semibold text-foreground/60 mb-2">
+                Days
+              </p>
               <div className="flex gap-2 flex-wrap">
-                {["1 Night/2 Day", "2 Night/3 Day", "3 Night/4 Day"].map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setBonanzaDays(opt)}
-                    className={`px-3 py-2 rounded-xl text-[12px] font-semibold border transition-all active:scale-95 ${bonanzaDays === opt
-                      ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
-                      : "bg-muted/30 text-foreground border-border"
+                {["1 Night/2 Day", "2 Night/3 Day", "3 Night/4 Day"].map(
+                  (opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setBonanzaDays(opt)}
+                      className={`px-3 py-2 rounded-xl text-[12px] font-semibold border transition-all active:scale-95 ${
+                        bonanzaDays === opt
+                          ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                          : "bg-muted/30 text-foreground border-border"
                       }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                    >
+                      {opt}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-foreground/60 mb-2">For Whom</p>
+              <p className="text-[11px] font-semibold text-foreground/60 mb-2">
+                For Whom
+              </p>
               <div className="flex gap-2">
                 {["SELF", "FAMILY"].map((opt) => (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => setBonanzaForWhom(opt)}
-                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold border transition-all active:scale-95 ${bonanzaForWhom === opt
-                      ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
-                      : "bg-muted/30 text-foreground border-border"
-                      }`}
+                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold border transition-all active:scale-95 ${
+                      bonanzaForWhom === opt
+                        ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                        : "bg-muted/30 text-foreground border-border"
+                    }`}
                   >
                     {opt}
                   </button>
@@ -635,9 +695,14 @@ export default function SalesExecutiveForm() {
           <div className="rounded-2xl border border-border bg-background p-4">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
-              <p className="text-[13px] font-bold text-foreground">Achievement Details</p>
+              <p className="text-[13px] font-bold text-foreground">
+                Achievement Details
+              </p>
             </div>
-            <AchievementForm editingType={editingType} setEditingType={setEditingType} />
+            <AchievementForm
+              editingType={editingType}
+              setEditingType={setEditingType}
+            />
           </div>
         ) : null}
 
@@ -645,7 +710,9 @@ export default function SalesExecutiveForm() {
           <div className="rounded-2xl border border-border bg-background p-4 space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-4 rounded-full bg-accent flex-shrink-0" />
-              <p className="text-[13px] font-bold text-foreground">Promoter Details</p>
+              <p className="text-[13px] font-bold text-foreground">
+                Promoter Details
+              </p>
             </div>
 
             <IconTextField
@@ -653,7 +720,10 @@ export default function SalesExecutiveForm() {
               placeholder="Promoter full name"
               icon={PersonPlus}
               value={promoter.name || ""}
-              onChange={(v) => { setPromoter((p) => ({ ...p, name: sanitizeName(v) })); clearError("promoterName"); }}
+              onChange={(v) => {
+                setPromoter((p) => ({ ...p, name: sanitizeName(v) }));
+                clearError("promoterName");
+              }}
               error={errors.promoterName}
               maxLength={30}
             />
@@ -663,16 +733,30 @@ export default function SalesExecutiveForm() {
                 placeholder="Select role"
                 isInvalid={!!errors.promoterRole}
                 selectedKey={promoter.role || null}
-                onSelectionChange={(key) => { setPromoter((p) => ({ ...p, role: key })); clearError("promoterRole"); }}
+                onSelectionChange={(key) => {
+                  setPromoter((p) => ({ ...p, role: key }));
+                  clearError("promoterRole");
+                }}
                 className="w-full text-xs"
               >
-                <Label className="text-xs text-accent/70 font-medium">Role</Label>
-                <Select.Trigger><Select.Value style={{ fontSize: 12 }} /><Select.Indicator /></Select.Trigger>
+                <Label className="text-xs text-accent/70 font-medium">
+                  Role
+                </Label>
+                <Select.Trigger>
+                  <Select.Value style={{ fontSize: 12 }} />
+                  <Select.Indicator />
+                </Select.Trigger>
                 <Select.Popover>
                   <ListBox>
                     {(company.profile || []).map((p) => (
-                      <ListBox.Item key={p.profilename} id={p.profilename} textValue={p.profilename} style={{ fontSize: 12 }}>
-                        {p.profilename}<ListBox.ItemIndicator />
+                      <ListBox.Item
+                        key={p.profilename}
+                        id={p.profilename}
+                        textValue={p.profilename}
+                        style={{ fontSize: 12 }}
+                      >
+                        {p.profilename}
+                        <ListBox.ItemIndicator />
                       </ListBox.Item>
                     ))}
                   </ListBox>
@@ -688,19 +772,32 @@ export default function SalesExecutiveForm() {
               inputMode="tel"
               icon={Handset}
               value={promoter.mobile || ""}
-              onChange={(v) => { setPromoter((p) => ({ ...p, mobile: sanitizePhone(v) })); clearError("promoterMobile"); }}
+              onChange={(v) => {
+                setPromoter((p) => ({ ...p, mobile: sanitizePhone(v) }));
+                clearError("promoterMobile");
+              }}
               error={errors.promoterMobile}
               maxLength={10}
             />
 
             <div>
-              <p className="text-[11px] font-semibold text-foreground/60 mb-2">Promoter Photo</p>
+              <p className="text-[11px] font-semibold text-foreground/60 mb-2">
+                Promoter Photo
+              </p>
               <ImageUploadWithBgRemove
-                onImageReady={(img) => { setPromoter((p) => ({ ...p, image: img })); clearError("promoterImage"); }}
+                onImageReady={(img) => {
+                  setPromoter((p) => ({ ...p, image: img }));
+                  clearError("promoterImage");
+                }}
                 setEditingImage={setEditingImage}
                 setOnImageDone={setOnImageDone}
                 currentImage={promoter.image}
-                trigger={<UploadZone label="Upload promoter photo" hasError={!!errors.promoterImage} />}
+                trigger={
+                  <UploadZone
+                    label="Upload promoter photo"
+                    hasError={!!errors.promoterImage}
+                  />
+                }
                 setOpen={setOpen}
                 open={open}
               />
@@ -716,7 +813,9 @@ export default function SalesExecutiveForm() {
             type="button"
             onClick={handleSubmit}
             className="w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all active:scale-[0.98] shadow-xl shadow-accent/20"
-            style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)" }}
+            style={{
+              background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)",
+            }}
           >
             Save &amp; Create Design
           </button>
@@ -736,7 +835,10 @@ export default function SalesExecutiveForm() {
             <Modal.Dialog className="w-full bg-transparent shadow-none">
               <ImageEditorCanvas
                 src={editingImage}
-                onDone={(blob) => { onImageDone(blob); setEditingImage(null); }}
+                onDone={(blob) => {
+                  onImageDone(blob);
+                  setEditingImage(null);
+                }}
                 onCancel={() => setEditingImage(null)}
                 setOpen={setOpen}
               />
