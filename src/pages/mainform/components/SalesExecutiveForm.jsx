@@ -259,6 +259,33 @@ export default function SalesExecutiveForm() {
     const saved = JSON.parse(localStorage.getItem("mlmform"));
 
     if (saved) {
+      // Restore tab
+
+      if (saved.tab) setTab(saved.tab);
+
+      // Restore achiever (image stays as base64 string; components handle both Blob & string)
+      if (saved.achiever) {
+        const parsed = parseAchieverName(saved.achiever);
+        setAchiever({
+          ...saved.achiever,
+          title: parsed.title,
+          name: parsed.name,
+          achieverName:
+            saved.achiever.achieverName ||
+            `${parsed.title} ${parsed.name}`.trim(),
+          image: saved.achiever.image || null,
+        });
+      }
+
+      // Restore promoter
+      if (saved.promoter) {
+        setPromoter({
+          ...saved.promoter,
+          image: saved.promoter.image || null,
+        });
+      }
+
+      // Restore selected upline links (saved form overrides mlmProfile)
       if (saved.selectedLinks?.length) {
         setSelectedLinks(saved.selectedLinks);
       } else if (mlmProfile?.topuplineURLs?.length) {
@@ -274,6 +301,7 @@ export default function SalesExecutiveForm() {
   const validate = isAchievment
     ? () => {
       const newErrors = {};
+      if (!achiever.title?.trim()) newErrors.title = "Title is required";
       if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
       if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
 
@@ -292,6 +320,7 @@ export default function SalesExecutiveForm() {
     }
     : () => {
       const newErrors = {};
+      if (!achiever.title?.trim()) newErrors.title = "Title is required";
       if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
       if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
       if (
@@ -365,7 +394,7 @@ export default function SalesExecutiveForm() {
   const handleReset = () => {
     localStorage.removeItem("mlmform");
     setTab("team");
-    setAchiever({});
+    setAchiever({ title: "Mr.", name: "", achieverName: "Mr." });
     setPromoter({});
     setSelectedLinks(() => {
       const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile"));
@@ -441,33 +470,26 @@ export default function SalesExecutiveForm() {
               <p className="text-[13px] font-bold text-foreground">Achiever Details</p>
             </div>
 
-            <div className="flex gap-2 items-center">
-              <div className="w-[82px] flex-shrink-0">
-                <select
-                  value={achiever.title || "Mr."}
-                  onChange={(e) => {
-                    const key = e.target.value;
-                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key || "Mr."} ${p.name || ""}`.trim() }));
+            <div className="flex gap-2 items-end">
+              <div className="w-[80px]">
+                <Select
+                  placeholder="Title"
+                  selectedKey={achiever.title || "Mr."}
+                  onSelectionChange={(key) => {
+                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key}${p.name || ""}`.trim() }));
                   }}
-                  style={{
-                    width: "100%",
-                    height: 36,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 10,
-                    padding: "0 8px",
-                    background: "var(--heroui-background, #fff)",
-                    color: "var(--heroui-foreground, #202020)",
-                    appearance: "auto",
-                    cursor: "pointer",
-                    outline: "none",
-                  }}
+                  className="w-full text-[11px]"
                 >
-                  {["Mr.", "Mrs.", "Dr."].map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  <Label className="text-[11px] text-foreground/60 font-semibold">Title</Label>
+                  <Select.Trigger><Select.Value style={{ fontSize: 12 }} /><Select.Indicator /></Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {["Mr.", "Mrs.", "Dr."].map((opt) => (
+                        <ListBox.Item key={opt} id={opt} textValue={opt} style={{ fontSize: 12 }}>{opt}<ListBox.ItemIndicator /></ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
               </div>
               <div className="flex-1">
                 <IconTextField
