@@ -301,6 +301,7 @@ export default function SalesExecutiveForm() {
   const validate = isAchievment
     ? () => {
       const newErrors = {};
+      if (!achiever.title?.trim()) newErrors.title = "Title is required";
       if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
       if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
 
@@ -319,6 +320,7 @@ export default function SalesExecutiveForm() {
     }
     : () => {
       const newErrors = {};
+      if (!achiever.title?.trim()) newErrors.title = "Title is required";
       if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
       if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
       if (
@@ -368,7 +370,7 @@ export default function SalesExecutiveForm() {
       tab,
       achiever: {
         ...achiever,
-        achieverName: `${achiever.title || ""} ${achiever.name || ""}`.trim(),
+        achieverName: `${achiever.title || "Mr."} ${achiever.name || ""}`.trim(),
         // If image is already a base64 string (restored), keep it; else convert Blob
         image: achiever.image ? await toBase64(achiever.image) : null,
       },
