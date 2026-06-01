@@ -523,22 +523,6 @@ export default function SalesExecutiveForm() {
               </div>
             </div>
 
-            {achiever.name?.trim() && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/8 border border-accent/20">
-                <Person
-                  width={12}
-                  height={12}
-                  className="text-accent flex-shrink-0"
-                />
-                <p className="text-[11px] text-accent font-semibold truncate">
-                  {`${achiever.title || "Mr."} ${achiever.name}`.trim()}
-                </p>
-                <span className="ml-auto text-[9px] text-accent/60 font-medium uppercase tracking-wide flex-shrink-0">
-                  Preview
-                </span>
-              </div>
-            )}
-
             <IconTextField
               label="From team / City"
               placeholder="City or Team Name"
