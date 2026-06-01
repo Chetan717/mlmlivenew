@@ -268,11 +268,11 @@ export default function SalesExecutiveForm() {
         const parsed = parseAchieverName(saved.achiever);
         setAchiever({
           ...saved.achiever,
-          title: parsed.title,
+          title: parsed.title || "Mr.",
           name: parsed.name,
           achieverName:
             saved.achiever.achieverName ||
-            `${parsed.title} ${parsed.name}`.trim(),
+            `${parsed.title || "Mr."} ${parsed.name}`.trim(),
           image: saved.achiever.image || null,
         });
       }
@@ -394,7 +394,7 @@ export default function SalesExecutiveForm() {
   const handleReset = () => {
     localStorage.removeItem("mlmform");
     setTab("team");
-    setAchiever({});
+    setAchiever({ title: "Mr.", name: "", achieverName: "Mr." });
     setPromoter({});
     setSelectedLinks(() => {
       const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile"));
@@ -470,26 +470,38 @@ export default function SalesExecutiveForm() {
               <p className="text-[13px] font-bold text-foreground">Achiever Details</p>
             </div>
 
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-start">
               <div className="w-[80px]">
                 <Select
                   placeholder="Title"
+                  isInvalid={!!errors.title}
                   selectedKey={achiever.title || "Mr."}
                   onSelectionChange={(key) => {
-                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key}${p.name || ""}`.trim() }));
+                    setAchiever((p) => ({
+                      ...p,
+                      title: key,
+                      achieverName: `${key} ${p.name || ""}`.trim(),
+                    }));
+                    clearError("title");
                   }}
                   className="w-full text-[11px]"
                 >
                   <Label className="text-[11px] text-foreground/60 font-semibold">Title</Label>
-                  <Select.Trigger><Select.Value style={{ fontSize: 12 }} /><Select.Indicator /></Select.Trigger>
+                  <Select.Trigger>
+                    <Select.Value style={{ fontSize: 12 }} />
+                    <Select.Indicator />
+                  </Select.Trigger>
                   <Select.Popover>
                     <ListBox>
                       {["Mr.", "Mrs.", "Dr."].map((opt) => (
-                        <ListBox.Item key={opt} id={opt} textValue={opt} style={{ fontSize: 12 }}>{opt}<ListBox.ItemIndicator /></ListBox.Item>
+                        <ListBox.Item key={opt} id={opt} textValue={opt} style={{ fontSize: 12 }}>
+                          {opt}<ListBox.ItemIndicator />
+                        </ListBox.Item>
                       ))}
                     </ListBox>
                   </Select.Popover>
                 </Select>
+                <InlineError message={errors.title} />
               </div>
               <div className="flex-1">
                 <IconTextField
