@@ -113,19 +113,20 @@ export default function Festival() {
         <div className="relative w-full">
           <div
             ref={sliderRef}
-            className="flex gap-4 overflow-x-auto hide-scrollbar snap-x"
+            className="flex gap-4 overflow-x-auto hide-scrollbar snap-x scroll-gpu"
           >
             {festivaltempdata?.map((card) => (
               <div
                 key={card.id}
                 onClick={() => handleImagePress(card)}
-                className="shrink-0 w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden cursor-pointer snap-start relative group border border-border shadow-sm bg-white dark:bg-black/20 transition-transform active:scale-95"
+                className="shrink-0 w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden cursor-pointer snap-start relative border border-border shadow-sm bg-white dark:bg-black/20 card-press"
               >
                 <img
                   src={card.image}
                   alt="festival template"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
               </div>

@@ -5,8 +5,9 @@ import ProtectedRoute from "./Auth/ProtectedR";
 import PublicRoute from "./Auth/PublicRoute";
 import ProtectMlmProfile from "./pages/SelectCompany/ProtectMlmProfile";
 import ProtectSelectComp from "./pages/SelectCompany/ProtectSelectComp";
+import Home from "./pages/Home";
+import AllTemplates from "./pages/Homepage/Component/AllTemplates";
 
-const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() =>
   import("./Auth/Login").then((m) => ({ default: m.Login })),
 );
@@ -24,9 +25,6 @@ const MainSubscription = lazy(
 );
 const MlmProfile = lazy(() => import("./pages/Mymlmprofile/MlmProfile"));
 const SelectComp = lazy(() => import("./pages/SelectCompany/SelectComp"));
-const AllTemplates = lazy(
-  () => import("./pages/Homepage/Component/AllTemplates"),
-);
 const SalesExecutiveForm = lazy(
   () => import("./pages/mainform/components/SalesExecutiveForm"),
 );
@@ -68,19 +66,16 @@ function RouteProgressBar() {
 
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
-
     clearTimeout(timerRef.current);
     setPhase("active");
     timerRef.current = setTimeout(() => {
       setPhase("done");
       timerRef.current = setTimeout(() => setPhase(null), 320);
     }, 400);
-
     return () => clearTimeout(timerRef.current);
   }, [location.pathname]);
 
   if (!phase) return null;
-
   return (
     <>
       <style>{progressStyle}</style>
@@ -102,8 +97,79 @@ function PageSpinner() {
   );
 }
 
+// ── Keep-Alive pages ────────────────────────────────────────────────────────
+// Home ("/") and AllTemplates ("/alltemp") are NEVER unmounted after first visit.
+// They are hidden with CSS display:none — all img DOM nodes stay in memory.
+// Coming back is instant: zero network, zero decode, zero skeleton flash.
+//
+// IMPORTANT: We do NOT use <ProtectedRoute>/<ProtectMlmProfile> here.
+// Those render <Navigate> when auth fails, which triggers React Router
+// to call navigate() → location changes → App re-renders → <Navigate> again
+// → infinite reload loop of hundreds of full-page reloads.
+// Instead we inline the same synchronous localStorage checks with a plain
+// early-return — no React Router side effects at all.
+function isUserAuthorized() {
+  if (!localStorage.getItem("usermlm")) return false;
+  const hasMlm      = !!localStorage.getItem("mlmProfile");
+  const hasCompany  = !!localStorage.getItem("selectedCompany");
+  return hasMlm || hasCompany;
+}
+
+function PersistentPages({ pathname }) {
+  const isHome    = pathname === "/";
+  const isAllTemp = pathname === "/alltemp";
+
+  // Lazy-mount: only put a page in the DOM when the user first visits it
+  // and they are authorized. After that it is never unmounted — just hidden.
+  // Initialise synchronously so authorised users see Home/AllTemplates on the
+  // very first render — no blank-flash while waiting for a useEffect tick.
+  const [homeReady,    setHomeReady]    = useState(() => isHome    && isUserAuthorized());
+  const [allTempReady, setAllTempReady] = useState(() => isAllTemp && isUserAuthorized());
+
+  useEffect(() => {
+    if (!isUserAuthorized()) return;
+    if (isHome    && !homeReady)    setHomeReady(true);
+    if (isAllTemp && !allTempReady) setAllTempReady(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome, isAllTemp]);
+
+  if (!homeReady && !allTempReady) return null;
+
+  const isKeepAlive = isHome || isAllTemp;
+
+  return (
+    // Outer wrapper covers full screen.
+    // display:none when on any other route so it never overlaps regular pages.
+    <div
+      style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0, bottom: 0,
+        display: isKeepAlive ? "block" : "none",
+        zIndex: isKeepAlive ? 1 : -1,
+      }}
+    >
+      {homeReady && (
+        <div style={{ height: "100%", display: isHome ? "block" : "none" }}>
+          <Layout>
+            <Home />
+          </Layout>
+        </div>
+      )}
+
+      {allTempReady && (
+        <div style={{ height: "100%", display: isAllTemp ? "block" : "none" }}>
+          <Layout>
+            <AllTemplates />
+          </Layout>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const handleBackPressed = () => navigate(-1);
@@ -115,6 +181,8 @@ function App() {
   return (
     <>
       <RouteProgressBar />
+
+      {/* ── Standard routes — mount/unmount normally ── */}
       <Suspense fallback={<PageSpinner />}>
         <Routes>
           <Route
@@ -148,33 +216,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <ProtectMlmProfile>
-                  <Layout>
-                    <Home />
-                  </Layout>
-                </ProtectMlmProfile>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/alltemp"
-            element={
-              <ProtectedRoute>
-                <ProtectMlmProfile>
-                  <Layout>
-                    <AllTemplates />
-                  </Layout>
-                </ProtectMlmProfile>
-              </ProtectedRoute>
-            }
-          />
-
           <Route
             path="/mlmprofile"
             element={
@@ -187,7 +228,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/mlmform"
             element={
@@ -200,7 +240,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/editor"
             element={
@@ -213,7 +252,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/subscription"
             element={
@@ -226,7 +264,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/profile"
             element={
@@ -239,8 +276,31 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* "/" and "/alltemp" — auth guard only; actual content rendered by PersistentPages.
+              The null child means authorised users see nothing from Routes here — PersistentPages
+              renders the real Layout+page via the keep-alive layer above. */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <ProtectMlmProfile>{null}</ProtectMlmProfile>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alltemp"
+            element={
+              <ProtectedRoute>
+                <ProtectMlmProfile>{null}</ProtectMlmProfile>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Suspense>
+
+      {/* ── Keep-alive pages: Home + AllTemplates always stay in DOM ── */}
+      <PersistentPages pathname={pathname} />
     </>
   );
 }

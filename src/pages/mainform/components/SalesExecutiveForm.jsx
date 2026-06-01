@@ -186,7 +186,7 @@ function IconTextField({
 export default function SalesExecutiveForm() {
   const [tab, setTab] = useState("team");
 
-   useEffect(() => {
+  useEffect(() => {
     // Force the window to top when Editor opens
     window.scrollTo(0, 0);
   }, []); // Empty array means it runs exactly once on load
@@ -224,7 +224,7 @@ export default function SalesExecutiveForm() {
   useEffect(() => {
     try {
       localStorage.setItem("close_filter", closeFilter);
-    } catch {}
+    } catch { }
   }, [closeFilter]);
 
   function getSelType() {
@@ -260,6 +260,7 @@ export default function SalesExecutiveForm() {
 
     if (saved) {
       // Restore tab
+
       if (saved.tab) setTab(saved.tab);
 
       // Restore achiever (image stays as base64 string; components handle both Blob & string)
@@ -299,50 +300,50 @@ export default function SalesExecutiveForm() {
   // ─── Validation ────────────────────────────────────────────────────────────
   const validate = isAchievment
     ? () => {
-        const newErrors = {};
-        if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
-        if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
+      const newErrors = {};
+      if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
+      if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
 
-        if (tab === "self") {
-          if (!promoter.name?.trim())
-            newErrors.promoterName = "Name is required";
-          if (!promoter.role) newErrors.promoterRole = "Role is required";
-          if (!promoter.mobile?.trim())
-            newErrors.promoterMobile = "Mobile is required";
-          if (!promoter.image) newErrors.promoterImage = "Photo is required";
-        }
-        if (selectedLinks.length === 0 && customFiles.length === 0)
-          newErrors.topupline = "Select at least 1 image";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+      if (tab === "self") {
+        if (!promoter.name?.trim())
+          newErrors.promoterName = "Name is required";
+        if (!promoter.role) newErrors.promoterRole = "Role is required";
+        if (!promoter.mobile?.trim())
+          newErrors.promoterMobile = "Mobile is required";
+        if (!promoter.image) newErrors.promoterImage = "Photo is required";
       }
+      if (selectedLinks.length === 0 && customFiles.length === 0)
+        newErrors.topupline = "Select at least 1 image";
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
     : () => {
-        const newErrors = {};
-        if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
-        if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
-        if (
-          selectedType !== "Bonanza" &&
-          isWelcome &&
-          isAchievment &&
-          !achiever.amount?.toString().trim()
-        )
-          newErrors.achieverAmount = "Amount is required";
+      const newErrors = {};
+      if (!achiever.name?.trim()) newErrors.achieverName = "Name is required";
+      if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
+      if (
+        selectedType !== "Bonanza" &&
+        isWelcome &&
+        isAchievment &&
+        !achiever.amount?.toString().trim()
+      )
+        newErrors.achieverAmount = "Amount is required";
 
-        if (!achiever.image) newErrors.achieverImage = "Photo is required";
+      if (!achiever.image) newErrors.achieverImage = "Photo is required";
 
-        if (tab === "self") {
-          if (!promoter.name?.trim())
-            newErrors.promoterName = "Name is required";
-          if (!promoter.role) newErrors.promoterRole = "Role is required";
-          if (!promoter.mobile?.trim())
-            newErrors.promoterMobile = "Mobile is required";
-          if (!promoter.image) newErrors.promoterImage = "Photo is required";
-        }
-        if (selectedLinks.length === 0 && customFiles.length === 0)
-          newErrors.topupline = "Select at least 1 image";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-      };
+      if (tab === "self") {
+        if (!promoter.name?.trim())
+          newErrors.promoterName = "Name is required";
+        if (!promoter.role) newErrors.promoterRole = "Role is required";
+        if (!promoter.mobile?.trim())
+          newErrors.promoterMobile = "Mobile is required";
+        if (!promoter.image) newErrors.promoterImage = "Photo is required";
+      }
+      if (selectedLinks.length === 0 && customFiles.length === 0)
+        newErrors.topupline = "Select at least 1 image";
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
 
   const clearError = (key) => {
     if (errors[key])
@@ -374,11 +375,13 @@ export default function SalesExecutiveForm() {
       promoter:
         tab === "self"
           ? {
-              ...promoter,
-              image: promoter.image ? await toBase64(promoter.image) : null,
-            }
+            ...promoter,
+            image: promoter.image ? await toBase64(promoter.image) : null,
+          }
           : null,
       selectedLinks,
+      bonanzaForWhom,
+      bonanzaDays
     };
 
     localStorage.setItem("mlmform", JSON.stringify(formData));
@@ -400,7 +403,7 @@ export default function SalesExecutiveForm() {
   };
 
   return (
-    <div className="w-full space-y-5 pt-0 pb-32">
+    <div className="w-full space-y-5 pt-0 pb-10 mt-1">
       {/* ── Hero header image ── */}
       {formImage ? (
         <div className="relative w-full overflow-hidden rounded-b-[24px] bg-muted/10">
@@ -420,9 +423,8 @@ export default function SalesExecutiveForm() {
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-200 ${
-                  tab === key ? "bg-accent text-white shadow-md shadow-accent/20" : "text-muted-foreground"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-200 ${tab === key ? "bg-accent text-white shadow-md shadow-accent/20" : "text-muted-foreground"
+                  }`}
               >
                 {icon}
                 {label}
@@ -585,11 +587,10 @@ export default function SalesExecutiveForm() {
                     key={opt}
                     type="button"
                     onClick={() => setBonanzaDays(opt)}
-                    className={`px-3 py-2 rounded-xl text-[12px] font-semibold border transition-all active:scale-95 ${
-                      bonanzaDays === opt
-                        ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
-                        : "bg-muted/30 text-foreground border-border"
-                    }`}
+                    className={`px-3 py-2 rounded-xl text-[12px] font-semibold border transition-all active:scale-95 ${bonanzaDays === opt
+                      ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                      : "bg-muted/30 text-foreground border-border"
+                      }`}
                   >
                     {opt}
                   </button>
@@ -605,11 +606,10 @@ export default function SalesExecutiveForm() {
                     key={opt}
                     type="button"
                     onClick={() => setBonanzaForWhom(opt)}
-                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold border transition-all active:scale-95 ${
-                      bonanzaForWhom === opt
-                        ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
-                        : "bg-muted/30 text-foreground border-border"
-                    }`}
+                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold border transition-all active:scale-95 ${bonanzaForWhom === opt
+                      ? "bg-accent text-white border-accent shadow-sm shadow-accent/20"
+                      : "bg-muted/30 text-foreground border-border"
+                      }`}
                   >
                     {opt}
                   </button>
@@ -699,7 +699,7 @@ export default function SalesExecutiveForm() {
       </div>
 
       {isMeeting ? null : (
-        <div className="fixed bottom-[58px] left-0 right-0 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border z-30 space-y-2">
+        <div className="fixed bottom-0 left-0 right-0 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border z-30 space-y-2">
           <button
             type="button"
             onClick={handleSubmit}
@@ -708,13 +708,13 @@ export default function SalesExecutiveForm() {
           >
             Save &amp; Create Design
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={handleReset}
             className="w-full py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors text-center"
           >
             Reset Form
-          </button>
+          </button> */}
         </div>
       )}
 

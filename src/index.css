@@ -94,12 +94,50 @@
 
 html { font-size: 14px; }
 
+/* ── WebView / React Native WebView performance ────────────────────────── */
+
+/* Eliminate 300ms tap delay on all tappable elements */
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* Instant touch response — no delay, no ghost highlight */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea,
+.cursor-pointer {
+  touch-action: manipulation;
+}
+
+/* Prevent accidental text selection on interactive cards */
+button,
+[role="button"],
+.cursor-pointer {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* GPU-accelerated horizontal scroll containers */
+.scroll-gpu {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent elastic overscroll showing white gap in WebView */
+  overscroll-behavior: none;
 }
 
 /* Dark mode contrast booster — ensure inherited text is crisp white */
@@ -132,6 +170,23 @@ html { scroll-behavior: smooth; }
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
+}
+
+@keyframes shimmerSlide {
+  0%   { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+
+/* Reusable shimmer skeleton bar — used in template cards */
+.shimmer-bar {
+  background: linear-gradient(90deg, #e8e8e8 25%, #f0f0f0 37%, #e8e8e8 63%);
+  background-size: 400% 100%;
+  animation: shimmerSlide 1.2s ease infinite;
+}
+.dark .shimmer-bar,
+[data-theme="dark"] .shimmer-bar {
+  background: linear-gradient(90deg, #1e2736 25%, #252f42 37%, #1e2736 63%);
+  background-size: 400% 100%;
 }
 
 @keyframes slideUp {

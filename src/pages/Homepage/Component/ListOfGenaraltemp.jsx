@@ -2,38 +2,39 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useGeneralData } from "../../../Context/GeneralContext";
 import { useNavigate } from "react-router";
 import { ArrowUpRight, Sparkles } from "@gravity-ui/icons";
-import { clearTemplateCache, preloadImage } from "./templateCacheUtils";
+import { preloadImage } from "./templateCacheUtils";
 
-// ── Module-level set: tracks images loaded at least once this session ────────
+// Module-level set: tracks images loaded at least once this session
 // Survives component unmount/remount so returning to home never re-shows skeleton
 const _seenImages = new Set();
 
-// ── Image with skeleton placeholder ──────────────────────────────────────────
-const ImageWithSkeleton = React.memo(({ src, alt, className, style }) => {
-  const [loaded, setLoaded] = useState(() => _seenImages.has(src));
+// Image with skeleton placeholder
+// Uses module-level _seenImages to know if this image was ever loaded this session.
+// If already seen → renders at full opacity instantly, no skeleton, no transition.
+// If new → shows shimmer skeleton until browser fires onLoad, then fades in once.
+const ImageWithSkeleton = React.memo(({ src, alt, className }) => {
+  const alreadySeen = _seenImages.has(src);
+  const [loaded, setLoaded] = useState(alreadySeen);
   return (
     <div className="relative w-full h-full">
       {!loaded && (
-        <div className="absolute inset-0 bg-muted/50 animate-pulse rounded-xl overflow-hidden">
-          <div
-            className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
-            style={{ background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)" }}
-          />
+        <div className="absolute inset-0 bg-muted/50 rounded-xl overflow-hidden">
+          <div className="absolute inset-0 shimmer-bar" />
         </div>
       )}
       <img
         src={src}
         alt={alt}
-        className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-        style={style}
+        className={`${className} ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={loaded ? undefined : { transition: "opacity 0.15s" }}
+        decoding="auto"
         onLoad={() => { _seenImages.add(src); setLoaded(true); }}
-        
       />
     </div>
   );
 });
 
-// ── Professional "Create Profile" modal ──────────────────────────────────────
+// Professional "Create Profile" modal
 function CreateProfileModal({ onConfirm, onDismiss }) {
   return (
     <div
@@ -60,14 +61,14 @@ function CreateProfileModal({ onConfirm, onDismiss }) {
         </p>
         <button
           onClick={onConfirm}
-          className="w-full py-3.5 rounded-2xl text-white font-bold text-[14px] transition-all active:scale-[0.98] shadow-lg shadow-accent/20 mb-2"
+          className="w-full py-3.5 rounded-2xl text-white font-bold text-[14px] shadow-lg shadow-accent/20 mb-2"
           style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)" }}
         >
           Create Profile →
         </button>
         <button
           onClick={onDismiss}
-          className="w-full py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors text-center"
+          className="w-full py-2 text-[12px] font-medium text-muted-foreground text-center"
         >
           Maybe later
         </button>
@@ -96,55 +97,8 @@ const GRID_TYPES = new Set([
 const FULL_TYPES = new Set(["Capping"]);
 
 const SkeletonCard = React.memo(() => (
-  <div className="rounded-2xl overflow-hidden animate-pulse bg-muted aspect-square w-full relative border border-border">
-    <div
-      className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
-      style={{
-        background:
-          "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-      }}
-    />
-  </div>
-));
-
-const TemplateCard = React.memo(({ card, isSelected, onSelect }) => (
-  <div
-    onClick={() => onSelect(card)}
-    className={`relative rounded-2xl overflow-hidden cursor-pointer aspect-square
-      transition-all duration-300 active:scale-95 group border bg-white dark:bg-black/20
-      ${
-        isSelected
-          ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md scale-95"
-          : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
-      }`}
-  >
-    <img
-      src={card.image}
-      alt="template"
-      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-      
-    />
-    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
-    {isSelected && (
-      <div className="absolute inset-0 border-4 border-accent rounded-2xl pointer-events-none" />
-    )}
-    {isSelected && (
-      <div className="absolute top-2 right-2 w-6 h-6 bg-accent rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200">
-        <svg
-          className="w-3.5 h-3.5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={3}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-      </div>
-    )}
+  <div className="rounded-2xl overflow-hidden bg-muted aspect-square w-full relative border border-border">
+    <div className="absolute inset-0 shimmer-bar" />
   </div>
 ));
 
@@ -153,7 +107,7 @@ const CheckIcon = ({ size = "sm" }) => {
   const icon = size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5";
   return (
     <div
-      className={`absolute top-2 right-2 ${dim} bg-accent rounded-full flex items-center justify-center shadow-md animate-in zoom-in duration-200`}
+      className={`absolute top-2 right-2 ${dim} bg-accent rounded-full flex items-center justify-center shadow-md`}
     >
       <svg
         className={`${icon} text-white`}
@@ -187,18 +141,13 @@ function ListOfGenaraltemp({ templates, loading }) {
     }
   }, [contextSelType]);
 
+  // Preload images for instant display — do NOT clear cache on unmount
   useEffect(() => {
     if (!templates) return;
     templates.forEach((group) => {
       group.templates?.forEach((item) => preloadImage(item.image));
     });
   }, [templates]);
-
-  useEffect(() => {
-    return () => {
-      clearTemplateCache();
-    };
-  }, []);
 
   const handleViewAll = useCallback(
     (group) => {
@@ -214,6 +163,7 @@ function ListOfGenaraltemp({ templates, loading }) {
     },
     [navigate, setSelType],
   );
+
   const handleReset = () => {
     localStorage.removeItem("mlmform");
     const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile"));
@@ -293,7 +243,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                 </div>
                 <button
                   onClick={() => handleViewAll(group)}
-                  className="flex items-center gap-1 text-xs font-bold text-accent dark:text-white bg-accent/10 dark:bg-white/10 px-3 py-1.5 rounded-full hover:bg-accent/20 dark:hover:bg-white/20 transition-colors"
+                  className="flex items-center gap-1 text-xs font-bold text-accent dark:text-white bg-accent/10 dark:bg-white/10 px-3 py-1.5 rounded-full"
                 >
                   View All
                   <ArrowUpRight className="w-3 h-3" />
@@ -307,20 +257,19 @@ function ListOfGenaraltemp({ templates, loading }) {
                   <div
                     key={item.id}
                     onClick={() => handleImagePress(item)}
-                    className={`relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 active:scale-[0.98] border bg-white dark:bg-black/20 ${
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer group border bg-white dark:bg-black/20 card-press ${
                       selectedTemp?.id === item?.id
                         ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md"
-                        : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
+                        : "border-border shadow-sm"
                     }`}
                   >
                     <div className="w-full aspect-[2/1] overflow-hidden">
                       <ImageWithSkeleton
                         src={item.image}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="w-full h-full object-cover"
                         alt={item.Subtype || displayName}
                       />
                     </div>
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
                     {selectedTemp?.id === item?.id && <CheckIcon />}
                   </div>
                 ))}
@@ -335,53 +284,49 @@ function ListOfGenaraltemp({ templates, loading }) {
                     {displayName}
                   </h2>
                 </div>
-                {/* These groups carry only 2 templates — show them as 2 wide
-                    rectangle cards side-by-side (2 columns), not stacked. */}
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   {group?.templates?.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => handleImagePress(item)}
-                      className={`relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 active:scale-[0.98] border bg-white dark:bg-black/20 ${
+                      className={`relative rounded-2xl overflow-hidden cursor-pointer group border bg-white dark:bg-black/20 card-press ${
                         selectedTemp?.id === item?.id
                           ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md"
-                          : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
+                          : "border-border shadow-sm"
                       }`}
                     >
                       <div className="w-full aspect-[3/2] overflow-hidden">
                         <ImageWithSkeleton
                           src={item.image}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover"
                           alt={item.Subtype || displayName}
                         />
                       </div>
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
                       {selectedTemp?.id === item?.id && <CheckIcon />}
                     </div>
                   ))}
                 </div>
               </div>
             ) : !isFull ? (
-              <div className="flex gap-4 overflow-x-auto pb-1 pt-1 px-1 hide-scrollbar snap-x">
+              <div className="flex gap-4 overflow-x-auto pb-1 pt-1 px-1 hide-scrollbar snap-x scroll-gpu">
                 {group?.templates?.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => handleImagePress(item)}
-                    className="flex-col items-center gap-2 cursor-pointer group transition-all duration-300 active:scale-95 shrink-0 snap-start w-[85px] md:w-[140px]"
+                    className="flex-col items-center gap-2 cursor-pointer group shrink-0 snap-start w-[85px] md:w-[140px] card-press"
                   >
                     <div
-                      className={`relative rounded-2xl overflow-hidden aspect-square border transition-all duration-300 bg-white dark:bg-black/20 ${
+                      className={`relative rounded-2xl overflow-hidden aspect-square border bg-white dark:bg-black/20 ${
                         selectedTemp?.id === item?.id
                           ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md scale-95"
-                          : "border-border shadow-sm group-hover:shadow-md group-hover:border-accent/50"
+                          : "border-border shadow-sm"
                       }`}
                     >
                       <ImageWithSkeleton
                         src={item.image}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full object-cover"
                         alt={item.Subtype || displayName}
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
                       {selectedTemp?.id === item?.id && <CheckIcon />}
                     </div>
                     {item.Subtype && (
@@ -397,7 +342,6 @@ function ListOfGenaraltemp({ templates, loading }) {
         );
       })}
 
-      {/* ── Create Profile modal ── */}
       {profileModalPending && (
         <CreateProfileModal
           onConfirm={() => {

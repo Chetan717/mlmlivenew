@@ -3,19 +3,35 @@ import { useGeneralData } from "../../.././Context/GeneralContext";
 import "./stylec.css";
 import { Alltemplateservice } from "./Services/Alltemplateservice";
 import { useNavigate } from "react-router";
-import { Skeleton } from "@heroui/react";
-import { ArrowLeft, Check, Compass, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Check, Compass } from "lucide-react";
+
+// Module-level seen-images set: persists across mounts so images never show
+// skeleton on return visits (mirrors the same pattern used in ListOfGenaraltemp)
+const _seenImages = new Set();
 
 const SkeletonCard = () => (
   <div className="rounded-[24px] overflow-hidden bg-muted aspect-square w-full relative border border-border">
-    <div
-      className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]"
-      style={{
-        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-      }}
-    />
+    <div className="absolute inset-0 shimmer-bar" />
   </div>
 );
+
+function TemplateImage({ src, alt }) {
+  const [loaded, setLoaded] = useState(() => _seenImages.has(src));
+  return (
+    <div className="absolute inset-0 w-full h-full">
+      {!loaded && <div className="absolute inset-0 shimmer-bar" />}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={{ transition: loaded ? "none" : "opacity 0.15s" }}
+        loading="lazy"
+        decoding="auto"
+        onLoad={() => { _seenImages.add(src); setLoaded(true); }}
+      />
+    </div>
+  );
+}
 
 const getSelType = (selType) => {
   if (selType?.type) {
@@ -32,54 +48,104 @@ const getSelType = (selType) => {
 
 export default function AllTemplates() {
   const navigate = useNavigate();
-  const { selType: contextSelType, setSelType } = useGeneralData();
+  const {
+    selType: contextSelType,
+    setSelType,
+    allTemplatesCache,
+    setAllTemplatesCache,
+  } = useGeneralData();
+
   const selType = getSelType(contextSelType);
+  const cacheKey = selType?.type || "";
 
-  const [tempdata, setTempData] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
+  const [tempdata, setTempData]             = useState([]);
+  const [lastDoc, setLastDoc]               = useState(null);
+  const [hasMore, setHasMore]               = useState(true);
+  const [isInitialLoading, setInitialLoad]  = useState(true);
+  const [isFetchingMore, setFetchingMore]   = useState(false);
+  const [selectedId, setSelectedId]         = useState(null);
 
-  const observerRef = useRef(null);
-  const sentinelRef = useRef(null);
+  const observerRef  = useRef(null);
+  const sentinelRef  = useRef(null);
+  const lastKeyRef   = useRef(null); // track which type we last loaded
 
+  // ── Load or restore data whenever the selected type changes ──────────────
   useEffect(() => {
+    const activeType = getSelType(contextSelType);
+    if (!activeType?.type) return;
+
+    const key = activeType.type;
+    if (lastKeyRef.current === key) return; // same type, nothing to do
+    lastKeyRef.current = key;
+
+    const cached = allTemplatesCache[key];
+    if (cached) {
+      // Instant restore — no spinner, no Firestore call
+      setTempData(cached.templates);
+      setLastDoc(cached.lastDoc);
+      setHasMore(cached.hasMore);
+      setInitialLoad(false);
+      return;
+    }
+
+    // Fresh fetch
     setTempData([]);
     setLastDoc(null);
     setHasMore(true);
-    setIsInitialLoading(true);
-    loadTemplates(null, true);
-  }, [contextSelType]);
+    setInitialLoad(true);
+    loadFirstPage(key);
+  }, [contextSelType]); // eslint-disable-line
 
-  const loadTemplates = async (lastDocRef = null, isInitial = false) => {
-    const activeType = getSelType(contextSelType);
-    if (!activeType?.type) return;
-    const pageSize = isInitial ? 12 : 6;
+  const loadFirstPage = useCallback(async (type) => {
     try {
-      const { templates, lastDoc: newLastDoc, hasMore: more } =
-        await Alltemplateservice(activeType.type, lastDocRef, pageSize);
-      setTempData((prev) => (isInitial ? templates : [...prev, ...templates]));
-      setLastDoc(newLastDoc);
+      const { templates, lastDoc: ld, hasMore: more } =
+        await Alltemplateservice(type, null, 12);
+      setTempData(templates);
+      setLastDoc(ld);
+      setHasMore(more);
+      setAllTemplatesCache((prev) => ({
+        ...prev,
+        [type]: { templates, lastDoc: ld, hasMore: more },
+      }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInitialLoad(false);
+    }
+  }, [setAllTemplatesCache]);
+
+  const loadMorePage = useCallback(async () => {
+    const activeType = getSelType(contextSelType);
+    if (!activeType?.type || !lastDoc) return;
+    setFetchingMore(true);
+    try {
+      const { templates, lastDoc: ld, hasMore: more } =
+        await Alltemplateservice(activeType.type, lastDoc, 6);
+      setTempData((prev) => {
+        const next = [...prev, ...templates];
+        setAllTemplatesCache((c) => ({
+          ...c,
+          [activeType.type]: { templates: next, lastDoc: ld, hasMore: more },
+        }));
+        return next;
+      });
+      setLastDoc(ld);
       setHasMore(more);
     } catch (err) {
       console.error(err);
     } finally {
-      setIsInitialLoading(false);
-      setIsFetchingMore(false);
+      setFetchingMore(false);
     }
-  };
+  }, [contextSelType, lastDoc, setAllTemplatesCache]);
 
+  // ── Infinite scroll sentinel ─────────────────────────────────────────────
   const handleObserver = useCallback(
     (entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting && hasMore && !isFetchingMore && !isInitialLoading) {
-        setIsFetchingMore(true);
-        loadTemplates(lastDoc, false);
+      if (entries[0].isIntersecting && hasMore && !isFetchingMore && !isInitialLoading) {
+        loadMorePage();
       }
     },
-    [hasMore, isFetchingMore, isInitialLoading, lastDoc],
+    [hasMore, isFetchingMore, isInitialLoading, loadMorePage],
   );
 
   useEffect(() => {
@@ -97,29 +163,18 @@ export default function AllTemplates() {
     setSelectedId(item.id);
     const Profile = JSON.parse(localStorage.getItem("mlmProfile") || "{}");
     if (Profile?.companyId) {
-      const GENERAL_SELECT_TYPES = [
-        { name: "Trending", value: "Trending" },
-        { name: "Festival", value: "Festival" },
-        { name: "Motivational", value: "Motivational" },
-        { name: "Good Morning", value: "Good_Morning" },
-        { name: "Devotional / Spiritual", value: "Devotional_Spiritual" },
-        { name: "Leader Quotes", value: "Leader_Quotes" },
-        { name: "Health Tips", value: "Health_Tips" },
-        { name: "Meeting", value: "Meeting" },
-        { name: "Greeting & Wishes", value: "Greeting_Wishes" },
-        { name: "Thank You (Birthday & Anniversary)", value: "ThankYou_Birthday_Anniversary" },
-      ];
-      const isGeneralType = GENERAL_SELECT_TYPES.some((t) => t.value === selType?.type);
+      const GENERAL_SELECT_TYPES = new Set([
+        "Trending", "Festival", "Motivational", "Good_Morning",
+        "Devotional_Spiritual", "Leader_Quotes", "Health_Tips",
+        "Meeting", "Greeting_Wishes", "ThankYou_Birthday_Anniversary",
+      ]);
       const seltype = {
-        id: item.id,
-        type: item.type,
-        serial: item.serial,
-        ShowCaseForm: item.ShowCaseForm,
-        Subtype: item.Subtype,
+        id: item.id, type: item.type, serial: item.serial,
+        ShowCaseForm: item.ShowCaseForm, Subtype: item.Subtype,
       };
       setSelType(seltype);
       localStorage.setItem("selType", JSON.stringify(seltype));
-      navigate(isGeneralType ? "/editor" : "/mlmform");
+      navigate(GENERAL_SELECT_TYPES.has(selType?.type) ? "/editor" : "/mlmform");
     } else {
       navigate("/mlmprofile");
     }
@@ -129,18 +184,16 @@ export default function AllTemplates() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
-      {/* Decorative Background */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-accent/10 to-transparent pointer-events-none z-0" />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center gap-4 px-4 md:px-8 py-4 md:py-6 sticky top-0 bg-background/80 backdrop-blur-xl border-b border-border z-20">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-black/20 border border-border hover:bg-muted transition-colors shadow-sm shrink-0"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-black/20 border border-border shadow-sm shrink-0"
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
-
         <div className="flex flex-col">
           <h1 className="text-xl md:text-2xl font-display font-bold text-foreground leading-tight truncate">
             {displayName}
@@ -153,9 +206,8 @@ export default function AllTemplates() {
         </div>
       </div>
 
-      {/* ── Grid ── */}
+      {/* Grid */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 z-10 layout-scroll-container">
-        {/* Empty state */}
         {!isInitialLoading && tempdata.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-20 h-20 bg-white dark:bg-black/20 rounded-full flex items-center justify-center shadow-sm border border-border mb-4">
@@ -167,75 +219,49 @@ export default function AllTemplates() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-          {/* Template cards */}
           {tempdata?.map((card) => {
             const isSelected = selectedId === card.id;
             return (
               <div
                 key={card.id}
                 onClick={() => onImageSelect(card)}
-                className={`relative rounded-[24px] overflow-hidden cursor-pointer aspect-square bg-white dark:bg-black/20
-                  transition-all duration-300 active:scale-[0.98] group
+                className={`relative rounded-[24px] overflow-hidden cursor-pointer aspect-square bg-white dark:bg-black/20 card-press
                   ${isSelected
-                    ? "border-accent ring-2 ring-accent ring-offset-2 dark:ring-offset-[#0b0f19] shadow-lg scale-[0.98]"
-                    : "border border-border shadow-sm hover:shadow-xl hover:border-accent/50"
+                    ? "ring-2 ring-accent ring-offset-2 dark:ring-offset-[#0b0f19] shadow-lg scale-[0.98]"
+                    : "border border-border shadow-sm"
                   }`}
               >
-                <img
-                  src={card.image}
-                  alt={card.Subtype || "Template design"}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  
-                />
-                
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Details overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center gap-2">
-                   <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                     <ImageIcon className="w-3 h-3 text-white" />
-                   </div>
-                   <span className="text-white text-xs font-semibold truncate drop-shadow-md">
-                     {card.Subtype || "Use Template"}
-                   </span>
-                </div>
-
-                {/* Selected check */}
+                <TemplateImage src={card.image} alt={card.Subtype || "Template design"} />
                 {isSelected && (
-                  <div className="absolute inset-0 border-4 border-accent rounded-[24px] pointer-events-none" />
-                )}
-                {isSelected && (
-                  <div className="absolute top-3 right-3 w-8 h-8 bg-accent rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-200 border-2 border-white dark:border-[#0b0f19]">
-                    <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                  </div>
+                  <>
+                    <div className="absolute inset-0 border-4 border-accent rounded-[24px] pointer-events-none" />
+                    <div className="absolute top-3 right-3 w-8 h-8 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#0b0f19]">
+                      <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                    </div>
+                  </>
                 )}
               </div>
             );
           })}
 
-          {/* Skeleton — initial load */}
           {isInitialLoading &&
             Array.from({ length: 12 }).map((_, i) => (
               <SkeletonCard key={`init-skel-${i}`} />
             ))}
-
-          {/* Skeleton — load more */}
           {isFetchingMore &&
             Array.from({ length: 6 }).map((_, i) => (
               <SkeletonCard key={`more-skel-${i}`} />
             ))}
         </div>
 
-        {/* Sentinel */}
         <div ref={sentinelRef} className="h-10 w-full" />
 
         {!hasMore && !isInitialLoading && tempdata.length > 0 && (
           <div className="flex items-center justify-center py-8">
             <div className="bg-accent/5 dark:bg-accent/10 border border-accent/10 rounded-full px-6 py-2">
-               <p className="text-xs font-semibold text-accent/80 uppercase tracking-widest">
-                 End of templates
-               </p>
+              <p className="text-xs font-semibold text-accent/80 uppercase tracking-widest">
+                End of templates
+              </p>
             </div>
           </div>
         )}

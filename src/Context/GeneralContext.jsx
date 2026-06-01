@@ -19,15 +19,32 @@ function GeneralContext({ children }) {
   const theame_color = "#0e245c";
   const [cachedTemplates, setCachedTemplates] = useState([]);
   const [cachedGroupIndex, setCachedGroupIndex] = useState(0);
-
   const [cachedFestivalData, setCachedFestivalData] = useState({});
-
   const [cachedTrending, setCachedTrending] = useState(null);
+
+  // Cache for AllTemplates page: key = type string, value = { templates, lastDoc, hasMore }
+  const [allTemplatesCache, setAllTemplatesCache] = useState({});
 
   return (
     <>
       <DataContextGen.Provider
-        value={{ theme, toggleTheme, theame_color, setSelType, selType, cachedFestivalData, setCachedFestivalData, cachedTemplates, setCachedTemplates, cachedGroupIndex, setCachedGroupIndex, cachedTrending, setCachedTrending }}
+        value={{
+          theme,
+          toggleTheme,
+          theame_color,
+          setSelType,
+          selType,
+          cachedFestivalData,
+          setCachedFestivalData,
+          cachedTemplates,
+          setCachedTemplates,
+          cachedGroupIndex,
+          setCachedGroupIndex,
+          cachedTrending,
+          setCachedTrending,
+          allTemplatesCache,
+          setAllTemplatesCache,
+        }}
       >
         {children}
       </DataContextGen.Provider>

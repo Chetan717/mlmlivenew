@@ -2,15 +2,15 @@ import { useNavigate, useLocation } from "react-router";
 import { House, Gem, Person } from "@gravity-ui/icons";
 
 const TABS = [
-  { label: "Home",         path: "/",            Icon: House  },
-  { label: "Subscription", path: "/subscription", Icon: Gem    },
-  { label: "Profile",      path: "/profile",      Icon: Person },
+  { label: "Home", path: "/", Icon: House },
+  { label: "Subscription", path: "/subscription", Icon: Gem },
+  { label: "Profile", path: "/profile", Icon: Person },
 ];
 
 export default function TabBar() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const hide = ["/editor", "/Editor","/selectcomp"].includes(location.pathname);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform"].includes(location.pathname);
   if (hide) return null;
 
   return (
@@ -37,16 +37,14 @@ export default function TabBar() {
 
               <div className="relative z-10 flex flex-col items-center gap-[3px]">
                 <div
-                  className={`flex items-center justify-center w-[34px] h-[24px] rounded-xl transition-colors duration-200 ${
-                    isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
-                  }`}
+                  className={`flex items-center justify-center w-[34px] h-[24px] rounded-xl transition-colors duration-200 ${isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
+                    }`}
                 >
                   <Icon className="w-[18px] h-[18px]" />
                 </div>
                 <span
-                  className={`text-[10px] font-semibold leading-none transition-colors duration-200 ${
-                    isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
-                  }`}
+                  className={`text-[10px] font-semibold leading-none transition-colors duration-200 ${isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
+                    }`}
                 >
                   {label}
                 </span>

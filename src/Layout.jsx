@@ -35,8 +35,8 @@ export default function Layout({ children }) {
           setMobileOpen={setMobileOpen}
         />
 
-        <div className="flex-1 h-full overflow-y-auto layout-scroll-container bg-background">
-          <div className={`mx-auto w-full max-w-7xl animate-slide-up ${hideTabBar ? "pb-0" : "pb-20 md:pb-4"}`}>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain layout-scroll-container bg-background">
+          <div className={`mx-auto w-full max-w-7xl ${hideTabBar ? "pb-0" : "pb-20 md:pb-4"}`}>
             {children}
           </div>
         </div>

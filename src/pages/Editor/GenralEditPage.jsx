@@ -17,7 +17,7 @@ import x from "./sociallogo/x.png";
 import Loc from "./sociallogo/loc.png";
 import zoom from "./sociallogo/zoom.png";
 import meet from "./sociallogo/meet.png";
-import { Button, isRTL } from "@heroui/react";
+import { Button, isRTL, Spinner } from "@heroui/react";
 // Bundle the FFmpeg core locally (served from this app's own origin) so the
 // video export does not depend on external CDNs, which can be blocked/timeout.
 import ffmpegCoreURL from "@ffmpeg/core?url";
@@ -52,7 +52,7 @@ const EXPORT_PIXEL_RATIO = 6;
 // Video export tuning — kept separate from the (frozen) image EXPORT_PIXEL_RATIO.
 // A smaller frame means far fewer pixels for FFmpeg to encode, so the
 // image+music -> video conversion is dramatically faster.
-const VIDEO_PIXEL_RATIO = 2; // 320 * 2 = 640px square frame
+const VIDEO_PIXEL_RATIO = 4; // 320 * 2 = 640px square frame
 const MAX_MUSIC_SECONDS = 20; // hard-trim every track to 0:20
 
 // Credit cost per export type.
@@ -120,7 +120,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
 
     const startAnim = () => {
       if (cancelled) return;
-      anim = new Konva.Animation(() => {}, layer);
+      anim = new Konva.Animation(() => { }, layer);
       anim.start();
     };
 
@@ -133,7 +133,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
           p.catch(() => {
             // Autoplay with sound blocked — play muted so frames still show.
             videoEl.muted = true;
-            videoEl.play().catch(() => {});
+            videoEl.play().catch(() => { });
           });
         }
         startAnim();
@@ -207,7 +207,6 @@ const NO_FOOTER_TYPES = new Set([
   "Rank_Promotion",
   "Bonanza",
   "Welcome_Closing",
-  "Greeting_Wishes",
   "Achievements",
   "Anniversary_Birthday",
   "Income",
@@ -1583,7 +1582,7 @@ function GeneralEditPage({
     videoEl.muted = false;
     const startPlay = videoEl.play();
     if (startPlay && typeof startPlay.catch === "function")
-      startPlay.catch(() => {});
+      startPlay.catch(() => { });
     setVideoPlaying(true);
 
     if (!checkCredits(VIDEO_CREDIT_COST)) return;
@@ -1618,7 +1617,7 @@ function GeneralEditPage({
       if (videoEl.paused) {
         try {
           await videoEl.play();
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const ratio = 2;
@@ -1633,7 +1632,7 @@ function GeneralEditPage({
         try {
           const c = stage.toCanvas({ pixelRatio: ratio });
           ctx.drawImage(c, 0, 0, rec.width, rec.height);
-        } catch (_) {}
+        } catch (_) { }
         rafId = requestAnimationFrame(drawFrame);
       };
       drawFrame();
@@ -1710,13 +1709,13 @@ function GeneralEditPage({
       if (rafId) cancelAnimationFrame(rafId);
       try {
         if (recorder && recorder.state !== "inactive") recorder.stop();
-      } catch (_) {}
+      } catch (_) { }
       try {
         if (stream) stream.getTracks().forEach((t) => t.stop());
-      } catch (_) {}
+      } catch (_) { }
       try {
         if (audioCap) audioCap.getTracks().forEach((t) => t.stop());
-      } catch (_) {}
+      } catch (_) { }
       setExportLoading(false);
       exportInProgressRef.current = false;
     }
@@ -1736,7 +1735,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(file);
-      } catch (_) {}
+      } catch (_) { }
       if (!duration || duration <= 0) {
         showToast("Could not read this audio file. Try another one.", "error");
         return;
@@ -1887,7 +1886,7 @@ function GeneralEditPage({
         if (!loaded)
           throw new Error(
             "Could not load video engine. " +
-              (lastErr?.message || "Network error"),
+            (lastErr?.message || "Network error"),
           );
         ffmpegRef.current = ffmpeg;
       }
@@ -1898,7 +1897,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(selectedMusic.file);
-      } catch (_) {}
+      } catch (_) { }
       if (!duration || duration <= 0)
         throw new Error(
           "Could not read audio duration. Try a different audio file.",
@@ -1987,13 +1986,13 @@ function GeneralEditPage({
       // Cleanup ffmpeg memory before download
       try {
         await ffmpeg.deleteFile("input.png");
-      } catch (_) {}
+      } catch (_) { }
       try {
         await ffmpeg.deleteFile(audName);
-      } catch (_) {}
+      } catch (_) { }
       try {
         await ffmpeg.deleteFile("output.mp4");
-      } catch (_) {}
+      } catch (_) { }
 
       // ── Stage 7: deliver video (RN bridge OR browser download) ─────────
       const fileName = `mlmbooster_${Date.now()}.mp4`;
@@ -2156,7 +2155,7 @@ function GeneralEditPage({
         {/* ── Canvas loading skeleton ── */}
         {bgStatus === "loading" && (
           <div
-            className="absolute inset-0 z-1  overflow-hidden pointer-events-none"
+            className="absolute inset-0 z-1 bg-white  overflow-hidden pointer-events-none"
             style={{
               background:
                 "linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)",
@@ -2164,15 +2163,10 @@ function GeneralEditPage({
               animation: "canvasShimmer 1.4s ease infinite",
             }}
           >
-            <style>{`
-              @keyframes canvasShimmer {
-                0%   { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-              }
-            `}</style>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/40 animate-pulse" />
-              <div className="h-2.5 w-24 rounded-full bg-white/40 animate-pulse" />
+            <div className="absolute  inset-0  flex flex-col items-center justify-center gap-3">
+              {/* <div className="w-10 h-10 rounded-xl bg-white/40 animate-pulse" /> */}
+              <Spinner />
+              {/* <div className="h-2.5 w-24 rounded-full bg-white/40 animate-pulse" /> */}
             </div>
           </div>
         )}
@@ -2545,12 +2539,12 @@ function GeneralEditPage({
             )}
  */}
             {isSubGeneralType ||
-            isSubGeneralType2 ||
-            Template_Type === "Anniversary_Birthday" ||
-            Template_Type === "Bonanza" ||
-            Template_Type === "Capping" ||
-            isWelcome ||
-            isMeeting ? null : (
+              isSubGeneralType2 ||
+              Template_Type === "Anniversary_Birthday" ||
+              Template_Type === "Bonanza" ||
+              Template_Type === "Capping" ||
+              isWelcome ||
+              isMeeting ? null : (
               <GoldenAmountImages
                 amountText={amountText}
                 digitImageMap={digitImageMap}
@@ -2826,8 +2820,8 @@ function GeneralEditPage({
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
                 meetingData?.platformType === "instagram" ||
-                meetingData?.platformType === "youtube" ||
-                meetingData?.platformType === "facebook" ? (
+                  meetingData?.platformType === "youtube" ||
+                  meetingData?.platformType === "facebook" ? (
                   <Group x={isRight ? 135 : 0} y={285}>
                     <Image
                       image={
@@ -2976,7 +2970,7 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 /> */}
                 <Text
-                  x={240}
+                  x={252}
                   y={298}
                   width={150}
                   height={5}
@@ -3002,7 +2996,7 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 /> */}
                 <Text
-                  x={235}
+                  x={250}
                   y={297}
                   width={150}
                   height={20}
@@ -3043,7 +3037,7 @@ function GeneralEditPage({
                     : 170 - parentWidth / 2;
 
                   return (
-                    <Group x={parentCenterX} y={295}>
+                    <Group x={parentCenterX} y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}>
                       {/* <Text
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
@@ -3059,7 +3053,7 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
-                        x={28}
+                        x={23}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
@@ -3087,8 +3081,8 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
-                        x={30}
-                        y={showSocial === "no" ? 10.5 : 9.5}
+                        x={25}
+                        y={10.5}
                         width={200}
                         height={2}
                         text={ActualDesignation}
@@ -3100,60 +3094,7 @@ function GeneralEditPage({
                         onClick={() => setIsOpenFtr(true)}
                         onTap={() => setIsOpenFtr(true)}
                       />
-                      {showSocial === "never" ? (
-                        <Group x={(200 - socialGroupWidth) / 2} y={12}>
-                          {SocialURLs.Youtube && (
-                            <Image
-                              image={yt}
-                              x={iconPositions.youtube}
-                              y={0}
-                              width={9}
-                              height={9}
-                            />
-                          )}
-                          {SocialURLs.Instagram && (
-                            <Image
-                              image={insta}
-                              x={iconPositions.instagram}
-                              y={0}
-                              width={9}
-                              height={9}
-                            />
-                          )}
-                          {SocialURLs.Facebook && (
-                            <Image
-                              image={fb}
-                              x={iconPositions.facebook}
-                              y={0}
-                              width={9}
-                              height={9}
-                            />
-                          )}
-                          {SocialURLs.X && (
-                            <Image
-                              image={xlogo}
-                              x={iconPositions.x}
-                              y={0}
-                              width={9}
-                              height={9}
-                            />
-                          )}
-                          <Text
-                            x={textStartX}
-                            y={0}
-                            width={100 - textStartX}
-                            height={9}
-                            text={socialText}
-                            fontSize={6}
-                            fill="white"
-                            fontStyle="bold"
-                            align="left"
-                            verticalAlign="middle"
-                            onClick={() => setIsOpenFtr(true)}
-                            onTap={() => setIsOpenFtr(true)}
-                          />
-                        </Group>
-                      ) : null}
+
                     </Group>
                   );
                 })()}
@@ -3243,7 +3184,7 @@ function GeneralEditPage({
                     : 216 - parentWidth / 2;
 
                   return (
-                    <Group x={parentCenterX} y={295}>
+                    <Group x={parentCenterX} y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}>
                       {/* <Text
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
@@ -3273,7 +3214,7 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
-                        x={2.5}
+                        x={15}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
@@ -3287,7 +3228,7 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       />
                       <Text
-                        x={0}
+                        x={15}
                         y={showSocial === "no" ? 10.5 : 9.5}
                         width={200}
                         height={2}
@@ -3302,59 +3243,59 @@ function GeneralEditPage({
                       />
                       {showSocial === "never"
                         ? socialText && (
-                            <Group x={(200 - socialGroupWidth) / 2} y={12}>
-                              {SocialURLs.Youtube && (
-                                <Image
-                                  image={yt}
-                                  x={iconPositions.youtube}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.Instagram && (
-                                <Image
-                                  image={insta}
-                                  x={iconPositions.instagram}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.Facebook && (
-                                <Image
-                                  image={fb}
-                                  x={iconPositions.facebook}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.X && (
-                                <Image
-                                  image={xlogo}
-                                  x={iconPositions.x}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              <Text
-                                x={textStartX}
+                          <Group x={(200 - socialGroupWidth) / 2} y={12}>
+                            {SocialURLs.Youtube && (
+                              <Image
+                                image={yt}
+                                x={iconPositions.youtube}
                                 y={0}
-                                width={100 - textStartX}
+                                width={9}
                                 height={9}
-                                text={socialText}
-                                fontSize={6}
-                                fill="white"
-                                fontStyle="bold"
-                                align="left"
-                                verticalAlign="middle"
-                                onClick={() => setIsOpenFtr(true)}
-                                onTap={() => setIsOpenFtr(true)}
                               />
-                            </Group>
-                          )
+                            )}
+                            {SocialURLs.Instagram && (
+                              <Image
+                                image={insta}
+                                x={iconPositions.instagram}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            {SocialURLs.Facebook && (
+                              <Image
+                                image={fb}
+                                x={iconPositions.facebook}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            {SocialURLs.X && (
+                              <Image
+                                image={xlogo}
+                                x={iconPositions.x}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            <Text
+                              x={textStartX}
+                              y={0}
+                              width={100 - textStartX}
+                              height={9}
+                              text={socialText}
+                              fontSize={6}
+                              fill="white"
+                              fontStyle="bold"
+                              align="left"
+                              verticalAlign="middle"
+                              onClick={() => setIsOpenFtr(true)}
+                              onTap={() => setIsOpenFtr(true)}
+                            />
+                          </Group>
+                        )
                         : null}
                     </Group>
                   );
@@ -3363,16 +3304,16 @@ function GeneralEditPage({
             )}
 
             {isSubGeneralType ||
-            meetingData?.hostMode === "none" ? null : isRight ? (
-              <Image
-                image={ImageProfile}
-                x={isMeeting ? 60 : 76}
-                y={isMeeting ? 250 : 210}
-                scaleX={-1}
-                width={isMeeting ? 60 : 80}
-                height={isMeeting ? 70 : 110}
-              />
-            ) : (
+              meetingData?.hostMode === "none" ? null : isRight ? (
+                <Image
+                  image={ImageProfile}
+                  x={isMeeting ? 60 : 76}
+                  y={isMeeting ? 250 : 210}
+                  scaleX={-1}
+                  width={isMeeting ? 60 : 80}
+                  height={isMeeting ? 70 : 110}
+                />
+              ) : (
               <Image
                 image={ImageProfile}
                 x={isMeeting ? 260 : 244}
@@ -3561,11 +3502,10 @@ function GeneralEditPage({
                 : "Add background music"
             }
             onClick={() => setMusicModalOpen(true)}
-            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${
-              selectedMusic
-                ? "bg-green-500 text-white shadow-md"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
+            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${selectedMusic
+              ? "bg-green-500 text-white shadow-md"
+              : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
           >
             <svg
               width="15"
@@ -3794,11 +3734,10 @@ function GeneralEditPage({
                       key={preset.url}
                       onClick={() => handlePresetMusic(preset)}
                       disabled={isLoading}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${
-                        isActive
-                          ? "border-accent bg-accent/10"
-                          : "border-border hover:border-accent hover:bg-accent/5"
-                      } ${isLoading ? "opacity-60" : ""}`}
+                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${isActive
+                        ? "border-accent bg-accent/10"
+                        : "border-border hover:border-accent hover:bg-accent/5"
+                        } ${isLoading ? "opacity-60" : ""}`}
                     >
                       <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
                         {isLoading ? (

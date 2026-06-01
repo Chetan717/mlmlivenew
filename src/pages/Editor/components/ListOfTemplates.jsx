@@ -6,6 +6,10 @@ const BATCH_SIZE = 20;
 
 const PRESET_VIDEO_ITEMS = [];
 
+// Module-level cache — survives editor unmount/remount within the session
+// Key: `${filterType}__${filterSubType}`, Value: filtered items array
+const _editorTemplateCache = new Map();
+
 function getSelType() {
   try { return JSON.parse(localStorage.getItem("selType")) || {}; }
   catch { return {}; }
@@ -219,6 +223,27 @@ export default function ListOfTemplates({ selected, setSelected }) {
     if (!filterType) { setLoading(false); return; }
 
     async function fetchTemplates() {
+      const cacheKey = `${filterType}__${filterSubType}`;
+
+      // Return immediately from cache — no spinner, no network round-trip
+      if (_editorTemplateCache.has(cacheKey)) {
+        const filteredItems = _editorTemplateCache.get(cacheKey);
+        setAllItems(filteredItems);
+        renderedCount.current = 0;
+        setSelected((prev) => {
+          if (prev) return prev;
+          const imgs = filteredItems.filter((i) => !i.videoUrl && !i.VideoUrl);
+          const vids = filteredItems.filter((i) => !!(i.videoUrl || i.VideoUrl));
+          const pool = activeTab === "video" ? (vids.length > 0 ? vids : PRESET_VIDEO_ITEMS) : imgs;
+          return pool.length > 0 ? cleanItem(pool[0]) : null;
+        });
+        const firstBatch = filteredItems.slice(0, BATCH_SIZE);
+        setVisibleItems(firstBatch);
+        renderedCount.current = firstBatch.length;
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -257,6 +282,9 @@ export default function ListOfTemplates({ selected, setSelected }) {
             }
           }
         } catch { filteredItems = items; }
+
+        // Store in module-level cache for instant reuse
+        _editorTemplateCache.set(cacheKey, filteredItems);
 
         setAllItems(filteredItems);
         renderedCount.current = 0;

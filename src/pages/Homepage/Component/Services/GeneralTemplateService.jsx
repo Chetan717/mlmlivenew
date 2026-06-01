@@ -21,8 +21,7 @@ const TYPE_GROUPS = [
   ],
 ];
 
-// ── Module-level cache — survives component unmount/remount ──────────────────
-// Key: groupIndex (number), Value: array of group objects
+// Module-level cache — survives component unmount/remount
 const _cache = new Map();
 
 export function getTemplateCache() {
@@ -43,7 +42,6 @@ const normalizeDoc = (doc) => ({
 });
 
 export const fetchGeneralTemplates = async (groupIndex, company) => {
-  // Return from cache if already fetched
   const cacheKey = `${groupIndex}__${company || ""}`;
   if (_cache.has(cacheKey)) {
     return _cache.get(cacheKey);
@@ -53,41 +51,44 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
     const selectedTypes = TYPE_GROUPS[groupIndex];
     if (!selectedTypes) return [];
 
-    const result = [];
-
-    for (const type of selectedTypes) {
-      const generalQuery = query(
-        collection(db, "mlmtemplate"),
-        where("MainType", "==", "General"),
-        where("SelectType", "==", type),
-        where("Active", "==", true),
-        where("Launched", "==", true),
-        orderBy("serial"),
-      );
-
-      const generalSnapshot = await getDocs(generalQuery);
-      const generalTemplates = generalSnapshot.docs.map(normalizeDoc);
-
-      let mlmTemplates = [];
-      if (company) {
-        const mlmQuery = query(
+    // Fetch all types in parallel instead of sequential for-loop
+    const results = await Promise.all(
+      selectedTypes.map(async (type) => {
+        const generalQuery = query(
           collection(db, "mlmtemplate"),
-          where("MainType", "==", "MLM"),
-          where("Company", "==", company),
+          where("MainType", "==", "General"),
           where("SelectType", "==", type),
           where("Active", "==", true),
           where("Launched", "==", true),
           orderBy("serial"),
         );
-        const mlmSnapshot = await getDocs(mlmQuery);
-        mlmTemplates = mlmSnapshot.docs.map(normalizeDoc);
-      }
 
-      result.push({ type, templates: [...mlmTemplates, ...generalTemplates] });
-    }
+        const [generalSnapshot, mlmSnapshot] = await Promise.all([
+          getDocs(generalQuery),
+          company
+            ? getDocs(
+                query(
+                  collection(db, "mlmtemplate"),
+                  where("MainType", "==", "MLM"),
+                  where("Company", "==", company),
+                  where("SelectType", "==", type),
+                  where("Active", "==", true),
+                  where("Launched", "==", true),
+                  orderBy("serial"),
+                ),
+              )
+            : Promise.resolve({ docs: [] }),
+        ]);
 
-    _cache.set(cacheKey, result);
-    return result;
+        const generalTemplates = generalSnapshot.docs.map(normalizeDoc);
+        const mlmTemplates = mlmSnapshot.docs.map(normalizeDoc);
+
+        return { type, templates: [...mlmTemplates, ...generalTemplates] };
+      }),
+    );
+
+    _cache.set(cacheKey, results);
+    return results;
   } catch (error) {
     console.error("General fetch error:", error);
     return [];
