@@ -146,7 +146,7 @@ export default function ReferCard() {
   }, [user?.referCode]);
 
   const handleShare = useCallback(() => {
-    const msg = `Hey! Use my refer code ${referCode} and get 1 month FREE on MLM LIVE. Join now!`;
+    const msg = `Hey! Use my refer code ${referCode} and get 1 month FREE on MLM LIVE. Join now! https://play.google.com/store/apps/details?id=com.mlmbooster.mlmbooster`;
     if (navigator.share) navigator.share({ title: "Refer & Earn", text: msg });
     else navigator.clipboard.writeText(msg).catch(() => {});
   }, [referCode]);
@@ -196,7 +196,7 @@ export default function ReferCard() {
                 onClick={handleShare}
                 className="bg-white text-[#c1005a] font-bold text-[11px] px-4 py-1.5 rounded-full hover:opacity-90 active:scale-95 transition-all"
               >
-                Share
+                Share MLM LIVE
               </button>
               <button
                 onClick={() => setShowModal(true)}

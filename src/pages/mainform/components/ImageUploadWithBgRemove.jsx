@@ -32,9 +32,9 @@ export default function ImageUploadWithBgRemove({
       setLoad(true);
       const processed = shouldRemoveBg ? await removeBg(file) : file;
       const preview = URL.createObjectURL(processed);
-      if (preview) { setOpen(true); setLoad(false); }
       setEditingImage(preview);
       setOnImageDone(() => (blob) => { onImageReady(blob); });
+      if (preview) { setOpen(true); setLoad(false); }
     } catch (err) {
       console.error(err);
       alert("Image processing failed");

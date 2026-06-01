@@ -209,7 +209,7 @@ export default function SalesExecutiveForm() {
   const [achiever, setAchiever] = useState({
     title: "Mr.",
     name: "",
-    achieverName: "Mr.",
+    achieverName: "",
   });
   const [promoter, setPromoter] = useState({});
   const [errors, setErrors] = useState({});
@@ -259,33 +259,6 @@ export default function SalesExecutiveForm() {
     const saved = JSON.parse(localStorage.getItem("mlmform"));
 
     if (saved) {
-      // Restore tab
-
-      if (saved.tab) setTab(saved.tab);
-
-      // Restore achiever (image stays as base64 string; components handle both Blob & string)
-      if (saved.achiever) {
-        const parsed = parseAchieverName(saved.achiever);
-        setAchiever({
-          ...saved.achiever,
-          title: parsed.title,
-          name: parsed.name,
-          achieverName:
-            saved.achiever.achieverName ||
-            `${parsed.title} ${parsed.name}`.trim(),
-          image: saved.achiever.image || null,
-        });
-      }
-
-      // Restore promoter
-      if (saved.promoter) {
-        setPromoter({
-          ...saved.promoter,
-          image: saved.promoter.image || null,
-        });
-      }
-
-      // Restore selected upline links (saved form overrides mlmProfile)
       if (saved.selectedLinks?.length) {
         setSelectedLinks(saved.selectedLinks);
       } else if (mlmProfile?.topuplineURLs?.length) {
@@ -368,7 +341,7 @@ export default function SalesExecutiveForm() {
       tab,
       achiever: {
         ...achiever,
-        achieverName: `${achiever.title || ""} ${achiever.name || ""}`.trim(),
+        achieverName: `${achiever.title || "Mr."} ${achiever.name || ""}`.trim(),
         // If image is already a base64 string (restored), keep it; else convert Blob
         image: achiever.image ? await toBase64(achiever.image) : null,
       },
@@ -406,7 +379,7 @@ export default function SalesExecutiveForm() {
     <div className="w-full space-y-5 pt-0 pb-10 mt-1">
       {/* ── Hero header image ── */}
       {formImage ? (
-        <div className="relative w-full overflow-hidden rounded-b-[24px] bg-muted/10">
+        <div className="relative w-full overflow-hidden rounded-b-[24px] ">
           <img src={formImage} alt="" className="w-full h-[130px] object-contain" />
         </div>
       ) : null}
@@ -468,26 +441,33 @@ export default function SalesExecutiveForm() {
               <p className="text-[13px] font-bold text-foreground">Achiever Details</p>
             </div>
 
-            <div className="flex gap-2 items-end">
-              <div className="w-[80px]">
-                <Select
-                  placeholder="Title"
-                  selectedKey={achiever.title || "Mr."}
-                  onSelectionChange={(key) => {
-                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key}${p.name || ""}`.trim() }));
+            <div className="flex gap-2 items-center">
+              <div className="w-[82px] flex-shrink-0">
+                <select
+                  value={achiever.title || "Mr."}
+                  onChange={(e) => {
+                    const key = e.target.value;
+                    setAchiever((p) => ({ ...p, title: key, achieverName: `${key || "Mr."} ${p.name || ""}`.trim() }));
                   }}
-                  className="w-full text-[11px]"
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: "0 8px",
+                    background: "var(--heroui-background, #fff)",
+                    color: "var(--heroui-foreground, #202020)",
+                    appearance: "auto",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
                 >
-                  <Label className="text-[11px] text-foreground/60 font-semibold">Title</Label>
-                  <Select.Trigger><Select.Value style={{ fontSize: 12 }} /><Select.Indicator /></Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      {["Mr.", "Mrs.", "Dr."].map((opt) => (
-                        <ListBox.Item key={opt} id={opt} textValue={opt} style={{ fontSize: 12 }}>{opt}<ListBox.ItemIndicator /></ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
+                  {["Mr.", "Mrs.", "Dr."].map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex-1">
                 <IconTextField
@@ -504,6 +484,16 @@ export default function SalesExecutiveForm() {
                 />
               </div>
             </div>
+
+            {achiever.name?.trim() && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/8 border border-accent/20">
+                <Person width={12} height={12} className="text-accent flex-shrink-0" />
+                <p className="text-[11px] text-accent font-semibold truncate">
+                  {`${achiever.title || "Mr."} ${achiever.name}`.trim()}
+                </p>
+                <span className="ml-auto text-[9px] text-accent/60 font-medium uppercase tracking-wide flex-shrink-0">Preview</span>
+              </div>
+            )}
 
             <IconTextField
               label="From team / City"
