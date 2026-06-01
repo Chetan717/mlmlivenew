@@ -363,7 +363,8 @@ export default function ListOfTemplates({ selected, setSelected }) {
 
   const handleSelect = (item) => {
     const already = selected?.id === item.id;
-    setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
+    // setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
+    setSelected(cleanItem(item));
   };
 
   const isItemSelected = (item) => selected?.id === item.id;
