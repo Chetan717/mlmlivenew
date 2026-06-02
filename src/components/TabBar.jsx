@@ -14,7 +14,7 @@ export default function TabBar() {
   if (hide) return null;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 ">
       {/* Glass backdrop */}
       <div className="absolute inset-0 bg-background/90 backdrop-blur-2xl border-t border-border/60" />
 

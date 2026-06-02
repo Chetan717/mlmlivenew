@@ -17,6 +17,10 @@ import x from "./sociallogo/x.png";
 import Loc from "./sociallogo/loc.png";
 import zoom from "./sociallogo/zoom.png";
 import meet from "./sociallogo/meet.png";
+import twodn from "./sociallogo/2d1n.webp";
+import threedn from "./sociallogo/3d2n.webp";
+import fourdn from "./sociallogo/4d3n.webp";
+import familly from "./sociallogo/family.webp";
 import { Button, isRTL, Spinner } from "@heroui/react";
 // Bundle the FFmpeg core locally (served from this app's own origin) so the
 // video export does not depend on external CDNs, which can be blocked/timeout.
@@ -625,8 +629,8 @@ function GeneralEditPage({
                 : isWelcome
                   ? 64
                   : isBonanza
-                    ? 75
-                    : 46,
+                    ? 40
+                    : 40,
       width: isMeeting
         ? 135
         : isCapping
@@ -636,6 +640,7 @@ function GeneralEditPage({
             : isAnyversary
               ? 130
               : 110,
+
       height: isMeeting
         ? 200
         : isCapping
@@ -649,7 +654,7 @@ function GeneralEditPage({
                 : isWelcome
                   ? 160
                   : isBonanza
-                    ? 160
+                    ? 180
                     : 190,
       scaleX: 1,
       offsetX: 0,
@@ -1224,6 +1229,23 @@ function GeneralEditPage({
   const [Sticker] = useImage(`${selected?.bannerId || ""}`, "anonymous");
   const [AchiveFrame] = useImage(
     `${selected?.nameImageUrl || ""}`,
+    "anonymous",
+  );
+  const sleDay = mlmForm?.bonanzaDays;
+  const iwho = mlmForm?.bonanzaForWhom;
+
+  const [imgBonanza] = useImage(
+    sleDay === "1 Night/2 Day"
+      ? twodn
+      : sleDay === "2 Night/3 Day"
+        ? threedn
+        : sleDay === "3 Night/4 Day"
+          ? fourdn
+          : "",
+    "anonymous",
+  );
+  const [imgBonanzafamily] = useImage(
+    iwho === "FAMILY" ? familly : null,
     "anonymous",
   );
 
@@ -2468,6 +2490,24 @@ function GeneralEditPage({
                 onTransformEnd={handleTransformEnd("sticker")}
               />
             )}
+            {isBonanza ? (
+              <Image
+                x={isRight ? 90 : 190}
+                y={isRight ? 210 : 200}
+                width={70}
+                height={70}
+                image={imgBonanza}
+              />
+            ) : null}
+            {isBonanza ? (
+              <Image
+                x={isRight ? 135 : 235}
+                y={isRight ? 230 : 220}
+                width={30}
+                height={30}
+                image={imgBonanzafamily}
+              />
+            ) : null}
 
             {isAchievement ? (
               <Text
@@ -2539,6 +2579,7 @@ function GeneralEditPage({
               />
             )}
  */}
+
             {isSubGeneralType ||
             isSubGeneralType2 ||
             Template_Type === "Anniversary_Birthday" ||
