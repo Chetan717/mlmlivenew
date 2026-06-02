@@ -120,7 +120,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
 
     const startAnim = () => {
       if (cancelled) return;
-      anim = new Konva.Animation(() => { }, layer);
+      anim = new Konva.Animation(() => {}, layer);
       anim.start();
     };
 
@@ -133,7 +133,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
           p.catch(() => {
             // Autoplay with sound blocked — play muted so frames still show.
             videoEl.muted = true;
-            videoEl.play().catch(() => { });
+            videoEl.play().catch(() => {});
           });
         }
         startAnim();
@@ -1582,7 +1582,7 @@ function GeneralEditPage({
     videoEl.muted = false;
     const startPlay = videoEl.play();
     if (startPlay && typeof startPlay.catch === "function")
-      startPlay.catch(() => { });
+      startPlay.catch(() => {});
     setVideoPlaying(true);
 
     if (!checkCredits(VIDEO_CREDIT_COST)) return;
@@ -1617,7 +1617,7 @@ function GeneralEditPage({
       if (videoEl.paused) {
         try {
           await videoEl.play();
-        } catch (_) { }
+        } catch (_) {}
       }
 
       const ratio = 2;
@@ -1632,7 +1632,7 @@ function GeneralEditPage({
         try {
           const c = stage.toCanvas({ pixelRatio: ratio });
           ctx.drawImage(c, 0, 0, rec.width, rec.height);
-        } catch (_) { }
+        } catch (_) {}
         rafId = requestAnimationFrame(drawFrame);
       };
       drawFrame();
@@ -1709,13 +1709,13 @@ function GeneralEditPage({
       if (rafId) cancelAnimationFrame(rafId);
       try {
         if (recorder && recorder.state !== "inactive") recorder.stop();
-      } catch (_) { }
+      } catch (_) {}
       try {
         if (stream) stream.getTracks().forEach((t) => t.stop());
-      } catch (_) { }
+      } catch (_) {}
       try {
         if (audioCap) audioCap.getTracks().forEach((t) => t.stop());
-      } catch (_) { }
+      } catch (_) {}
       setExportLoading(false);
       exportInProgressRef.current = false;
     }
@@ -1735,7 +1735,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(file);
-      } catch (_) { }
+      } catch (_) {}
       if (!duration || duration <= 0) {
         showToast("Could not read this audio file. Try another one.", "error");
         return;
@@ -1886,7 +1886,7 @@ function GeneralEditPage({
         if (!loaded)
           throw new Error(
             "Could not load video engine. " +
-            (lastErr?.message || "Network error"),
+              (lastErr?.message || "Network error"),
           );
         ffmpegRef.current = ffmpeg;
       }
@@ -1897,7 +1897,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(selectedMusic.file);
-      } catch (_) { }
+      } catch (_) {}
       if (!duration || duration <= 0)
         throw new Error(
           "Could not read audio duration. Try a different audio file.",
@@ -1986,13 +1986,13 @@ function GeneralEditPage({
       // Cleanup ffmpeg memory before download
       try {
         await ffmpeg.deleteFile("input.png");
-      } catch (_) { }
+      } catch (_) {}
       try {
         await ffmpeg.deleteFile(audName);
-      } catch (_) { }
+      } catch (_) {}
       try {
         await ffmpeg.deleteFile("output.mp4");
-      } catch (_) { }
+      } catch (_) {}
 
       // ── Stage 7: deliver video (RN bridge OR browser download) ─────────
       const fileName = `mlmbooster_${Date.now()}.mp4`;
@@ -2398,6 +2398,7 @@ function GeneralEditPage({
                 height={60}
               />
             ) : null}
+
             {isSubGeneralType ? (
               <Image
                 ref={profileImageRef}
@@ -2539,12 +2540,12 @@ function GeneralEditPage({
             )}
  */}
             {isSubGeneralType ||
-              isSubGeneralType2 ||
-              Template_Type === "Anniversary_Birthday" ||
-              Template_Type === "Bonanza" ||
-              Template_Type === "Capping" ||
-              isWelcome ||
-              isMeeting ? null : (
+            isSubGeneralType2 ||
+            Template_Type === "Anniversary_Birthday" ||
+            Template_Type === "Bonanza" ||
+            Template_Type === "Capping" ||
+            isWelcome ||
+            isMeeting ? null : (
               <GoldenAmountImages
                 amountText={amountText}
                 digitImageMap={digitImageMap}
@@ -2719,6 +2720,7 @@ function GeneralEditPage({
                 </Group>
               )
             ) : null}
+
             {meetingData?.hostMode === "add" && isMeeting ? (
               <Group X={isRight ? 5 : 100} Y={0.9}>
                 <Text
@@ -2762,7 +2764,10 @@ function GeneralEditPage({
                 ></Text>
               </Group>
             ) : null}
-            {isMeeting || !showImageFooter ? null : isRight ? (
+
+            {isMeeting ||
+            isSubGeneralType ||
+            !showImageFooter ? null : isRight ? (
               <Image
                 scaleX={-1}
                 scaleY={1}
@@ -2785,6 +2790,32 @@ function GeneralEditPage({
                 onTap={() => setIsOpenFtr(true)}
               />
             )}
+
+            {isSubGeneralType ? (
+              isRight ? (
+                <Image
+                  image={Imagefooter}
+                  x={0}
+                  y={280}
+                  width={350}
+                  height={41}
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                />
+              ) : (
+                <Image
+                  scaleX={-1}
+                  scaleY={1}
+                  image={Imagefooter}
+                  x={320}
+                  y={280}
+                  width={350}
+                  height={41}
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                />
+              )
+            ) : null}
 
             {isMeeting ? (
               isRight ? (
@@ -2820,8 +2851,8 @@ function GeneralEditPage({
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
                 meetingData?.platformType === "instagram" ||
-                  meetingData?.platformType === "youtube" ||
-                  meetingData?.platformType === "facebook" ? (
+                meetingData?.platformType === "youtube" ||
+                meetingData?.platformType === "facebook" ? (
                   <Group x={isRight ? 135 : 0} y={285}>
                     <Image
                       image={
@@ -2953,8 +2984,9 @@ function GeneralEditPage({
                 ></Text>
               </Group>
             ) : null}
+            {/* main */}
 
-            {isMeeting ? null : isRight ? (
+            {isMeeting || isSubGeneralType ? null : isRight ? (
               <>
                 {/* <Text
                   x={195}
@@ -3037,7 +3069,10 @@ function GeneralEditPage({
                     : 170 - parentWidth / 2;
 
                   return (
-                    <Group x={parentCenterX} y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}>
+                    <Group
+                      x={parentCenterX}
+                      y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
+                    >
                       {/* <Text
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
@@ -3094,7 +3129,6 @@ function GeneralEditPage({
                         onClick={() => setIsOpenFtr(true)}
                         onTap={() => setIsOpenFtr(true)}
                       />
-
                     </Group>
                   );
                 })()}
@@ -3184,7 +3218,10 @@ function GeneralEditPage({
                     : 216 - parentWidth / 2;
 
                   return (
-                    <Group x={parentCenterX} y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}>
+                    <Group
+                      x={parentCenterX}
+                      y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
+                    >
                       {/* <Text
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
@@ -3243,77 +3280,326 @@ function GeneralEditPage({
                       />
                       {showSocial === "never"
                         ? socialText && (
-                          <Group x={(200 - socialGroupWidth) / 2} y={12}>
-                            {SocialURLs.Youtube && (
-                              <Image
-                                image={yt}
-                                x={iconPositions.youtube}
+                            <Group x={(200 - socialGroupWidth) / 2} y={12}>
+                              {SocialURLs.Youtube && (
+                                <Image
+                                  image={yt}
+                                  x={iconPositions.youtube}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              {SocialURLs.Instagram && (
+                                <Image
+                                  image={insta}
+                                  x={iconPositions.instagram}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              {SocialURLs.Facebook && (
+                                <Image
+                                  image={fb}
+                                  x={iconPositions.facebook}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              {SocialURLs.X && (
+                                <Image
+                                  image={xlogo}
+                                  x={iconPositions.x}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              <Text
+                                x={textStartX}
                                 y={0}
-                                width={9}
+                                width={100 - textStartX}
                                 height={9}
+                                text={socialText}
+                                fontSize={6}
+                                fill="white"
+                                fontStyle="bold"
+                                align="left"
+                                verticalAlign="middle"
+                                onClick={() => setIsOpenFtr(true)}
+                                onTap={() => setIsOpenFtr(true)}
                               />
-                            )}
-                            {SocialURLs.Instagram && (
-                              <Image
-                                image={insta}
-                                x={iconPositions.instagram}
-                                y={0}
-                                width={9}
-                                height={9}
-                              />
-                            )}
-                            {SocialURLs.Facebook && (
-                              <Image
-                                image={fb}
-                                x={iconPositions.facebook}
-                                y={0}
-                                width={9}
-                                height={9}
-                              />
-                            )}
-                            {SocialURLs.X && (
-                              <Image
-                                image={xlogo}
-                                x={iconPositions.x}
-                                y={0}
-                                width={9}
-                                height={9}
-                              />
-                            )}
-                            <Text
-                              x={textStartX}
-                              y={0}
-                              width={100 - textStartX}
-                              height={9}
-                              text={socialText}
-                              fontSize={6}
-                              fill="white"
-                              fontStyle="bold"
-                              align="left"
-                              verticalAlign="middle"
-                              onClick={() => setIsOpenFtr(true)}
-                              onTap={() => setIsOpenFtr(true)}
-                            />
-                          </Group>
-                        )
+                            </Group>
+                          )
                         : null}
                     </Group>
                   );
                 })()}
               </>
             )}
+            {/* For Sub Type  */}
+
+            {isSubGeneralType ? (
+              isRight ? (
+                <>
+                  <Text
+                    x={35}
+                    y={298}
+                    width={150}
+                    height={5}
+                    text="CALL FOR ASSOCIATION"
+                    fontSize={4.5}
+                    fill="white"
+                    fontStyle="bold"
+                    verticalAlign="middle"
+                    onClick={() => setIsOpenFtr(true)}
+                    onTap={() => setIsOpenFtr(true)}
+                  />
+                  <Text
+                    x={30}
+                    y={297}
+                    width={150}
+                    height={20}
+                    text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                    fontSize={7.5}
+                    fill="white"
+                    fontStyle="bold"
+                    verticalAlign="middle"
+                    onClick={() => setIsOpenFtr(true)}
+                    onTap={() => setIsOpenFtr(true)}
+                  />
+                  {(() => {
+                    let iconX = 0;
+                    const iconPositions = {};
+                    if (SocialURLs.Youtube) {
+                      iconPositions.youtube = iconX;
+                      iconX += 7;
+                    }
+                    if (SocialURLs.Instagram) {
+                      iconPositions.instagram = iconX;
+                      iconX += 7;
+                    }
+                    if (SocialURLs.Facebook) {
+                      iconPositions.facebook = iconX;
+                      iconX += 7;
+                    }
+                    if (SocialURLs.X) {
+                      iconPositions.x = iconX;
+                      iconX += 7;
+                    }
+                    const textStartX = iconX + 3;
+                    const socialGroupWidth = socialText
+                      ? textStartX + socialText.length * 3.5
+                      : 0;
+                    const parentWidth = 300;
+                    const parentCenterX = isSubGeneralType
+                      ? 140 - parentWidth / 2
+                      : 170 - parentWidth / 2;
+
+                    return (
+                      <Group
+                        x={105}
+                        y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
+                      >
+                        <Text
+                          x={23}
+                          y={showSocial === "no" ? 0 : 0}
+                          width={200}
+                          height={2}
+                          text={ActualProfilename}
+                          fontSize={11}
+                          fill="white"
+                          fontStyle="1000"
+                          align="center"
+                          verticalAlign="middle"
+                          onClick={() => setIsOpenFtr(true)}
+                          onTap={() => setIsOpenFtr(true)}
+                        />
+
+                        <Text
+                          x={25}
+                          y={10.5}
+                          width={200}
+                          height={2}
+                          text={ActualDesignation}
+                          fontSize={7}
+                          fill="white"
+                          fontStyle="bold"
+                          align="center"
+                          verticalAlign="middle"
+                          onClick={() => setIsOpenFtr(true)}
+                          onTap={() => setIsOpenFtr(true)}
+                        />
+                      </Group>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <Text
+                    x={240}
+                    y={298}
+                    width={150}
+                    height={5}
+                    text="CALL FOR ASSOCIATION"
+                    fontSize={4.5}
+                    fill="white"
+                    fontStyle="bold"
+                    verticalAlign="middle"
+                    onClick={() => setIsOpenFtr(true)}
+                    onTap={() => setIsOpenFtr(true)}
+                  />
+                  <Text
+                    x={235}
+                    y={297}
+                    width={150}
+                    height={20}
+                    text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                    fontSize={7.5}
+                    fill="white"
+                    fontStyle="bold"
+                    verticalAlign="middle"
+                    onClick={() => setIsOpenFtr(true)}
+                    onTap={() => setIsOpenFtr(true)}
+                  />
+
+                  {(() => {
+                    let iconX = 0;
+                    const iconPositions = {};
+                    if (SocialURLs.Youtube) {
+                      iconPositions.youtube = iconX;
+                      iconX += 10;
+                    }
+                    if (SocialURLs.Instagram) {
+                      iconPositions.instagram = iconX;
+                      iconX += 10;
+                    }
+                    if (SocialURLs.Facebook) {
+                      iconPositions.facebook = iconX;
+                      iconX += 10;
+                    }
+                    if (SocialURLs.X) {
+                      iconPositions.x = iconX;
+                      iconX += 10;
+                    }
+                    const textStartX = iconX + 2;
+                    const socialGroupWidth = socialText
+                      ? textStartX + socialText.length * 3.5
+                      : 0;
+                    const parentWidth = 300;
+                    const parentCenterX = isSubGeneralType
+                      ? 285 - parentWidth / 2
+                      : 216 - parentWidth / 2;
+
+                    return (
+                      <Group
+                        x={0}
+                        y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
+                      >
+                        <Text
+                          x={-10}
+                          y={showSocial === "no" ? 0 : 0}
+                          width={200}
+                          height={2}
+                          text={ActualProfilename}
+                          fontSize={11}
+                          fill="white"
+                          fontStyle="1000"
+                          align="center"
+                          verticalAlign="middle"
+                          onClick={() => setIsOpenFtr(true)}
+                          onTap={() => setIsOpenFtr(true)}
+                        />
+                        <Text
+                          x={-10}
+                          y={showSocial === "no" ? 10.5 : 9.5}
+                          width={200}
+                          height={2}
+                          text={ActualDesignation}
+                          fontSize={7}
+                          fill="white"
+                          fontStyle="bold"
+                          align="center"
+                          verticalAlign="middle"
+                          onClick={() => setIsOpenFtr(true)}
+                          onTap={() => setIsOpenFtr(true)}
+                        />
+                        {showSocial === "never"
+                          ? socialText && (
+                              <Group x={(200 - socialGroupWidth) / 2} y={12}>
+                                {SocialURLs.Youtube && (
+                                  <Image
+                                    image={yt}
+                                    x={iconPositions.youtube}
+                                    y={0}
+                                    width={9}
+                                    height={9}
+                                  />
+                                )}
+                                {SocialURLs.Instagram && (
+                                  <Image
+                                    image={insta}
+                                    x={iconPositions.instagram}
+                                    y={0}
+                                    width={9}
+                                    height={9}
+                                  />
+                                )}
+                                {SocialURLs.Facebook && (
+                                  <Image
+                                    image={fb}
+                                    x={iconPositions.facebook}
+                                    y={0}
+                                    width={9}
+                                    height={9}
+                                  />
+                                )}
+                                {SocialURLs.X && (
+                                  <Image
+                                    image={xlogo}
+                                    x={iconPositions.x}
+                                    y={0}
+                                    width={9}
+                                    height={9}
+                                  />
+                                )}
+                                <Text
+                                  x={textStartX}
+                                  y={0}
+                                  width={100 - textStartX}
+                                  height={9}
+                                  text={socialText}
+                                  fontSize={6}
+                                  fill="white"
+                                  fontStyle="bold"
+                                  align="left"
+                                  verticalAlign="middle"
+                                  onClick={() => setIsOpenFtr(true)}
+                                  onTap={() => setIsOpenFtr(true)}
+                                />
+                              </Group>
+                            )
+                          : null}
+                      </Group>
+                    );
+                  })()}
+                </>
+              )
+            ) : null}
 
             {isSubGeneralType ||
-              meetingData?.hostMode === "none" ? null : isRight ? (
-                <Image
-                  image={ImageProfile}
-                  x={isMeeting ? 60 : 76}
-                  y={isMeeting ? 250 : 210}
-                  scaleX={-1}
-                  width={isMeeting ? 60 : 80}
-                  height={isMeeting ? 70 : 110}
-                />
-              ) : (
+            meetingData?.hostMode === "none" ? null : isRight ? (
+              <Image
+                image={ImageProfile}
+                x={isMeeting ? 60 : 76}
+                y={isMeeting ? 250 : 210}
+                scaleX={-1}
+                width={isMeeting ? 60 : 80}
+                height={isMeeting ? 70 : 110}
+              />
+            ) : (
               <Image
                 image={ImageProfile}
                 x={isMeeting ? 260 : 244}
@@ -3502,10 +3788,11 @@ function GeneralEditPage({
                 : "Add background music"
             }
             onClick={() => setMusicModalOpen(true)}
-            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${selectedMusic
-              ? "bg-green-500 text-white shadow-md"
-              : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
+            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${
+              selectedMusic
+                ? "bg-green-500 text-white shadow-md"
+                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
           >
             <svg
               width="15"
@@ -3734,10 +4021,11 @@ function GeneralEditPage({
                       key={preset.url}
                       onClick={() => handlePresetMusic(preset)}
                       disabled={isLoading}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${isActive
-                        ? "border-accent bg-accent/10"
-                        : "border-border hover:border-accent hover:bg-accent/5"
-                        } ${isLoading ? "opacity-60" : ""}`}
+                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${
+                        isActive
+                          ? "border-accent bg-accent/10"
+                          : "border-border hover:border-accent hover:bg-accent/5"
+                      } ${isLoading ? "opacity-60" : ""}`}
                     >
                       <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
                         {isLoading ? (
