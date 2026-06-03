@@ -31,6 +31,10 @@ const SalesExecutiveForm = lazy(
 const MainEditor = lazy(() => import("./pages/Editor/MainEditor"));
 const Myprofile = lazy(() => import("./pages/Profile/Myprofile"));
 
+// Preload functions — called eagerly in the background so navigation is instant
+const _preloadEditor = () => import("./pages/Editor/MainEditor");
+const _preloadForm   = () => import("./pages/mainform/components/SalesExecutiveForm");
+
 const progressStyle = `
   @keyframes routeBarFill {
     0%   { transform: scaleX(0);   opacity: 1; }
@@ -132,6 +136,18 @@ function PersistentPages({ pathname }) {
     if (isAllTemp && !allTempReady) setAllTempReady(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHome, isAllTemp]);
+
+  // Preload Editor + Form chunks in the background once home is visible,
+  // so tapping a tile navigates instantly instead of waiting for download.
+  useEffect(() => {
+    if (!homeReady) return;
+    const t = setTimeout(() => {
+      _preloadEditor();
+      _preloadForm();
+    }, 800);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeReady]);
 
   if (!homeReady && !allTempReady) return null;
 
