@@ -36,5 +36,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+  (function () {
+    try {
+      var probe = document.createElement('div');
+      probe.setAttribute('style', 'font-size:16px!important;position:fixed;top:-9999px;left:-9999px;visibility:hidden;');
+      document.documentElement.appendChild(probe);
+      var scaled = parseFloat(window.getComputedStyle(probe).fontSize);
+      document.documentElement.removeChild(probe);
+
+      if (scaled && Math.round(scaled) !== 16) {
+        var corrected = (16 * 16) / scaled;
+        document.documentElement.style.setProperty('font-size', corrected + 'px', 'important');
+      }
+    } catch (e) {}
+  })();
+</script>
   </body>
 </html>
