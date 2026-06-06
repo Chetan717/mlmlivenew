@@ -236,6 +236,7 @@ export default function SalesExecutiveForm() {
   }
   const selll = getSelType();
   const isWelcome = selll?.Subtype === "WELCOME";
+  const isCapping = selll?.Subtype === "Capping";
   const isClosing = selll?.Subtype === "CLOSING";
   const isAchievment = selll?.type === "Achievements";
   const isAnyversary = selll?.type === "Anniversary_Birthday";
@@ -296,8 +297,8 @@ export default function SalesExecutiveForm() {
         if (!achiever.city?.trim()) newErrors.achieverCity = "City is required";
         if (
           selectedType !== "Bonanza" &&
-          isWelcome &&
-          isAchievment &&
+          isWelcome && isCapping &&
+          isAchievment  &&
           !achiever.amount?.toString().trim()
         )
           newErrors.achieverAmount = "Amount is required";
@@ -569,7 +570,7 @@ export default function SalesExecutiveForm() {
             isWelcome ||
             isAnyversary ||
             isIncome ||
-            isBonanza ? null : (
+            isBonanza || isCapping ? null : (
               <IconTextField
                 label={isClosing ? `Enter ${closeFilter} Amount` : "Amount (₹)"}
                 placeholder="XXXX"

@@ -710,7 +710,7 @@ function GeneralEditPage({
                     : 192
                   : isBonanza
                     ? 182
-                    : 222,
+                    : 218,
       width: isIncome
         ? 140
         : isAnyversary
@@ -2600,18 +2600,18 @@ function GeneralEditPage({
                         ? 5
                         : 135
                       : isRight
-                        ? charslen.length === 7
-                          ? 180
-                          : charslen.length === 6
-                            ? 200
-                            : charslen.length === 5
-                              ? 210
-                              : 158
-                        : 8
+                        ? charslen.length === 0
+                          ? 160
+                          : charslen.length === 9
+                            ? 150
+                            : charslen.length === 7
+                              ? 187
+                              : 190
+                        : 7
                 }
                 y={isIncome ? 132 : isClosing ? 135 : 250}
-                digitHeight={isIncome ? 26 : isClosing ? 30 : 28}
-                spacing={0.6}
+                digitHeight={isIncome ? 26 : isClosing ? 30 : 29}
+                spacing={0.7}
               />
             )}
 
