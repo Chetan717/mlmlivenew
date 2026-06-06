@@ -2610,8 +2610,8 @@ function GeneralEditPage({
                         : 7
                 }
                 y={isIncome ? 132 : isClosing ? 135 : 250}
-                digitHeight={isIncome ? 26 : isClosing ? 30 : 29}
-                spacing={0.7}
+                digitHeight={isIncome ? 27 : isClosing ? 30 : 30}
+                spacing={0.9}
               />
             )}
 
