@@ -1,5 +1,5 @@
 {
-  "name": "mlm-booster-frontend",
+  "name": "mlmlive",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -46,5 +46,9 @@
     "swiper": "^12.2.0",
     "tailwind-merge": "^3.3.1",
     "use-image": "^1.1.1"
-  }
+  },
+  "description": "A mobile-first React + Vite app for creating, customizing, and sharing branded\r marketing images. This package contains **only the frontend UI** (React + Vite),\r with no backend mixed in.",
+  "main": "index.js",
+  "author": "chetan",
+  "license": "ISC"
 }
