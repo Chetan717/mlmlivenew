@@ -20,7 +20,7 @@ export default function Layout({ children }) {
   }, []);
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-background text-foreground transition-colors duration-300">
+    <div className="flex h-[100dvh] overflow-hidden bg-background text-foreground">
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}

@@ -66,12 +66,12 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
   };
 
   return (
-    <header className="sticky top-0 z-20 h-[60px] flex items-center px-4 gap-3 bg-background/95 backdrop-blur-xl border-b border-border transition-colors duration-300">
+    <header className="sticky top-0 z-20 h-[60px] flex items-center px-4 gap-3 bg-background border-b border-border">
       {/* Left: back button for sub-pages and editor, hamburger for main pages */}
       {isSubPage || isEditor ? (
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-foreground hover:bg-foreground/8 active:scale-95 transition-all flex-shrink-0"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-foreground flex-shrink-0"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -79,7 +79,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
         <button
           onClick={handleMenuClick}
           aria-label="Menu"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-foreground hover:bg-foreground/8 active:scale-95 transition-all flex-shrink-0"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-foreground flex-shrink-0"
         >
           <ListUl className="w-5 h-5" />
         </button>
@@ -121,7 +121,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
         <button
           onClick={handleRefresh}
           aria-label="Refresh"
-          className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
+          className="flex items-center justify-center w-9 h-9 rounded-full"
         >
           <ArrowRotateLeft
             className={`size-[17px] text-accent dark:text-white transition-transform duration-500 ${refreshing ? "animate-spin" : ""}`}
@@ -131,7 +131,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
+          className="flex items-center justify-center w-9 h-9 rounded-full"
           aria-label="Toggle theme"
         >
           {isDark ? (
@@ -145,7 +145,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
         {isEditor && (
           <button
             onClick={() => navigate("/mlmprofile?mode=settings")}
-            className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-foreground/8 active:scale-95 transition-all"
+            className="flex items-center justify-center w-9 h-9 rounded-full"
             title="Banner Settings"
           >
             <Gear className="size-[18px] text-accent dark:text-white" />

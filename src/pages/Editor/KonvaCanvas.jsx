@@ -2,6 +2,10 @@ import React from "react";
 import { Stage, Layer, Image, Text, Transformer } from "react-konva";
 import { STAGE_WIDTH, STAGE_HEIGHT, clamp } from "./Constants";
 
+// Cancel out device font scale so canvas text stays at design size
+const FONT_SCALE = (typeof window !== 'undefined' && window.__fontScale > 0) ? window.__fontScale : 1;
+const fs = (n) => n / FONT_SCALE;
+
 /**
  * KonvaCanvas
  * Renders the Konva Stage with all image layers, text overlays, and transformers.
@@ -188,12 +192,13 @@ function KonvaCanvas({
         {isRight ? (
           <>
             <Text
+              fontFamily="Roboto"
               x={218}
               y={295}
               width={150}
               height={5}
               text="CALL FOR ASSOCIATION"
-              fontSize={5}
+              fontSize={fs(5)}
               fill="white"
               fontStyle="bold"
               verticalAlign="middle"
@@ -205,12 +210,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={205}
               y={297}
               width={150}
               height={20}
               text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-              fontSize={11}
+              fontSize={fs(11)}
               fill="white"
               fontStyle="bold"
               verticalAlign="middle"
@@ -222,12 +228,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType ? -10 : 70}
               y={297}
               width={isSubGeneralType ? 205 : 120}
               height={2}
               text={ActualProfilename}
-              fontSize={ProfilefontSize}
+              fontSize={fs(ProfilefontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -240,12 +247,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType ? -10 : 70}
               y={305}
               width={isSubGeneralType ? 205 : 120}
               height={2}
               text={ActualDesignation}
-              fontSize={DesignationfontSize}
+              fontSize={fs(DesignationfontSize)}
               fill="white"
               fontStyle="bold"
               align="center"
@@ -261,12 +269,13 @@ function KonvaCanvas({
         ) : (
           <>
             <Text
+              fontFamily="Roboto"
               x={37}
               y={295}
               width={150}
               height={5}
               text="CALL FOR ASSOCIATION"
-              fontSize={5}
+              fontSize={fs(5)}
               fill="white"
               fontStyle="bold"
               verticalAlign="middle"
@@ -278,12 +287,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={30}
               y={297}
               width={150}
               height={20}
               text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-              fontSize={11}
+              fontSize={fs(11)}
               fill="white"
               fontStyle="bold"
               verticalAlign="middle"
@@ -295,12 +305,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={133}
               y={297}
               width={isSubGeneralType ? 205 : 120}
               height={2}
               text={ActualProfilename}
-              fontSize={ProfilefontSize}
+              fontSize={fs(ProfilefontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -313,12 +324,13 @@ function KonvaCanvas({
               }
             />
             <Text
+              fontFamily="Roboto"
               x={133}
               y={305}
               width={isSubGeneralType ? 205 : 120}
               height={2}
               text={ActualDesignation}
-              fontSize={DesignationfontSize}
+              fontSize={fs(DesignationfontSize)}
               fill="white"
               fontStyle="bold"
               align="center"
@@ -337,12 +349,13 @@ function KonvaCanvas({
         {isRight ? (
           <>
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType_birthday ? 35 : 55}
               y={isSubGeneralType_birthday ? 157 : 97}
               width={120}
               height={2}
               text={ActualAchvrname}
-              fontSize={AchieverNamefontSize}
+              fontSize={fs(AchieverNamefontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -351,12 +364,13 @@ function KonvaCanvas({
               onTap={() => setIsOpenFtr(true)}
             />
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType_birthday ? 35 : 55}
               y={isSubGeneralType_birthday ? 172 : 110}
               width={120}
               height={2}
               text={ActualAchvrCity}
-              fontSize={AchieverCityfontSize}
+              fontSize={fs(AchieverCityfontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -368,12 +382,13 @@ function KonvaCanvas({
         ) : (
           <>
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType_birthday ? 170 : 142}
               y={isSubGeneralType_birthday ? 157 : 97}
               width={120}
               height={2}
               text={ActualAchvrname}
-              fontSize={AchieverNamefontSize}
+              fontSize={fs(AchieverNamefontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -382,12 +397,13 @@ function KonvaCanvas({
               onTap={() => setIsOpenFtr(true)}
             />
             <Text
+              fontFamily="Roboto"
               x={isSubGeneralType_birthday ? 170 : 142}
               y={isSubGeneralType_birthday ? 172 : 111}
               width={120}
               height={2}
               text={ActualAchvrCity}
-              fontSize={AchieverCityfontSize}
+              fontSize={fs(AchieverCityfontSize)}
               fill="white"
               fontStyle="1000"
               align="center"
@@ -654,30 +670,30 @@ export default KonvaCanvas;
 //         {/* Footer text */}
 //         {isRight ? (
 //           <>
-//             <Text x={218} y={295} width={150} height={5} text="CALL FOR ASSOCIATION" fontSize={5} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={205} y={297} width={150} height={20} text={`+91${profileMobile}` || "+91XXXXXXXXXX"} fontSize={11} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={isSubGeneralType ? -10 : 70} y={297} width={isSubGeneralType ? 205 : 120} height={2} text={ActualProfilename} fontSize={ProfilefontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={isSubGeneralType ? -10 : 70} y={305} width={isSubGeneralType ? 205 : 120} height={2} text={ActualDesignation} fontSize={DesignationfontSize} fill="white" fontStyle="bold" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={218} y={295} width={150} height={5} text="CALL FOR ASSOCIATION" fontSize={fs(5)} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={205} y={297} width={150} height={20} text={`+91${profileMobile}` || "+91XXXXXXXXXX"} fontSize={fs(11)} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={isSubGeneralType ? -10 : 70} y={297} width={isSubGeneralType ? 205 : 120} height={2} text={ActualProfilename} fontSize={fs(ProfilefontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={isSubGeneralType ? -10 : 70} y={305} width={isSubGeneralType ? 205 : 120} height={2} text={ActualDesignation} fontSize={fs(DesignationfontSize)} fill="white" fontStyle="bold" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
 //           </>
 //         ) : (
 //           <>
-//             <Text x={37} y={295} width={150} height={5} text="CALL FOR ASSOCIATION" fontSize={5} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={30} y={297} width={150} height={20} text={`+91${profileMobile}` || "+91XXXXXXXXXX"} fontSize={11} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={133} y={297} width={isSubGeneralType ? 205 : 120} height={2} text={ActualProfilename} fontSize={ProfilefontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
-//             <Text x={133} y={305} width={isSubGeneralType ? 205 : 120} height={2} text={ActualDesignation} fontSize={DesignationfontSize} fill="white" fontStyle="bold" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={37} y={295} width={150} height={5} text="CALL FOR ASSOCIATION" fontSize={fs(5)} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={30} y={297} width={150} height={20} text={`+91${profileMobile}` || "+91XXXXXXXXXX"} fontSize={fs(11)} fill="white" fontStyle="bold" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={133} y={297} width={isSubGeneralType ? 205 : 120} height={2} text={ActualProfilename} fontSize={fs(ProfilefontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
+//             <Text x={133} y={305} width={isSubGeneralType ? 205 : 120} height={2} text={ActualDesignation} fontSize={fs(DesignationfontSize)} fill="white" fontStyle="bold" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} onTap={() => setIsOpenFtr(isSubGeneralType_bonanza ? false : true)} />
 //           </>
 //         )}
 
 //         {/* Achiever details */}
 //         {isRight ? (
 //           <>
-//             <Text x={isSubGeneralType_birthday ? 35 : 55} y={isSubGeneralType_birthday ? 157 : 97} width={120} height={2} text={ActualAchvrname} fontSize={AchieverNamefontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
-//             <Text x={isSubGeneralType_birthday ? 35 : 55} y={isSubGeneralType_birthday ? 172 : 110} width={120} height={2} text={ActualAchvrCity} fontSize={AchieverCityfontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
+//             <Text x={isSubGeneralType_birthday ? 35 : 55} y={isSubGeneralType_birthday ? 157 : 97} width={120} height={2} text={ActualAchvrname} fontSize={fs(AchieverNamefontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
+//             <Text x={isSubGeneralType_birthday ? 35 : 55} y={isSubGeneralType_birthday ? 172 : 110} width={120} height={2} text={ActualAchvrCity} fontSize={fs(AchieverCityfontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
 //           </>
 //         ) : (
 //           <>
-//             <Text x={isSubGeneralType_birthday ? 170 : 142} y={isSubGeneralType_birthday ? 157 : 97} width={120} height={2} text={ActualAchvrname} fontSize={AchieverNamefontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
-//             <Text x={isSubGeneralType_birthday ? 170 : 142} y={isSubGeneralType_birthday ? 172 : 111} width={120} height={2} text={ActualAchvrCity} fontSize={AchieverCityfontSize} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
+//             <Text x={isSubGeneralType_birthday ? 170 : 142} y={isSubGeneralType_birthday ? 157 : 97} width={120} height={2} text={ActualAchvrname} fontSize={fs(AchieverNamefontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
+//             <Text x={isSubGeneralType_birthday ? 170 : 142} y={isSubGeneralType_birthday ? 172 : 111} width={120} height={2} text={ActualAchvrCity} fontSize={fs(AchieverCityfontSize)} fill="white" fontStyle="1000" align="center" verticalAlign="middle" onClick={() => setIsOpenFtr(true)} onTap={() => setIsOpenFtr(true)} />
 //           </>
 //         )}
 

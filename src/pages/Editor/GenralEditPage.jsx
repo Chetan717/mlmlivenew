@@ -49,6 +49,32 @@ import num9 from "./amount_numberImage/number_9.png";
 import numComma from "./amount_numberImage/comma.png";
 import numRupee from "./amount_numberImage/rupee.png";
 
+// Compute Konva "object-fit: cover" crop so rank/profile images fill their
+// designated box without any stretching or compression.
+function getKonvaCoverCrop(img, destW, destH) {
+  if (!img || !destW || !destH) return undefined;
+  const srcW = img.naturalWidth || img.width || 0;
+  const srcH = img.naturalHeight || img.height || 0;
+  if (!srcW || !srcH) return undefined;
+  const srcRatio  = srcW / srcH;
+  const destRatio = destW / destH;
+  let cropW, cropH, cropX, cropY;
+  if (srcRatio > destRatio) {
+    // source is wider → clip left/right
+    cropH = srcH;
+    cropW = Math.round(srcH * destRatio);
+    cropX = Math.round((srcW - cropW) / 2);
+    cropY = 0;
+  } else {
+    // source is taller → clip top/bottom
+    cropW = srcW;
+    cropH = Math.round(srcW / destRatio);
+    cropX = 0;
+    cropY = Math.round((srcH - cropH) / 2);
+  }
+  return { x: cropX, y: cropY, width: cropW, height: cropH };
+}
+
 const STAGE_WIDTH = 320;
 const STAGE_HEIGHT = 320;
 const EXPORT_PIXEL_RATIO = 6;
@@ -240,6 +266,36 @@ const parseExpiryDate = (dateStr) => {
   if (month === undefined) return null;
   return new Date(Number(year), month, Number(day), 23, 59, 59);
 };
+
+// ── Server Date (tamper-proof) ───────────────────────────────────────────────
+async function getServerDate() {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch("https://worldtimeapi.org/api/ip", { cache: "no-store", signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) { const d = await res.json(); if (d?.datetime) return new Date(d.datetime); }
+  } catch {}
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch("https://timeapi.io/api/time/current/zone?timeZone=Asia/Kolkata", { cache: "no-store", signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) { const d = await res.json(); if (d?.dateTime) return new Date(d.dateTime); }
+  } catch {}
+  return new Date();
+}
+
+// Returns true if the subscription's expirydate is today or in the future
+// (compared to serverDate, not device clock).
+function isSubActiveByDate(sub, serverDate) {
+  if (!sub) return false;
+  const expiry = parseExpiryDate(sub.expirydate);
+  if (!expiry) return false;
+  const svrDay = new Date(serverDate); svrDay.setHours(0, 0, 0, 0);
+  const expDay = new Date(expiry);     expDay.setHours(0, 0, 0, 0);
+  return expDay >= svrDay;
+}
 
 const AMOUNT_GRADIENT_OPTIONS = [
   // Gold variants
@@ -439,6 +495,111 @@ function useAnimatedProgress(target) {
   return Math.round(displayed);
 }
 
+
+// ── Download Success Overlay ──────────────────────────────────────────────────
+function DownloadSuccessOverlay({ fileType, creditsLeft, onClose }) {
+  const isVideo = fileType === "video";
+  const exhausted = creditsLeft === 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
+    >
+      <div
+        className="relative w-full sm:w-auto sm:min-w-[340px] sm:max-w-[400px] mx-auto rounded-t-[32px] sm:rounded-[32px] overflow-hidden shadow-2xl"
+        style={{ background: "linear-gradient(145deg, #0e245c 0%, #1a3a8a 60%, #0e245c 100%)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Top shine line */}
+        <div className="absolute top-0 left-8 right-8 h-px rounded-full" style={{ background: "rgba(255,255,255,0.18)" }} />
+
+        {/* Glow blob */}
+        <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(ellipse at 80% 10%, #6366f155 0%, transparent 70%)" }} />
+
+        <div className="relative px-7 pt-8 pb-7 flex flex-col items-center gap-5">
+
+          {/* Animated icon */}
+          <div className="relative flex items-center justify-center">
+            <div
+              className="w-20 h-20 rounded-[24px] flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.10)", border: "1.5px solid rgba(255,255,255,0.15)" }}
+            >
+              {isVideo ? (
+                <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              ) : (
+                <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              )}
+            </div>
+
+            {/* Checkmark badge */}
+            <div
+              className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: "#22c55e", border: "2px solid #0e245c" }}
+            >
+              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="text-center space-y-1.5">
+            <h2 className="text-[22px] font-bold text-white leading-tight">
+              {isVideo ? "Video Saved!" : "Image Saved!"}
+            </h2>
+            <p className="text-[13px] text-white/60">
+              {isVideo ? "Your video has been downloaded" : "Your image has been downloaded"}
+            </p>
+          </div>
+
+          {/* Credits pill */}
+          <div
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl w-full justify-center"
+            style={{ background: exhausted ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.08)", border: `1px solid ${exhausted ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.12)"}` }}
+          >
+            <div
+              className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: exhausted ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.12)" }}
+            >
+              <svg className={`w-3.5 h-3.5 ${exhausted ? "text-red-400" : "text-blue-300"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              {exhausted ? (
+                <p className="text-[12px] font-semibold text-red-400">No credits remaining — renew your plan</p>
+              ) : (
+                <p className="text-[12px] font-semibold text-white/80">
+                  <span className="text-white font-bold">{creditsLeft}</span> credit{creditsLeft !== 1 ? "s" : ""} remaining
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Done button */}
+          <button
+            onClick={onClose}
+            className="w-full py-3.5 rounded-2xl font-bold text-[14px] transition-all duration-150 active:scale-[0.97]"
+            style={{ background: "rgba(255,255,255,0.14)", color: "#fff", border: "1px solid rgba(255,255,255,0.18)" }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Detect device font scale (Android accessibility) and return a corrected px value
+// so Konva canvas text stays at the design size regardless of system font settings.
+const FONT_SCALE = (typeof window !== 'undefined' && window.__fontScale > 0) ? window.__fontScale : 1;
+const fs = (n) => n / FONT_SCALE;
+
 function GeneralEditPage({
   selectedTopFrame,
   setIsOpenFtr,
@@ -447,6 +608,19 @@ function GeneralEditPage({
   middaleImage,
   setmiddaleImage,
 }) {
+  // Ensure Roboto is fully loaded, then force Konva to redraw so text uses Roboto
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => {
+    document.fonts.load('700 16px Roboto')
+      .then(() => setFontReady(true))
+      .catch(() => setFontReady(true));
+  }, []);
+  useEffect(() => {
+    if (fontReady && stageRef.current) {
+      stageRef.current.batchDraw();
+    }
+  }, [fontReady]);
+
   const stageRef = useRef(null);
   const videoElRef = useRef(null); // off-DOM <video> from VideoCanvas (for export audio)
   const profileImageRef = useRef(null);
@@ -463,11 +637,13 @@ function GeneralEditPage({
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0, width: 0 });
 
   // ── Subscription & user state ─────────────────────────────────────────────
+  const [serverDate, setServerDate] = useState(null); // tamper-proof server time
   const [activeSub, setActiveSub] = useState(null); // single active sub object
   const [userData, setUserData] = useState(null); // user doc
   const [subLoading, setSubLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [toast, setToast] = useState(null); // { message, type }
+  const [downloadSuccess, setDownloadSuccess] = useState(null); // { fileType, creditsLeft }
   const [exportedUri, setExportedUri] = useState(null); // for share modal
   const [achievementForm, setAchievementForm] = useState(null); // loaded from localStorage
   const [incomeFormData, setIncomeFormData] = useState(null); // loaded from localStorage
@@ -1052,12 +1228,12 @@ function GeneralEditPage({
       const mobileNo = user?.mobileNo;
       if (!mobileNo) return;
 
-      // Only active subscription
-      const activeQuery = query(
+      // Fetch all user subs + user doc + server date in parallel.
+      // Active/Expire boolean flags are NOT trusted — validity is determined
+      // purely by expirydate vs the real server time.
+      const allSubQuery = query(
         collection(db, "subscription"),
         where("mobileNo", "==", mobileNo),
-        where("Active", "==", true),
-        where("Expire", "==", false),
       );
 
       // Fetch user doc for referCredits
@@ -1066,14 +1242,18 @@ function GeneralEditPage({
         where("mobileNo", "==", mobileNo),
       );
 
-      const [activeSnap, userSnap] = await Promise.all([
-        getDocs(activeQuery),
+      const [svrDate, allSubSnap, userSnap] = await Promise.all([
+        getServerDate(),
+        getDocs(allSubQuery),
         getDocs(userQuery),
       ]);
 
-      // Take the most recent active sub
-      const activeSubs = activeSnap.docs
+      setServerDate(svrDate);
+
+      // Keep only subs whose expirydate is today or future (server time)
+      const activeSubs = allSubSnap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((sub) => isSubActiveByDate(sub, svrDate))
         .sort(
           (a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0),
         );
@@ -1351,11 +1531,12 @@ function GeneralEditPage({
       } else {
         nodes.push(
           <Text
+              fontFamily="Roboto"
             key={`amt-${i}-${ch}`}
             x={curX}
             y={y + yOffset + 2} // ← AND HERE
             text={ch}
-            fontSize={digitHeight * 0.78}
+            fontSize={fs(digitHeight * 0.78)}
             fill="#ffd700"
             fontStyle="bold"
             onClick={onTap}
@@ -1458,8 +1639,9 @@ function GeneralEditPage({
       );
       return false;
     }
-    const expiry = parseExpiryDate(activeSub.expirydate);
-    if (expiry && new Date() > expiry) {
+    // Use server date so device clock manipulation cannot bypass the check
+    const now = serverDate || new Date();
+    if (!isSubActiveByDate(activeSub, now)) {
       showToast(
         "Your subscription has expired. Please renew to continue.",
         "error",
@@ -1481,7 +1663,7 @@ function GeneralEditPage({
   // Spends `cost` credits: plan downloads first, then refer credits. Updates
   // Firestore + local state and shows a result toast. Call AFTER a successful
   // download/export. `prefix` starts the toast message (e.g. "Downloaded!").
-  const deductCredits = async (cost, prefix = "Downloaded!") => {
+  const deductCredits = async (cost) => {
     let remaining = cost;
     const fromPlan = Math.min(planDownloads, remaining);
     const newPlan = planDownloads - fromPlan;
@@ -1512,14 +1694,7 @@ function GeneralEditPage({
       setUserData((prev) => ({ ...prev, referCredit: newCredits }));
     }
 
-    if (totalAfter === 0) {
-      showToast(`${prefix} No download credits remaining.`, "error", 4000);
-    } else {
-      showToast(
-        `${prefix} ${totalAfter} credit${totalAfter > 1 ? "s" : ""} remaining.`,
-        "success",
-      );
-    }
+    return totalAfter;
   };
 
   // ── Core export guard + decrement logic ───────────────────────────────────
@@ -1562,7 +1737,8 @@ function GeneralEditPage({
       }
 
       // 6️⃣ Spend 1 credit (plan downloads first, then refer credits)
-      await deductCredits(IMAGE_CREDIT_COST, "Downloaded!");
+      const creditsLeft = await deductCredits(IMAGE_CREDIT_COST);
+      setDownloadSuccess({ fileType: "image", creditsLeft });
 
       // 7️⃣ Show share modal
       setExportedUri(uri);
@@ -1723,7 +1899,8 @@ function GeneralEditPage({
         setTimeout(() => URL.revokeObjectURL(url), 8000);
       }
 
-      await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
+      const creditsLeft = await deductCredits(VIDEO_CREDIT_COST);
+      setDownloadSuccess({ fileType: "video", creditsLeft });
     } catch (err) {
       console.error("Video export error:", err);
       showToast("Video download failed. Please try again.", "error");
@@ -2051,7 +2228,8 @@ function GeneralEditPage({
       setProgressLabel("Done!");
 
       // Spend 2 credits for a video export (plan downloads first, then refer credits)
-      await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
+      const creditsLeft = await deductCredits(VIDEO_CREDIT_COST);
+      setDownloadSuccess({ fileType: "video", creditsLeft });
     } catch (err) {
       console.error("Music export error:", err);
       const msg = err?.message || "Video export failed";
@@ -2158,6 +2336,7 @@ function GeneralEditPage({
     !subLoading &&
     !exportLoading &&
     activeSub &&
+    isSubActiveByDate(activeSub, serverDate || new Date()) &&
     totalDownloadsAvailable >= exportCost;
 
   return (
@@ -2168,6 +2347,15 @@ function GeneralEditPage({
     <div className="flex flex-col justify-start items-center w-full h-[calc(100dvh-60px)] overflow-hidden">
       {/* Toast notification */}
       {toast && <Toast message={toast.message} type={toast.type} />}
+
+      {/* ── Download success overlay ── */}
+      {downloadSuccess && (
+        <DownloadSuccessOverlay
+          fileType={downloadSuccess.fileType}
+          creditsLeft={downloadSuccess.creditsLeft}
+          onClose={() => setDownloadSuccess(null)}
+        />
+      )}
 
       <div
         ref={stageContainerRef}
@@ -2285,6 +2473,7 @@ function GeneralEditPage({
 
             {isMeeting || isSubGeneralType || isSubGeneralType2 ? null : (
               <Text
+              fontFamily="Roboto"
                 x={
                   isCapping
                     ? isRight
@@ -2338,7 +2527,7 @@ function GeneralEditPage({
                 width={isCapping ? 130 : isAnyversary ? 175 : 165}
                 height={5}
                 text={`${formname.toUpperCase() || ActualProfilename}`}
-                fontSize={isAnyversary ? 8 : 9.5}
+                fontSize={fs(isAnyversary ? 8 : 9.5)}
                 fill="white"
                 fontStyle="1000"
                 letterSpacing={0.1}
@@ -2349,6 +2538,7 @@ function GeneralEditPage({
 
             {isMeeting || isSubGeneralType || isSubGeneralType2 ? null : (
               <Text
+              fontFamily="Roboto"
                 x={
                   isCapping
                     ? isRight
@@ -2402,7 +2592,7 @@ function GeneralEditPage({
                 width={50}
                 height={5}
                 text={"FROM/" + `${formcity.toUpperCase() || ""}`}
-                fontSize={5}
+                fontSize={fs(5)}
                 fill="white"
                 fontStyle="bold"
                 letterSpacing={0.1}
@@ -2451,9 +2641,14 @@ function GeneralEditPage({
                 y={rankAttrs.y}
                 width={rankAttrs.width}
                 height={rankAttrs.height}
+                crop={getKonvaCoverCrop(
+                  isMeeting ? ImageChief : ImageRank,
+                  rankAttrs.width,
+                  rankAttrs.height
+                )}
                 scaleX={rankAttrs.scaleX}
                 offsetX={rankAttrs.offsetX}
-                scaleY={rankAttrs.scaleY} // ← add
+                scaleY={rankAttrs.scaleY}
                 offsetY={rankAttrs.offsetY}
                 draggable
                 onClick={handleImageClick("rank")}
@@ -2511,12 +2706,13 @@ function GeneralEditPage({
 
             {isAchievement ? (
               <Text
+              fontFamily="Roboto"
                 x={110}
                 y={232}
                 width={130}
                 height={30}
                 text={String(AchiveName.toUpperCase() || "")}
-                fontSize={18}
+                fontSize={fs(18)}
                 fill={`gold`}
                 fontStyle="1000"
                 letterSpacing={0}
@@ -2527,12 +2723,13 @@ function GeneralEditPage({
 
             {isIncome ? (
               <Text
+              fontFamily="Roboto"
                 x={160}
                 y={197}
                 width={130}
                 height={30}
                 text={`${incomeDay} ${incomeType.toUpperCase()}`}
-                fontSize={18}
+                fontSize={fs(18)}
                 fill={`white`}
                 fontStyle="1000"
                 letterSpacing={0}
@@ -2549,6 +2746,7 @@ function GeneralEditPage({
             isWelcome ||
             isMeeting ? null : (
               <Text
+              fontFamily="Roboto"
                 x={
                   isIncome
                     ? isRight
@@ -2566,7 +2764,7 @@ function GeneralEditPage({
                 width={isRight ? 180 : 180}
                 height={30}
                 text={amountText}
-                fontSize={isIncome ? 26 : isClosing ? 30 : 28}
+                fontSize={fs(isIncome ? 26 : isClosing ? 30 : 28)}
                 fillLinearGradientStartPoint={{ x: 0, y: 0 }}
                 fillLinearGradientEndPoint={{ x: isRight ? 180 : 180, y: 0 }}
                 fillLinearGradientColorStops={selectedAmountOption?.stops || []}
@@ -2680,12 +2878,13 @@ function GeneralEditPage({
             {isMeeting ? (
               <>
                 <Text
+              fontFamily="Roboto"
                   x={isRight ? -13 : 135}
                   y={175}
                   width={200}
                   height={30}
                   text={meetingData?.chiefName.toUpperCase()}
-                  fontSize={13}
+                  fontSize={fs(13)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2693,12 +2892,13 @@ function GeneralEditPage({
                   align={"center"}
                 ></Text>
                 <Text
+              fontFamily="Roboto"
                   x={isRight ? -13 : 135}
                   y={190}
                   width={200}
                   height={30}
                   text={meetingData?.chiefDesignation.toUpperCase()}
-                  fontSize={9}
+                  fontSize={fs(9)}
                   fontStyle="500"
                   fill={`white`}
                   letterSpacing={0}
@@ -2712,10 +2912,11 @@ function GeneralEditPage({
               isRight ? (
                 <Group x={50} y={210}>
                   <Text
+              fontFamily="Roboto"
                     x={0}
                     y={1}
                     text={meetingData?.date}
-                    fontSize={13}
+                    fontSize={fs(13)}
                     fontStyle="1000"
                     fill={`white`}
                     letterSpacing={0}
@@ -2723,10 +2924,11 @@ function GeneralEditPage({
                     align={"start"}
                   ></Text>
                   <Text
+              fontFamily="Roboto"
                     x={0}
                     y={21}
                     text={meetingData?.time}
-                    fontSize={13}
+                    fontSize={fs(13)}
                     fontStyle="1000"
                     fill={`white`}
                     letterSpacing={0}
@@ -2737,10 +2939,11 @@ function GeneralEditPage({
               ) : (
                 <Group x={190} y={210}>
                   <Text
+              fontFamily="Roboto"
                     x={0}
                     y={3}
                     text={meetingData?.date}
-                    fontSize={13}
+                    fontSize={fs(13)}
                     fontStyle="1000"
                     fill={`white`}
                     letterSpacing={0}
@@ -2748,10 +2951,11 @@ function GeneralEditPage({
                     align={"end"}
                   ></Text>
                   <Text
+              fontFamily="Roboto"
                     x={0}
                     y={21}
                     text={meetingData?.time}
-                    fontSize={13}
+                    fontSize={fs(13)}
                     fontStyle="1000"
                     fill={`white`}
                     letterSpacing={0}
@@ -2765,12 +2969,13 @@ function GeneralEditPage({
             {meetingData?.hostMode === "add" && isMeeting ? (
               <Group X={isRight ? 5 : 100} Y={0.9}>
                 <Text
+              fontFamily="Roboto"
                   x={20}
                   y={285.5}
                   width={180}
                   height={30}
                   text={meetingData?.hostName.toUpperCase()}
-                  fontSize={7}
+                  fontSize={fs(7)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2778,12 +2983,13 @@ function GeneralEditPage({
                   align={"center"}
                 ></Text>
                 <Text
+              fontFamily="Roboto"
                   x={20}
                   y={295}
                   width={180}
                   height={30}
                   text={ActualDesignation}
-                  fontSize={6}
+                  fontSize={fs(6)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2791,12 +2997,13 @@ function GeneralEditPage({
                   align={"center"}
                 ></Text>
                 <Text
+              fontFamily="Roboto"
                   x={20}
                   y={303}
                   width={180}
                   height={30}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={6}
+                  fontSize={fs(6)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2861,12 +3068,13 @@ function GeneralEditPage({
             {isMeeting ? (
               isRight ? (
                 <Text
+              fontFamily="Roboto"
                   x={12}
                   y={40}
                   width={180}
                   height={30}
                   text={meetingData?.teamName.toUpperCase()}
-                  fontSize={9}
+                  fontSize={fs(9)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2875,12 +3083,13 @@ function GeneralEditPage({
                 ></Text>
               ) : (
                 <Text
+              fontFamily="Roboto"
                   x={125}
                   y={40}
                   width={180}
                   height={30}
                   text={meetingData?.teamName.toUpperCase()}
-                  fontSize={9}
+                  fontSize={fs(9)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -2911,10 +3120,11 @@ function GeneralEditPage({
                       height={25}
                     />
                     <Text
+              fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={5}
                       text={meetingData?.platformInput}
-                      fontSize={12}
+                      fontSize={fs(12)}
                       fontStyle="1000"
                       fill={`white`}
                       letterSpacing={0}
@@ -2938,10 +3148,11 @@ function GeneralEditPage({
                       height={25}
                     />
                     <Text
+              fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={4}
                       text={meetingData?.meetingId}
-                      fontSize={9}
+                      fontSize={fs(9)}
                       fontStyle="1000"
                       fill={`white`}
                       letterSpacing={0}
@@ -2949,10 +3160,11 @@ function GeneralEditPage({
                       align={"start"}
                     ></Text>
                     <Text
+              fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={15}
                       text={meetingData?.meetingPassword}
-                      fontSize={9}
+                      fontSize={fs(9)}
                       fontStyle="1000"
                       fill={`white`}
                       letterSpacing={0}
@@ -2971,10 +3183,11 @@ function GeneralEditPage({
                     height={25}
                   />
                   <Text
+              fontFamily="Roboto"
                     x={30}
                     y={5}
                     text={meetingData?.address1}
-                    fontSize={10}
+                    fontSize={fs(10)}
                     fontStyle="1000"
                     fontVariant="italic"
                     fill={`white`}
@@ -2983,10 +3196,11 @@ function GeneralEditPage({
                     align={"center"}
                   ></Text>
                   <Text
+              fontFamily="Roboto"
                     x={30}
                     y={15}
                     text={meetingData?.address2}
-                    fontSize={7.5}
+                    fontSize={fs(7.5)}
                     fontStyle="1000"
                     fontVariant="italic"
                     fill={`white`}
@@ -3001,10 +3215,11 @@ function GeneralEditPage({
             {isMeeting && meetingData?.hostMode === "none" ? (
               <Group x={isRight ? 0 : 240} y={298}>
                 <Text
+              fontFamily="Roboto"
                   x={3}
                   y={0}
                   text={"For More Details Contact On :-"}
-                  fontSize={5.5}
+                  fontSize={fs(5.5)}
                   fontStyle="1000"
                   fontVariant="italic"
                   fill={`white`}
@@ -3013,10 +3228,11 @@ function GeneralEditPage({
                   align={"center"}
                 ></Text>
                 <Text
+              fontFamily="Roboto"
                   x={12}
                   y={6}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={7.5}
+                  fontSize={fs(7.5)}
                   fontStyle="1000"
                   fill={`white`}
                   letterSpacing={0}
@@ -3030,12 +3246,13 @@ function GeneralEditPage({
             {isMeeting || isSubGeneralType ? null : isRight ? (
               <>
                 {/* <Text
+              fontFamily="Roboto"
                   x={195}
                   y={295}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={7}
+                  fontSize={fs(7)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3043,12 +3260,13 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 /> */}
                 <Text
+              fontFamily="Roboto"
                   x={252}
                   y={298}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={4.5}
+                  fontSize={fs(4.5)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3056,12 +3274,13 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 />
                 {/* <Text
+              fontFamily="Roboto"
                   x={190}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={12}
+                  fontSize={fs(12)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3069,12 +3288,13 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 /> */}
                 <Text
+              fontFamily="Roboto"
                   x={250}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={7.5}
+                  fontSize={fs(7.5)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3115,12 +3335,13 @@ function GeneralEditPage({
                       y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                     >
                       {/* <Text
+              fontFamily="Roboto"
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={8}
+                        fontSize={fs(8)}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -3129,12 +3350,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
+              fontFamily="Roboto"
                         x={23}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={10}
+                        fontSize={fs(10)}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -3143,12 +3365,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       />
                       {/* <Text
+              fontFamily="Roboto"
                         x={0}
                         y={showSocial === "no" ? 13 : 8}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={6}
+                        fontSize={fs(6)}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -3157,12 +3380,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
+              fontFamily="Roboto"
                         x={25}
                         y={10.5}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={6.5}
+                        fontSize={fs(6.5)}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -3177,12 +3401,13 @@ function GeneralEditPage({
             ) : (
               <>
                 {/* <Text
+              fontFamily="Roboto"
                   x={43}
                   y={295}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={7}
+                  fontSize={fs(7)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3190,12 +3415,13 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 />
                 <Text
+              fontFamily="Roboto"
                   x={39}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={12}
+                  fontSize={fs(12)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3204,12 +3430,13 @@ function GeneralEditPage({
                 /> */}
 
                 <Text
+              fontFamily="Roboto"
                   x={30}
                   y={298}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={4.5}
+                  fontSize={fs(4.5)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3217,12 +3444,13 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 />
                 <Text
+              fontFamily="Roboto"
                   x={28}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={7.5}
+                  fontSize={fs(7.5)}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -3264,12 +3492,13 @@ function GeneralEditPage({
                       y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                     >
                       {/* <Text
+              fontFamily="Roboto"
                         x={0}
                         y={showSocial === "no" ? 4 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={8}
+                        fontSize={fs(8)}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -3278,12 +3507,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       />
                       <Text
+              fontFamily="Roboto"
                         x={0}
                         y={showSocial === "no" ? 13 : 8}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={6}
+                        fontSize={fs(6)}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -3292,12 +3522,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       /> */}
                       <Text
+              fontFamily="Roboto"
                         x={15}
                         y={showSocial === "no" ? 0 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={10}
+                        fontSize={fs(10)}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -3306,12 +3537,13 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       />
                       <Text
+              fontFamily="Roboto"
                         x={15}
                         y={showSocial === "no" ? 10.5 : 9.5}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={6.5}
+                        fontSize={fs(6.5)}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -3359,12 +3591,13 @@ function GeneralEditPage({
                                 />
                               )}
                               <Text
+              fontFamily="Roboto"
                                 x={textStartX}
                                 y={0}
                                 width={100 - textStartX}
                                 height={9}
                                 text={socialText}
-                                fontSize={6}
+                                fontSize={fs(6)}
                                 fill="white"
                                 fontStyle="bold"
                                 align="left"
@@ -3386,12 +3619,13 @@ function GeneralEditPage({
               isRight ? (
                 <>
                   <Text
+              fontFamily="Roboto"
                     x={35}
                     y={298}
                     width={150}
                     height={5}
                     text="CALL FOR ASSOCIATION"
-                    fontSize={4.5}
+                    fontSize={fs(4.5)}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3399,12 +3633,13 @@ function GeneralEditPage({
                     onTap={() => setIsOpenFtr(true)}
                   />
                   <Text
+              fontFamily="Roboto"
                     x={30}
                     y={297}
                     width={150}
                     height={20}
                     text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={7.5}
+                    fontSize={fs(7.5)}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3445,12 +3680,13 @@ function GeneralEditPage({
                         y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                       >
                         <Text
+              fontFamily="Roboto"
                           x={23}
                           y={showSocial === "no" ? 0 : 0}
                           width={200}
                           height={2}
                           text={ActualProfilename}
-                          fontSize={11}
+                          fontSize={fs(11)}
                           fill="white"
                           fontStyle="1000"
                           align="center"
@@ -3460,12 +3696,13 @@ function GeneralEditPage({
                         />
 
                         <Text
+              fontFamily="Roboto"
                           x={25}
                           y={10.5}
                           width={200}
                           height={2}
                           text={ActualDesignation}
-                          fontSize={7}
+                          fontSize={fs(7)}
                           fill="white"
                           fontStyle="bold"
                           align="center"
@@ -3480,12 +3717,13 @@ function GeneralEditPage({
               ) : (
                 <>
                   <Text
+              fontFamily="Roboto"
                     x={240}
                     y={298}
                     width={150}
                     height={5}
                     text="CALL FOR ASSOCIATION"
-                    fontSize={4.5}
+                    fontSize={fs(4.5)}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3493,12 +3731,13 @@ function GeneralEditPage({
                     onTap={() => setIsOpenFtr(true)}
                   />
                   <Text
+              fontFamily="Roboto"
                     x={235}
                     y={297}
                     width={150}
                     height={20}
                     text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={7.5}
+                    fontSize={fs(7.5)}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3540,12 +3779,13 @@ function GeneralEditPage({
                         y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                       >
                         <Text
+              fontFamily="Roboto"
                           x={-10}
                           y={showSocial === "no" ? 0 : 0}
                           width={200}
                           height={2}
                           text={ActualProfilename}
-                          fontSize={11}
+                          fontSize={fs(11)}
                           fill="white"
                           fontStyle="1000"
                           align="center"
@@ -3554,12 +3794,13 @@ function GeneralEditPage({
                           onTap={() => setIsOpenFtr(true)}
                         />
                         <Text
+              fontFamily="Roboto"
                           x={-10}
                           y={showSocial === "no" ? 10.5 : 9.5}
                           width={200}
                           height={2}
                           text={ActualDesignation}
-                          fontSize={7}
+                          fontSize={fs(7)}
                           fill="white"
                           fontStyle="bold"
                           align="center"
@@ -3607,12 +3848,13 @@ function GeneralEditPage({
                                   />
                                 )}
                                 <Text
+              fontFamily="Roboto"
                                   x={textStartX}
                                   y={0}
                                   width={100 - textStartX}
                                   height={9}
                                   text={socialText}
-                                  fontSize={6}
+                                  fontSize={fs(6)}
                                   fill="white"
                                   fontStyle="bold"
                                   align="left"

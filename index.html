@@ -15,7 +15,7 @@
     <link rel="icon" type="image/svg+xml" href="/public/mlmboo2.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;700;900&display=block" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
@@ -29,11 +29,16 @@
       var scaled = parseFloat(window.getComputedStyle(probe).fontSize);
       document.documentElement.removeChild(probe);
 
+      // Expose font scale so Konva canvas text can compensate
+      window.__fontScale = (scaled && scaled > 0) ? scaled / 16 : 1;
+
       if (scaled && Math.round(scaled) !== 16) {
         var corrected = (16 * 16) / scaled;
         document.documentElement.style.setProperty('font-size', corrected + 'px', 'important');
       }
-    } catch (e) {}
+    } catch (e) {
+      window.__fontScale = 1;
+    }
   })();
 </script>
   </body>

@@ -51,7 +51,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
       {/* Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/70 md:hidden"
           onClick={close}
         />
       )}
@@ -74,7 +74,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           {/* Mobile close */}
           <button
             onClick={close}
-            className="absolute top-4 right-4 md:hidden w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
+            className="absolute top-4 right-4 md:hidden w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white"
           >
             <Xmark className="w-4 h-4" />
           </button>
@@ -117,7 +117,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                     "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 group",
                     active
                       ? "bg-accent text-white shadow-sm"
-                      : "text-foreground/70 hover:bg-foreground/6 hover:text-foreground",
+                      : "text-foreground/70",
                   ].join(" ")}
                   title={collapsed ? label : undefined}
                 >
@@ -136,9 +136,9 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           <div className="p-3 border-t border-border">
             <button
               onClick={() => { close(); navigate("/logout"); }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium text-danger hover:bg-danger/8 transition-all duration-150 group"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium text-danger group"
             >
-              <span className="shrink-0 group-hover:scale-110 transition-transform duration-150">
+              <span className="shrink-0 ">
                 <ArrowUpFromSquare className="w-[18px] h-[18px]" />
               </span>
               <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? "md:opacity-0 md:w-0 overflow-hidden" : ""}`}>

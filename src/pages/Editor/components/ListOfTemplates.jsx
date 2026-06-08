@@ -10,6 +10,16 @@ const PRESET_VIDEO_ITEMS = [];
 // Key: `${filterType}__${filterSubType}`, Value: filtered items array
 const _editorTemplateCache = new Map();
 
+// Inject shimmer keyframes once at module level — not inside every component render
+const _shimmerStyle = document.createElement("style");
+_shimmerStyle.textContent = `
+  @keyframes shimmerSlide {
+    0%   { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+  }
+`;
+document.head.appendChild(_shimmerStyle);
+
 function getSelType() {
   try { return JSON.parse(localStorage.getItem("selType")) || {}; }
   catch { return {}; }
@@ -21,7 +31,7 @@ function cleanItem(item) {
   return clean;
 }
 
-/* ── LazyImage — IntersectionObserver + CSS shimmer skeleton ────────────── */
+/* ── LazyImage ───────────────────────────────────────────────────────────── */
 function LazyImage({ src, alt }) {
   const wrapperRef = useRef(null);
   const [realSrc, setRealSrc] = useState(null);
@@ -45,7 +55,6 @@ function LazyImage({ src, alt }) {
 
   return (
     <div ref={wrapperRef} className="absolute inset-0 w-full h-full overflow-hidden">
-      {/* Shimmer skeleton shown until the real image loads */}
       {!loaded && (
         <div
           className="absolute inset-0 bg-muted/40"
@@ -61,17 +70,9 @@ function LazyImage({ src, alt }) {
           src={realSrc}
           alt={alt}
           onLoad={() => setLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-            loaded ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 w-full h-full object-cover ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       )}
-      <style>{`
-        @keyframes shimmerSlide {
-          0%   { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -121,25 +122,21 @@ function LoadingGrid() {
           }}
         />
       ))}
-      <style>{`
-        @keyframes shimmerSlide {
-          0%   { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
     </div>
   );
 }
 
+/* ── Tile ────────────────────────────────────────────────────────────────── */
 function Tile({ item, isSelected, onSelect, isVideo }) {
   return (
     <button
       onClick={() => onSelect(item)}
-      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-150 focus:outline-none ${
+      className={`relative aspect-square rounded-xl overflow-hidden border-2 focus:outline-none active:opacity-60 ${
         isSelected
-          ? "border-accent scale-95 shadow-md shadow-accent/20"
-          : "border-border hover:border-accent/50 hover:scale-95"
+          ? "border-accent shadow-sm shadow-accent/20"
+          : "border-border"
       }`}
+      style={{ touchAction: "manipulation" }}
     >
       {isVideo && (item.videoUrl || item.VideoUrl) ? (
         <LazyVideo src={item.videoUrl || item.VideoUrl} />
@@ -154,9 +151,8 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
         </div>
       )}
 
-      {/* Video badge */}
       {isVideo && (
-        <div className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
+        <div className="absolute bottom-1 left-1 bg-black/60 rounded px-1 py-0.5">
           <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
         </div>
       )}
@@ -168,6 +164,7 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
           </svg>
         </div>
       )}
+
       {item.pass && item.pass !== "" && (
         <div className="absolute top-1.5 left-1.5">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -185,10 +182,11 @@ function TabBtn({ active, onClick, icon, label, count }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[12px] font-bold transition-all duration-200 ${
+      style={{ touchAction: "manipulation" }}
+      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[12px] font-bold ${
         active
-          ? "bg-accent text-white shadow-md shadow-accent/25"
-          : "text-muted-foreground hover:text-foreground hover:bg-foreground/6"
+          ? "bg-accent text-white shadow-sm shadow-accent/25"
+          : "text-muted-foreground"
       }`}
     >
       {icon}
@@ -225,7 +223,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
     async function fetchTemplates() {
       const cacheKey = `${filterType}__${filterSubType}`;
 
-      // Return immediately from cache — no spinner, no network round-trip
       if (_editorTemplateCache.has(cacheKey)) {
         const filteredItems = _editorTemplateCache.get(cacheKey);
         setAllItems(filteredItems);
@@ -283,7 +280,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
           }
         } catch { filteredItems = items; }
 
-        // Store in module-level cache for instant reuse
         _editorTemplateCache.set(cacheKey, filteredItems);
 
         setAllItems(filteredItems);
@@ -362,8 +358,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
   };
 
   const handleSelect = (item) => {
-    const already = selected?.id === item.id;
-    // setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
     setSelected(cleanItem(item));
   };
 
@@ -391,7 +385,7 @@ export default function ListOfTemplates({ selected, setSelected }) {
           count={videoItems.length || null}
           icon={
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"/>
+              <polygon points="5 3 19 12 5 21 3"/>
             </svg>
           }
         />

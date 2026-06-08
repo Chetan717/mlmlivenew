@@ -338,7 +338,7 @@ export default function ImageEditorCanvas({
       }
       setIsDoing(false);
       setOpen(false);
-    }, "image/jpeg", 0.92);
+    }, "image/png");
   };
 
   const onCancelClick = () => { setOpen(false); onCancel(); };

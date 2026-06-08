@@ -262,7 +262,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     out.toBlob((blob) => {
       setIsDoing(false);
       onDone(blob);
-    }, "image/jpeg", 0.92);
+    }, "image/png");
   };
 
   // ── Tabs ──────────────────────────────────────────────────────

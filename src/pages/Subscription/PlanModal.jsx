@@ -23,6 +23,8 @@ export function PlanModal({ plan, openA, setOpenA, onProceedToCheckout }) {
     { label: "Amount", value: `₹${plan.PlanAmount ?? 0}`, Icon: IndianRupee },
   ];
 
+  const isInactive = plan.Launch === false;
+
   return (
     <Modal isOpen={openA}>
       <Modal.Backdrop className="bg-black/60 backdrop-blur-sm">
@@ -40,12 +42,12 @@ export function PlanModal({ plan, openA, setOpenA, onProceedToCheckout }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        plan.Launch
+                        !isInactive
                           ? "bg-green-500/20 text-green-300 border-green-400/30"
                           : "bg-red-500/20 text-red-300 border-red-400/30"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${plan.Launch ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-                        {plan.Launch ? "Active" : "Inactive"}
+                        <span className={`w-1.5 h-1.5 rounded-full ${!isInactive ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                        {!isInactive ? "Active" : "Inactive"}
                       </span>
                     </div>
                     <h2 className="text-white font-display font-bold text-xl leading-tight">
@@ -127,6 +129,18 @@ export function PlanModal({ plan, openA, setOpenA, onProceedToCheckout }) {
                 </div>
               </div>
 
+              {/* Inactive plan notice */}
+              {isInactive && (
+                <div className="mb-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20 px-4 py-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                    This plan is currently inactive and cannot be purchased.
+                  </p>
+                </div>
+              )}
+
               {/* Price + CTA */}
               <div className="flex items-center gap-3 min-w-0">
                 <div className="bg-accent/5 border border-accent/15 rounded-2xl px-3 py-2.5 shrink-0">
@@ -137,14 +151,24 @@ export function PlanModal({ plan, openA, setOpenA, onProceedToCheckout }) {
                 </div>
 
                 <button
+                  disabled={isInactive}
                   onClick={() => {
+                    if (isInactive) return;
                     setOpenA(false);
                     if (onProceedToCheckout) onProceedToCheckout();
                   }}
-                  className="flex-1 min-w-0 h-12 rounded-2xl bg-accent hover:bg-accent/90 text-white font-bold text-xs shadow-lg shadow-accent/25 transition-all duration-200 flex items-center justify-center gap-1.5 px-2"
+                  title={isInactive ? "This plan is currently inactive" : undefined}
+                  className={[
+                    "flex-1 min-w-0 h-12 rounded-2xl text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 px-2",
+                    isInactive
+                      ? "bg-muted-foreground/40 cursor-not-allowed opacity-60"
+                      : "bg-accent hover:bg-accent/90 shadow-lg shadow-accent/25",
+                  ].join(" ")}
                 >
                   <CreditCard className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Subscribe Now</span>
+                  <span className="truncate">
+                    {isInactive ? "Plan Unavailable" : "Subscribe Now"}
+                  </span>
                 </button>
               </div>
             </div>
