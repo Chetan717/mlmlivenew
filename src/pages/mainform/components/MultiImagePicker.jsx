@@ -46,14 +46,16 @@ export default function MultiImagePicker({
           {/* Horizontally scrollable thumbnails area */}
           <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {totalSelected === 0 && (
-              <span className="text-[11px] text-muted-foreground px-2 py-3">No images selected yet</span>
+              <span className="text-[11px] text-muted-foreground px-2 py-3">
+                No images selected yet
+              </span>
             )}
             {selectedLinks.map((link, i) => (
               <div key={link || `sel-${i}`} className="relative flex-shrink-0">
                 <img
                   src={link}
                   alt=""
-                  className="w-14 h-14 rounded-full object-cover border-2 border-border bg-muted/30"
+                  className="w-14 h-14 rounded-full object-cover bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 font-bold text-transparent"
                 />
                 <button
                   type="button"
@@ -66,7 +68,10 @@ export default function MultiImagePicker({
               </div>
             ))}
             {customFiles.map((item, i) => (
-              <div key={item.previewURL || `cus-${i}`} className="relative flex-shrink-0">
+              <div
+                key={item.previewURL || `cus-${i}`}
+                className="relative flex-shrink-0"
+              >
                 <img
                   src={item.previewURL}
                   alt=""
@@ -91,7 +96,11 @@ export default function MultiImagePicker({
             className="flex-shrink-0 w-14 h-14 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
             title={isLimitReached ? "Limit reached" : "Add image"}
           >
-            <img src={photoupload} alt="Upload" className="w-5 h-5 opacity-70" />
+            <img
+              src={photoupload}
+              alt="Upload"
+              className="w-5 h-5 opacity-70"
+            />
           </button>
         </div>
       ) : (
@@ -224,7 +233,9 @@ export default function MultiImagePicker({
                         alt="Upload"
                         className="w-4 h-4 text-accent"
                       />
-                      <p className="text-[10px] text-muted-foreground">Upload Image</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Upload Image
+                      </p>
                     </button>
 
                     <input

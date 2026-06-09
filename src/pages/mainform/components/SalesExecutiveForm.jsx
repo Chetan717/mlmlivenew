@@ -195,6 +195,12 @@ export default function SalesExecutiveForm() {
   const [open, setOpen] = useState(false);
   const [bonanzaDays, setBonanzaDays] = useState("1 Night/2 Day");
   const [bonanzaForWhom, setBonanzaForWhom] = useState("SELF");
+  const [incomeSaved, setIncomeSaved] = useState(() => {
+    try { return !!localStorage.getItem("income_form"); } catch { return false; }
+  });
+  const [achievementSaved, setAchievementSaved] = useState(() => {
+    try { return !!localStorage.getItem("achieve_form"); } catch { return false; }
+  });
 
   const navigate = useNavigate();
   const [selectedLinks, setSelectedLinks] = useState([]);
@@ -385,6 +391,8 @@ export default function SalesExecutiveForm() {
             src={formImage}
             alt=""
             className="w-full h-[130px] object-contain"
+            autoSave={true}
+            
           />
         </div>
       ) : null}
@@ -457,7 +465,7 @@ export default function SalesExecutiveForm() {
 
         {/* ── Meeting / Income sub-forms ── */}
         {isMeeting ? <MeetingForm /> : null}
-        {isIncome ? <IncomeForm /> : null}
+        {isIncome ? <IncomeForm onSaved={() => setIncomeSaved(true)} /> : null}
 
         {/* ── Achiever Details ── */}
         {isMeeting ? null : (
@@ -687,6 +695,7 @@ export default function SalesExecutiveForm() {
             <AchievementForm
               editingType={editingType}
               setEditingType={setEditingType}
+              onSaved={() => setAchievementSaved(true)}
             />
           </div>
         ) : null}
@@ -794,16 +803,20 @@ export default function SalesExecutiveForm() {
 
       {isMeeting ? null : (
         <div className="fixed bottom-0 left-0 right-0 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border z-30 space-y-2">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all active:scale-[0.98] shadow-xl shadow-accent/20"
-            style={{
-              background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)",
-            }}
-          >
-            Save &amp; Create Design
-          </button>
+          {(() => {
+            const isLocked = (isIncome && !incomeSaved) || (isAchievment && !achievementSaved);
+            return (
+              <button
+                type="button"
+                onClick={isLocked ? undefined : handleSubmit}
+                disabled={isLocked}
+                className={'w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all shadow-xl shadow-accent/20' + (isLocked ? ' opacity-40 blur-[1px] cursor-not-allowed' : ' active:scale-[0.98]')}
+                style={{ background: 'linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)' }}
+              >
+                Save &amp; Create Design
+              </button>
+            );
+          })()}
           {/* <button
             type="button"
             onClick={handleReset}

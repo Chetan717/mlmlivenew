@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from "react";
 import ImageUploadSquare from "./ImageUploadSquare";
 import { sanitizeAmount, sanitizeFormValue } from "../utils/inputSanitize";
+import { toast } from "../../../utils/toast";
 
-const IncomeForm = () => {
+const IncomeForm = ({ onSaved }) => {
   const STORAGE_KEY = "income_form";
 
-  // Initialize state with localStorage data or empty values
   const [formData, setFormData] = useState({
     amount: "",
     noOfDay: "",
     typeOfIncome: "Day",
     proofImage: null,
   });
+
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
-    // Scroll to top with a small delay to ensure DOM is ready
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     }, 100);
   }, []);
-  // Load data from localStorage on mount
+
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
@@ -32,9 +34,6 @@ const IncomeForm = () => {
     }
   }, []);
 
-  // Scroll to top on mount
-
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     let sanitizedValue = value;
@@ -45,54 +44,47 @@ const IncomeForm = () => {
     } else {
       sanitizedValue = sanitizeFormValue(value, 40);
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: sanitizedValue,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: sanitizedValue }));
+    if (errors[name]) setErrors((prev) => { const e = { ...prev }; delete e[name]; return e; });
   };
 
-  // Handle income type selection
   const handleIncomeTypeChange = (type) => {
-    setFormData((prev) => ({
-      ...prev,
-      typeOfIncome: type,
-    }));
+    setFormData((prev) => ({ ...prev, typeOfIncome: type }));
   };
 
-  // Handle image upload
   const handleImageSelect = (imageData) => {
-    setFormData((prev) => ({
-      ...prev,
-      proofImage: imageData,
-    }));
+    setFormData((prev) => ({ ...prev, proofImage: imageData }));
+    if (errors.proofImage) setErrors((prev) => { const e = { ...prev }; delete e.proofImage; return e; });
   };
 
-  // Save form data to localStorage
+  const validate = () => {
+    const e = {};
+    if (!formData.amount || String(formData.amount).trim() === "") e.amount = "Amount is required";
+    if (!formData.noOfDay || String(formData.noOfDay).trim() === "") e.noOfDay = "No. of days is required";
+    if (!formData.proofImage) e.proofImage = "Proof image is required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleSave = () => {
-    if (!formData.amount || !formData.noOfDay || !formData.proofImage) {
-      alert("Please fill all fields and upload proof image");
+    if (!validate()) {
+      toast.error("Please fill all required fields");
       return;
     }
-
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-      alert("Form saved successfully!");
+      toast.success("Income details saved!");
+      onSaved?.();
     } catch (error) {
-      alert("Error saving form data");
+      toast.error("Error saving form data");
       console.error("Error:", error);
     }
   };
 
-  // Clear form data
   const handleClear = () => {
     if (window.confirm("Are you sure you want to clear all data?")) {
-      setFormData({
-        amount: "",
-        noOfDay: "",
-        typeOfIncome: "Day",
-        proofImage: null,
-      });
+      setFormData({ amount: "", noOfDay: "", typeOfIncome: "Day", proofImage: null });
+      setErrors({});
       localStorage.removeItem(STORAGE_KEY);
     }
   };
@@ -117,11 +109,12 @@ const IncomeForm = () => {
             value={formData.amount}
             onChange={handleInputChange}
             placeholder="0000"
-            className="w-full h-11 pl-8 pr-3 rounded-xl border border-border bg-background focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50"
+            className={`w-full h-11 pl-8 pr-3 rounded-xl border bg-background focus:ring-2 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 ${errors.amount ? "border-danger focus:border-danger focus:ring-danger/15" : "border-border focus:border-accent focus:ring-accent/15"}`}
             min="0"
             maxLength={7}
           />
         </div>
+        {errors.amount && <p className="text-[11px] text-danger mt-1">{errors.amount}</p>}
       </div>
 
       {/* Income Type */}
@@ -158,9 +151,10 @@ const IncomeForm = () => {
           value={formData.noOfDay}
           onChange={handleInputChange}
           placeholder="0"
-          className="w-full h-11 px-3 rounded-xl border border-border bg-background focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50"
+          className={`w-full h-11 px-3 rounded-xl border bg-background focus:ring-2 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 ${errors.noOfDay ? "border-danger focus:border-danger focus:ring-danger/15" : "border-border focus:border-accent focus:ring-accent/15"}`}
           min="0"
         />
+        {errors.noOfDay && <p className="text-[11px] text-danger mt-1">{errors.noOfDay}</p>}
       </div>
 
       {/* Proof Image */}
@@ -168,11 +162,14 @@ const IncomeForm = () => {
         <label className="text-[11px] font-semibold text-foreground/60 block mb-2">
           Proof Image <span className="text-danger">*</span>
         </label>
-        <ImageUploadSquare
-          onImageSelect={handleImageSelect}
-          previewImage={formData.proofImage}
-          label="Proof Image"
-        />
+        <div className={errors.proofImage ? "rounded-xl border-2 border-danger" : ""}>
+          <ImageUploadSquare
+            onImageSelect={handleImageSelect}
+            previewImage={formData.proofImage}
+            label="Proof Image"
+          />
+        </div>
+        {errors.proofImage && <p className="text-[11px] text-danger mt-1">{errors.proofImage}</p>}
       </div>
 
       {/* Buttons */}

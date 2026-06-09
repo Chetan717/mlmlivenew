@@ -259,7 +259,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                     onClick={() => handleImagePress(item)}
                     className={`relative rounded-2xl overflow-hidden cursor-pointer group border bg-white dark:bg-black/20 card-press ${
                       selectedTemp?.id === item?.id
-                        ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md"
+                        ? " dark:ring-offset-[#0b0f19] shadow-md"
                         : "border-border shadow-sm"
                     }`}
                   >
@@ -270,7 +270,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                         alt={item.Subtype || displayName}
                       />
                     </div>
-                    {selectedTemp?.id === item?.id && <CheckIcon />}
+                    {/* {selectedTemp?.id === item?.id && <CheckIcon />} */}
                   </div>
                 ))}
               </div>
@@ -291,7 +291,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                       onClick={() => handleImagePress(item)}
                       className={`relative rounded-2xl overflow-hidden cursor-pointer group border bg-white dark:bg-black/20 card-press ${
                         selectedTemp?.id === item?.id
-                          ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md"
+                          ? "dark:ring-offset-[#0b0f19] shadow-md"
                           : "border-border shadow-sm"
                       }`}
                     >
@@ -302,7 +302,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                           alt={item.Subtype || displayName}
                         />
                       </div>
-                      {selectedTemp?.id === item?.id && <CheckIcon />}
+                      {/* {selectedTemp?.id === item?.id && <CheckIcon />} */}
                     </div>
                   ))}
                 </div>
@@ -318,7 +318,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                     <div
                       className={`relative rounded-2xl overflow-hidden aspect-square border bg-white dark:bg-black/20 ${
                         selectedTemp?.id === item?.id
-                          ? "border-accent ring-2 ring-accent ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md scale-95"
+                          ? "ring-offset-1 dark:ring-offset-[#0b0f19] shadow-md scale-95"
                           : "border-border shadow-sm"
                       }`}
                     >
@@ -327,7 +327,7 @@ function ListOfGenaraltemp({ templates, loading }) {
                         className="w-full h-full object-cover"
                         alt={item.Subtype || displayName}
                       />
-                      {selectedTemp?.id === item?.id && <CheckIcon />}
+                      {/* {selectedTemp?.id === item?.id && <CheckIcon />} */}
                     </div>
                     {item.Subtype && (
                       <p className="text-xs font-medium text-foreground/80 text-center truncate px-1 mt-2">

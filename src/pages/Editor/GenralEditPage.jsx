@@ -46,11 +46,7 @@ import num9 from "./amount_numberImage/number_9.png";
 import numComma from "./amount_numberImage/comma.png";
 import numRupee from "./amount_numberImage/rupee.png";
 
-const FONT_SCALE =
-  typeof window !== "undefined" && window.__fontScale > 0
-    ? window.__fontScale
-    : 1;
-const fs = (n) => n / FONT_SCALE;
+const fs = (n) => n;
 
 const STAGE_WIDTH = 320;
 const STAGE_HEIGHT = 320;
@@ -443,11 +439,15 @@ function GeneralEditPage({
   const [incomeFormData, setIncomeFormData] = useState(null);
   const [meetingData, setMeetingData] = useState(null);
   const [showSocial, setShowSocial] = useState("no");
+  const [footerImgFlip, setFooterImgFlip] = useState(false);
   const [showTopupline] = useState(
     () => localStorage.getItem("showTopuplineImages") ?? "yes",
   );
   const [showLogo] = useState(
     () => localStorage.getItem("showCompanyLogo") ?? "yes",
+  );
+  const [showMobile] = useState(
+    () => localStorage.getItem("showMobileNumber") ?? "yes",
   );
 
   const [selectedMusic, setSelectedMusic] = useState(null);
@@ -554,7 +554,7 @@ function GeneralEditPage({
             : 10
           : isIncome
             ? isRight
-              ? 80
+              ? 215
               : 17
             : isAnyversary
               ? isRight
@@ -576,13 +576,13 @@ function GeneralEditPage({
         : isCapping
           ? 65
           : isIncome
-            ? 110
+            ? 60
             : isAnyversary
               ? 40
               : isClosing
                 ? 110
                 : isWelcome
-                  ? 64
+                  ? 34
                   : isBonanza
                     ? 40
                     : 40,
@@ -600,13 +600,13 @@ function GeneralEditPage({
         : isCapping
           ? 150
           : isIncome
-            ? 150
+            ? 195
             : isAnyversary
               ? 220
               : isClosing
                 ? 130
                 : isWelcome
-                  ? 160
+                  ? 190
                   : isBonanza
                     ? 180
                     : 190,
@@ -1125,7 +1125,7 @@ function GeneralEditPage({
       8: imgNum8,
       9: imgNum9,
       ",": imgComma,
-      "₹": imgRupee,
+      "₹": isClosing ? null : imgRupee,
     }),
     [
       imgNum0,
@@ -1139,7 +1139,7 @@ function GeneralEditPage({
       imgNum8,
       imgNum9,
       imgComma,
-      imgRupee,
+      isClosing ? null : imgRupee,
     ],
   );
 
@@ -1266,7 +1266,9 @@ function GeneralEditPage({
 
   const amountText =
     String(formamount).trim() !== ""
-      ? `₹${formatAmount(formamount)}`
+      ? isClosing
+        ? `${formatAmount(formamount)}`
+        : `₹${formatAmount(formamount)}`
       : "XXXXXXX";
   const charslen = amountText.split("");
 
@@ -2007,8 +2009,8 @@ function GeneralEditPage({
                       : 162
                     : isIncome
                       ? isRight
-                        ? 75
-                        : 72
+                        ? 25
+                        : 125
                       : isAnyversary
                         ? isRight
                           ? 7
@@ -2017,8 +2019,8 @@ function GeneralEditPage({
                           ? 83
                           : isClosing
                             ? isRight
-                              ? 83
-                              : 78
+                              ? 35
+                              : 125
                             : isWelcome
                               ? isRight
                                 ? 15
@@ -2072,8 +2074,8 @@ function GeneralEditPage({
                       : 205
                     : isIncome
                       ? isRight
-                        ? 75
-                        : 135
+                        ? 85
+                        : 185
                       : isAnyversary
                         ? isRight
                           ? 75
@@ -2082,8 +2084,8 @@ function GeneralEditPage({
                           ? 140
                           : isClosing
                             ? isRight
-                              ? 140
-                              : 140
+                              ? 95
+                              : 185
                             : isWelcome
                               ? isRight
                                 ? 78
@@ -2246,8 +2248,8 @@ function GeneralEditPage({
             {isIncome ? (
               <Text
                 fontFamily="Roboto"
-                x={160}
-                y={197}
+                x={isRight ? 60 : 165}
+                y={isRight ? 195 : 197}
                 width={130}
                 height={30}
                 text={`${incomeDay} ${incomeType.toUpperCase()}`}
@@ -2273,12 +2275,12 @@ function GeneralEditPage({
                 startX={
                   isIncome
                     ? isRight
-                      ? 5
+                      ? 20
                       : 135
                     : isClosing
                       ? isRight
-                        ? 5
-                        : 135
+                        ? 49
+                        : 145
                       : isRight
                         ? charslen.length === 7
                           ? 180
@@ -2289,14 +2291,14 @@ function GeneralEditPage({
                               : 158
                         : 8
                 }
-                y={isIncome ? 132 : isClosing ? 135 : 250}
+                y={isIncome ? 132 : isClosing ? 132 : 250}
                 digitHeight={isIncome ? 26 : isClosing ? 30 : 29}
                 spacing={0.8}
               />
             )}
 
             {isIncome ? (
-              <Group x={170} y={107}>
+              <Group x={isRight ? 100 : 170} y={107}>
                 <Image
                   x={10}
                   y={120}
@@ -2478,20 +2480,22 @@ function GeneralEditPage({
                   verticalAlign="center"
                   align="center"
                 />
-                <Text
-                  fontFamily="Roboto"
-                  x={20}
-                  y={303}
-                  width={180}
-                  height={30}
-                  text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(6)}
-                  fontStyle="1000"
-                  fill="white"
-                  letterSpacing={0}
-                  verticalAlign="center"
-                  align="center"
-                />
+                {showMobile === "yes" ? (
+                  <Text
+                    fontFamily="Roboto"
+                    x={20}
+                    y={303}
+                    width={180}
+                    height={30}
+                    text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                    fontSize={fs(6)}
+                    fontStyle="1000"
+                    fill="white"
+                    letterSpacing={0}
+                    verticalAlign="center"
+                    align="center"
+                  />
+                ) : null}
               </Group>
             ) : null}
 
@@ -2689,7 +2693,9 @@ function GeneralEditPage({
               )
             ) : null}
 
-            {isMeeting && meetingData?.hostMode === "none" ? (
+            {isMeeting &&
+            meetingData?.hostMode === "none" &&
+            showMobile === "yes" ? (
               <Group x={isRight ? 0 : 240} y={298}>
                 <Text
                   fontFamily="Roboto"
@@ -2721,34 +2727,38 @@ function GeneralEditPage({
 
             {isMeeting || isSubGeneralType ? null : isRight ? (
               <>
-                <Text
-                  fontFamily="Roboto"
-                  x={isSubGeneralType2 ? 240 : 252}
-                  y={298}
-                  width={150}
-                  height={5}
-                  text="CALL FOR ASSOCIATION"
-                  fontSize={fs(4.5)}
-                  fill="white"
-                  fontStyle="bold"
-                  verticalAlign="middle"
-                  onClick={() => setIsOpenFtr(true)}
-                  onTap={() => setIsOpenFtr(true)}
-                />
-                <Text
-                  fontFamily="Roboto"
-                  x={isSubGeneralType2 ? 235 : 250}
-                  y={297}
-                  width={150}
-                  height={20}
-                  text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(7.5)}
-                  fill="white"
-                  fontStyle="bold"
-                  verticalAlign="middle"
-                  onClick={() => setIsOpenFtr(true)}
-                  onTap={() => setIsOpenFtr(true)}
-                />
+                {showMobile === "yes" && (
+                  <>
+                    <Text
+                      fontFamily="Roboto"
+                      x={isSubGeneralType2 ? 240 : 252}
+                      y={298}
+                      width={150}
+                      height={5}
+                      text="CALL FOR ASSOCIATION"
+                      fontSize={fs(4.5)}
+                      fill="white"
+                      fontStyle="bold"
+                      verticalAlign="middle"
+                      onClick={() => setIsOpenFtr(true)}
+                      onTap={() => setIsOpenFtr(true)}
+                    />
+                    <Text
+                      fontFamily="Roboto"
+                      x={isSubGeneralType2 ? 235 : 250}
+                      y={297}
+                      width={150}
+                      height={20}
+                      text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                      fontSize={fs(7.5)}
+                      fill="white"
+                      fontStyle="bold"
+                      verticalAlign="middle"
+                      onClick={() => setIsOpenFtr(true)}
+                      onTap={() => setIsOpenFtr(true)}
+                    />
+                  </>
+                )}
                 {(() => {
                   let iconX = 0;
                   const iconPositions = {};
@@ -2816,34 +2826,38 @@ function GeneralEditPage({
               </>
             ) : (
               <>
-                <Text
-                  fontFamily="Roboto"
-                  x={30}
-                  y={298}
-                  width={150}
-                  height={5}
-                  text="CALL FOR ASSOCIATION"
-                  fontSize={fs(4.5)}
-                  fill="white"
-                  fontStyle="bold"
-                  verticalAlign="middle"
-                  onClick={() => setIsOpenFtr(true)}
-                  onTap={() => setIsOpenFtr(true)}
-                />
-                <Text
-                  fontFamily="Roboto"
-                  x={28}
-                  y={297}
-                  width={150}
-                  height={20}
-                  text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(7.5)}
-                  fill="white"
-                  fontStyle="bold"
-                  verticalAlign="middle"
-                  onClick={() => setIsOpenFtr(true)}
-                  onTap={() => setIsOpenFtr(true)}
-                />
+                {showMobile === "yes" && (
+                  <>
+                    <Text
+                      fontFamily="Roboto"
+                      x={30}
+                      y={298}
+                      width={150}
+                      height={5}
+                      text="CALL FOR ASSOCIATION"
+                      fontSize={fs(4.5)}
+                      fill="white"
+                      fontStyle="bold"
+                      verticalAlign="middle"
+                      onClick={() => setIsOpenFtr(true)}
+                      onTap={() => setIsOpenFtr(true)}
+                    />
+                    <Text
+                      fontFamily="Roboto"
+                      x={28}
+                      y={297}
+                      width={150}
+                      height={20}
+                      text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                      fontSize={fs(7.5)}
+                      fill="white"
+                      fontStyle="bold"
+                      verticalAlign="middle"
+                      onClick={() => setIsOpenFtr(true)}
+                      onTap={() => setIsOpenFtr(true)}
+                    />
+                  </>
+                )}
                 {(() => {
                   let iconX = 0;
                   const iconPositions = {};
@@ -2971,34 +2985,38 @@ function GeneralEditPage({
             {isSubGeneralType ? (
               isRight ? (
                 <>
-                  <Text
-                    fontFamily="Roboto"
-                    x={35}
-                    y={298}
-                    width={150}
-                    height={5}
-                    text="CALL FOR ASSOCIATION"
-                    fontSize={fs(4.5)}
-                    fill="white"
-                    fontStyle="bold"
-                    verticalAlign="middle"
-                    onClick={() => setIsOpenFtr(true)}
-                    onTap={() => setIsOpenFtr(true)}
-                  />
-                  <Text
-                    fontFamily="Roboto"
-                    x={30}
-                    y={297}
-                    width={150}
-                    height={20}
-                    text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={fs(7.5)}
-                    fill="white"
-                    fontStyle="bold"
-                    verticalAlign="middle"
-                    onClick={() => setIsOpenFtr(true)}
-                    onTap={() => setIsOpenFtr(true)}
-                  />
+                  {showMobile === "yes" && (
+                    <>
+                      <Text
+                        fontFamily="Roboto"
+                        x={35}
+                        y={298}
+                        width={150}
+                        height={5}
+                        text="CALL FOR ASSOCIATION"
+                        fontSize={fs(4.5)}
+                        fill="white"
+                        fontStyle="bold"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      />
+                      <Text
+                        fontFamily="Roboto"
+                        x={30}
+                        y={297}
+                        width={150}
+                        height={20}
+                        text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                        fontSize={fs(7.5)}
+                        fill="white"
+                        fontStyle="bold"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      />
+                    </>
+                  )}
                   {(() => {
                     let iconX = 0;
                     const iconPositions = {};
@@ -3063,34 +3081,38 @@ function GeneralEditPage({
                 </>
               ) : (
                 <>
-                  <Text
-                    fontFamily="Roboto"
-                    x={240}
-                    y={298}
-                    width={150}
-                    height={5}
-                    text="CALL FOR ASSOCIATION"
-                    fontSize={fs(4.5)}
-                    fill="white"
-                    fontStyle="bold"
-                    verticalAlign="middle"
-                    onClick={() => setIsOpenFtr(true)}
-                    onTap={() => setIsOpenFtr(true)}
-                  />
-                  <Text
-                    fontFamily="Roboto"
-                    x={235}
-                    y={297}
-                    width={150}
-                    height={20}
-                    text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={fs(7.5)}
-                    fill="white"
-                    fontStyle="bold"
-                    verticalAlign="middle"
-                    onClick={() => setIsOpenFtr(true)}
-                    onTap={() => setIsOpenFtr(true)}
-                  />
+                  {showMobile === "yes" && (
+                    <>
+                      <Text
+                        fontFamily="Roboto"
+                        x={240}
+                        y={298}
+                        width={150}
+                        height={5}
+                        text="CALL FOR ASSOCIATION"
+                        fontSize={fs(4.5)}
+                        fill="white"
+                        fontStyle="bold"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      />
+                      <Text
+                        fontFamily="Roboto"
+                        x={235}
+                        y={297}
+                        width={150}
+                        height={20}
+                        text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                        fontSize={fs(7.5)}
+                        fill="white"
+                        fontStyle="bold"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      />
+                    </>
+                  )}
                   {(() => {
                     let iconX = 0;
                     const iconPositions = {};
@@ -3213,25 +3235,37 @@ function GeneralEditPage({
               )
             ) : null}
 
-            {isSubGeneralType ||
-            meetingData?.hostMode === "none" ? null : isRight ? (
-              <Image
-                image={ImageProfile}
-                x={isMeeting ? 60 : 76}
-                y={isMeeting ? 250 : 210}
-                scaleX={-1}
-                width={isMeeting ? 60 : 80}
-                height={isMeeting ? 70 : 110}
-              />
-            ) : (
-              <Image
-                image={ImageProfile}
-                x={isMeeting ? 260 : 244}
-                y={isMeeting ? 250 : 210}
-                width={isMeeting ? 60 : 80}
-                height={isMeeting ? 70 : 110}
-              />
-            )}
+            {isSubGeneralType || meetingData?.hostMode === "none"
+              ? null
+              : (() => {
+                  const fW = isMeeting ? 60 : 80;
+                  const fH = isMeeting ? 70 : 110;
+                  const fY = isMeeting ? 250 : 210;
+                  const baseX = isRight
+                    ? isMeeting
+                      ? 60
+                      : 76
+                    : isMeeting
+                      ? 260
+                      : 244;
+                  const baseScaleX = isRight ? -1 : 1;
+                  const leftEdge = baseScaleX === -1 ? baseX - fW : baseX;
+                  const curScaleX = footerImgFlip ? -baseScaleX : baseScaleX;
+                  const curOffsetX = curScaleX === -1 ? fW : 0;
+                  return (
+                    <Image
+                      image={ImageProfile}
+                      x={leftEdge}
+                      y={fY}
+                      scaleX={curScaleX}
+                      offsetX={curOffsetX}
+                      width={fW}
+                      height={fH}
+                      onClick={() => setFooterImgFlip((f) => !f)}
+                      onTap={() => setFooterImgFlip((f) => !f)}
+                    />
+                  );
+                })()}
 
             <Transformer
               ref={transformerRef}

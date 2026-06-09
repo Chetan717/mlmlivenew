@@ -346,10 +346,13 @@ function DeleteConfirmModal({ userMobile, onConfirm, onCancel, deleting }) {
 // ════════════════════════════════════════════════════════════
 function DisplaySettings({ accent = false }) {
   const [showTopupline, setShowTopupline] = useState(
-    () => localStorage.getItem("showTopuplineImages") ?? "yes"
+    () => localStorage.getItem("showTopuplineImages") ?? "yes",
   );
   const [showLogo, setShowLogo] = useState(
-    () => localStorage.getItem("showCompanyLogo") ?? "yes"
+    () => localStorage.getItem("showCompanyLogo") ?? "yes",
+  );
+  const [showMobile, setShowMobile] = useState(
+    () => localStorage.getItem("showMobileNumber") ?? "yes",
   );
 
   const toggleTopupline = () => {
@@ -361,6 +364,11 @@ function DisplaySettings({ accent = false }) {
     const next = showLogo === "yes" ? "no" : "yes";
     setShowLogo(next);
     localStorage.setItem("showCompanyLogo", next);
+  };
+  const toggleMobile = () => {
+    const next = showMobile === "yes" ? "no" : "yes";
+    setShowMobile(next);
+    localStorage.setItem("showMobileNumber", next);
   };
 
   return (
@@ -375,7 +383,9 @@ function DisplaySettings({ accent = false }) {
 
       {/* Show Topupline Images */}
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground/70">Show Topupline Images</p>
+        <p className="text-sm font-medium text-foreground/70">
+          Show Topupline Images
+        </p>
         <button
           type="button"
           role="switch"
@@ -395,7 +405,9 @@ function DisplaySettings({ accent = false }) {
 
       {/* Show Company Logo */}
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground/70">Show Company Logo</p>
+        <p className="text-sm font-medium text-foreground/70">
+          Show Company Logo
+        </p>
         <button
           type="button"
           role="switch"
@@ -408,6 +420,28 @@ function DisplaySettings({ accent = false }) {
           <span
             className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
               showLogo === "yes" ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Show Mobile Number */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground/70">
+          Show Mobile Number
+        </p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showMobile === "yes"}
+          onClick={toggleMobile}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+            showMobile === "yes" ? "bg-green-500" : "bg-foreground/20"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              showMobile === "yes" ? "translate-x-[22px]" : "translate-x-0.5"
             }`}
           />
         </button>
@@ -923,12 +957,26 @@ export default function MLMProfilePage() {
           <div className="w-full max-w-xs rounded-2xl bg-background dark:bg-zinc-900 border border-border shadow-2xl p-5">
             <div className="text-center mb-4">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-accent/10 flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                  <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z"/>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent"
+                >
+                  <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
                 </svg>
               </div>
-              <p className="text-[14px] font-bold text-foreground">How should we use this photo?</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Choose whether to keep the image as is or remove its background.</p>
+              <p className="text-[14px] font-bold text-foreground">
+                How should we use this photo?
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Choose whether to keep the image as is or remove its background.
+              </p>
             </div>
             <div className="flex flex-col gap-2.5">
               <button
@@ -993,84 +1041,86 @@ export default function MLMProfilePage() {
 
           {/* ── FULL NAME + MOBILE + DESIGNATION ─────────────── */}
           {!isSettingsMode && (
-          <div className="bg-background rounded-2xl border border-border p-4">
-            {/* Full Name */}
-            <label className="block text-[11px] font-bold text-foreground/60 mb-2">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2 mb-3">
-              <select
-                value={form.salutation}
-                onChange={(e) => setField("salutation", e.target.value)}
-                className="border border-border rounded-xl px-3 py-2.5 text-[13px] bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
-              >
-                {["Mr", "Mrs", "Ms", "Dr"].map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="Enter name"
-                value={form.name}
-                onChange={(e) => {
-                  setField("name", e.target.value);
-                  clearError("name");
-                }}
-                className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 ${errors.name ? "border-red-400 bg-red-50" : "border-border"}`}
-              />
-            </div>
-            {errors.name && (
-              <p className="text-xs text-red-500 mt-1 mb-2">{errors.name}</p>
-            )}
+            <div className="bg-background rounded-2xl border border-border p-4">
+              {/* Full Name */}
+              <label className="block text-[11px] font-bold text-foreground/60 mb-2">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2 mb-3">
+                <select
+                  value={form.salutation}
+                  onChange={(e) => setField("salutation", e.target.value)}
+                  className="border border-border rounded-xl px-3 py-2.5 text-[13px] bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+                >
+                  {["Mr", "Mrs", "Ms", "Dr"].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Enter name"
+                  value={form.name}
+                  onChange={(e) => {
+                    setField("name", e.target.value);
+                    clearError("name");
+                  }}
+                  className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 ${errors.name ? "border-red-400 bg-red-50" : "border-border"}`}
+                />
+              </div>
+              {errors.name && (
+                <p className="text-xs text-red-500 mt-1 mb-2">{errors.name}</p>
+              )}
 
-            {/* Mobile */}
-            <label className="block text-[11px] font-bold text-foreground/60 mb-2">
-              Mobile Number
-              {/* <span className="ml-2 text-xs font-normal text-muted-foreground/70 bg-muted/40 px-2 py-0.5 rounded-full">
+              {/* Mobile */}
+              <label className="block text-[11px] font-bold text-foreground/60 mb-2">
+                Mobile Number
+                {/* <span className="ml-2 text-xs font-normal text-muted-foreground/70 bg-muted/40 px-2 py-0.5 rounded-full">
                 🔒 Locked
               </span> */}
-            </label>
-            <div className="relative mb-3">
-              <input
-                type="tel"
-                value={`+91 ${userMobile}`}
-                readOnly
-                className="w-full border border-border rounded-xl px-3 py-2.5 text-[13px] bg-muted/20 text-muted-foreground cursor-not-allowed"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70">
-                from account
-              </span>
-            </div>
+              </label>
+              <div className="relative mb-3">
+                <input
+                  type="tel"
+                  value={`+91 ${userMobile}`}
+                  readOnly
+                  className="w-full border border-border rounded-xl px-3 py-2.5 text-[13px] bg-muted/20 text-muted-foreground cursor-not-allowed"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70">
+                  from account
+                </span>
+              </div>
 
-            {/* Designation */}
-            <label className="block text-[11px] font-bold text-foreground/60 mb-2">
-              Designation <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={form.designation}
-              onChange={(e) => {
-                setField("designation", e.target.value);
-                clearError("designation");
-              }}
-              className={`w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/40 ${errors.designation ? "border-red-400 bg-red-50" : "border-border"}`}
-            >
-              <option value="">Select designation…</option>
-              {designations.length > 0 ? (
-                designations.map((d) => (
-                  <option key={d.id} value={d.profilename}>
-                    {d.profilename}
-                  </option>
-                ))
-              ) : (
-                <option disabled>No designations in company data</option>
+              {/* Designation */}
+              <label className="block text-[11px] font-bold text-foreground/60 mb-2">
+                Designation <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.designation}
+                onChange={(e) => {
+                  setField("designation", e.target.value);
+                  clearError("designation");
+                }}
+                className={`w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/40 ${errors.designation ? "border-red-400 bg-red-50" : "border-border"}`}
+              >
+                <option value="">Select designation…</option>
+                {designations.length > 0 ? (
+                  designations.map((d) => (
+                    <option key={d.id} value={d.profilename}>
+                      {d.profilename}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No designations in company data</option>
+                )}
+              </select>
+              {errors.designation && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.designation}
+                </p>
               )}
-            </select>
-            {errors.designation && (
-              <p className="text-xs text-red-500 mt-1">{errors.designation}</p>
-            )}
-          </div>
+            </div>
           )}
           {/* ── TOPUP LINE ────────────────────────────────────── */}
           <div className="bg-background rounded-2xl border border-border p-4">
@@ -1104,20 +1154,26 @@ export default function MLMProfilePage() {
                 {/* Horizontally scrollable thumbnails area */}
                 <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                   {allProfileImages.length === 0 && (
-                    <span className="text-[11px] text-muted-foreground px-2 py-3">No images selected yet</span>
+                    <span className="text-[11px] text-muted-foreground px-2 py-3">
+                      No images selected yet
+                    </span>
                   )}
                   {allProfileImages.map(({ url, isExisting }, idx) => (
-                    <div key={url || `prof-${idx}`} className="relative flex-shrink-0">
+                    <div
+                      key={url || `prof-${idx}`}
+                      className="relative flex-shrink-0 mb-1 "
+                    >
                       <img
                         src={url}
                         alt={`Profile ${idx + 1}`}
-                        className="w-20 h-20 rounded-full object-cover border-2 border-border bg-muted/30"
+                        
+                        className="w-14 h-14 rounded-full object-contain bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 font-bold text-transparent"
                       />
-                      {isExisting && (
-                        <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[8px] px-1 rounded-full leading-tight ring-2 ring-background">
+                      {/* {isExisting && (
+                        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[8px] px-1 rounded-full leading-tight ring-2 ring-background">
                           saved
                         </span>
-                      )}
+                      )} */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1135,18 +1191,41 @@ export default function MLMProfilePage() {
                 {/* Circular upload icon pinned at the end (does not scroll) */}
                 <button
                   type="button"
-                  onClick={() => !removingBg && profileInputRef.current?.click()}
+                  onClick={() =>
+                    !removingBg && profileInputRef.current?.click()
+                  }
                   disabled={removingBg}
                   className="flex-shrink-0 w-20 h-20 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={removingBg ? "Removing background…" : "Upload profile image"}
+                  title={
+                    removingBg ? "Removing background…" : "Upload profile image"
+                  }
                 >
                   {removingBg ? (
-                    <svg className="animate-spin w-7 h-7 text-accent" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    <svg
+                      className="animate-spin w-7 h-7 text-accent"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
                     </svg>
                   ) : (
-                    <img src={photoupload} alt="Upload" className="w-7 h-7 opacity-70" />
+                    <img
+                      src={photoupload}
+                      alt="Upload"
+                      className="w-7 h-7 opacity-70"
+                    />
                   )}
                 </button>
               </div>

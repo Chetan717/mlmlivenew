@@ -241,7 +241,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     const flipV    = flipVRef.current;
     const zoomVal  = zoomRef.current;
 
-    const TARGET = 1080;
+    const TARGET = 800;
     const outW = RATIO >= 1 ? TARGET : Math.round(TARGET * RATIO);
     const outH = RATIO >= 1 ? Math.round(TARGET / RATIO) : TARGET;
 
@@ -259,10 +259,16 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    out.toBlob((blob) => {
-      setIsDoing(false);
-      onDone(blob);
-    }, "image/jpeg", 0.92);
+    const dataUrl = out.toDataURL("image/png");
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    const blob = new Blob([u8arr], { type: mime });
+
+    setIsDoing(false);
+    onDone(blob);
   };
 
   // ── Tabs ──────────────────────────────────────────────────────

@@ -3,8 +3,8 @@ import { Label, Button, Modal } from "@heroui/react";
 import ImageUploadWithBgRemove from "./ImageUploadWithBgRemove";
 import ImageEditorCanvas from "./ImageEditorCanvas";
 import { sanitizeAmount, sanitizeName } from "../utils/inputSanitize";
+import { toast } from "../../../utils/toast";
 
-// Convert blob or data-url to base64 data-url
 const toBase64 = (blob) =>
   new Promise((res) => {
     if (!blob) return res(null);
@@ -14,7 +14,7 @@ const toBase64 = (blob) =>
     reader.readAsDataURL(blob);
   });
 
-export default function AchievementForm() {
+export default function AchievementForm({ onSaved }) {
   const [mainImage, setMainImage] = useState(null);
   const [features, setFeatures] = useState([null, null, null]);
   const [name, setName] = useState("");
@@ -23,19 +23,16 @@ export default function AchievementForm() {
 
   const [editingImage, setEditingImage] = useState(null);
   const [editingType, setEditingType] = useState("main");
-  // "main" or "feature"
   const [onImageDone, setOnImageDone] = useState(null);
   const [open, setOpen] = useState(false);
 
- React.useEffect(() => {
+  React.useEffect(() => {
     try {
       const saved = localStorage.getItem("achieve_form");
       if (saved) {
         const data = JSON.parse(saved);
         if (data.mainImage) setMainImage(data.mainImage);
-        if (data.features && Array.isArray(data.features)) {
-          setFeatures(data.features);
-        }
+        if (data.features && Array.isArray(data.features)) setFeatures(data.features);
         if (data.name) setName(data.name);
         if (data.price) setPrice(data.price);
       }
@@ -47,16 +44,14 @@ export default function AchievementForm() {
   const openEditorFor =
     (target, index = null) =>
     (img) => {
-      // img can be blob or base64 string
       setEditingImage(img);
       setEditingType(target);
       setOnImageDone(() => (resultBlob) => {
-        // resultBlob is the edited blob
-        if (target === "main") setMainImage(resultBlob);
-        else if (target === "feature" && index != null)
-          setFeatures((prev) =>
-            prev.map((p, i) => (i === index ? resultBlob : p)),
-          );
+        if (target === "main") {
+          setMainImage(resultBlob);
+          if (errors.mainImage) setErrors((prev) => { const e = { ...prev }; delete e.mainImage; return e; });
+        } else if (target === "feature" && index != null)
+          setFeatures((prev) => prev.map((p, i) => (i === index ? resultBlob : p)));
         setEditingImage(null);
         setOpen(false);
       });
@@ -66,14 +61,17 @@ export default function AchievementForm() {
   const validate = () => {
     const e = {};
     if (!mainImage) e.mainImage = "Upload achievement image";
-    if (!name.trim()) e.name = "Name required";
-    if (!price.toString().trim()) e.price = "Price required";
+    if (!name.trim()) e.name = "Name is required";
+    if (!price.toString().trim()) e.price = "Price / Level is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fill all required fields");
+      return;
+    }
     const payload = {
       mainImage: await toBase64(mainImage),
       name,
@@ -82,7 +80,10 @@ export default function AchievementForm() {
     };
     try {
       localStorage.setItem("achieve_form", JSON.stringify(payload));
+      toast.success("Achievement details saved!");
+      onSaved?.();
     } catch (err) {
+      toast.error("Error saving achievement data");
       console.error(err);
     }
   };
@@ -91,7 +92,7 @@ export default function AchievementForm() {
     <div className="w-full space-y-4">
       {/* Achievement Image */}
       <div>
-        <p className="text-[11px] font-semibold text-foreground/60 mb-2">Achievement Image</p>
+        <p className="text-[11px] font-semibold text-foreground/60 mb-2">Achievement Image <span className="text-danger">*</span></p>
         <ImageUploadWithBgRemove
           onImageReady={(img) => openEditorFor("main")(img)}
           setEditingImage={setEditingImage}
@@ -129,11 +130,16 @@ export default function AchievementForm() {
 
       {/* Name */}
       <div>
-        <label className="text-[11px] font-semibold text-foreground/60 block mb-1">Name of Achievement</label>
+        <label className="text-[11px] font-semibold text-foreground/60 block mb-1">
+          Name of Achievement <span className="text-danger">*</span>
+        </label>
         <input
-          className="w-full h-11 px-3 rounded-xl border border-border bg-background focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50"
+          className={`w-full h-11 px-3 rounded-xl border bg-background focus:ring-2 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 ${errors.name ? "border-danger focus:border-danger focus:ring-danger/15" : "border-border focus:border-accent focus:ring-accent/15"}`}
           value={name}
-          onChange={(e) => setName(sanitizeName(e.target.value))}
+          onChange={(e) => {
+            setName(sanitizeName(e.target.value));
+            if (errors.name) setErrors((prev) => { const er = { ...prev }; delete er.name; return er; });
+          }}
           placeholder="Enter achievement name"
           maxLength={30}
         />
@@ -142,11 +148,16 @@ export default function AchievementForm() {
 
       {/* Price */}
       <div>
-        <label className="text-[11px] font-semibold text-foreground/60 block mb-1">Price / Level</label>
+        <label className="text-[11px] font-semibold text-foreground/60 block mb-1">
+          Price / Level <span className="text-danger">*</span>
+        </label>
         <input
-          className="w-full h-11 px-3 rounded-xl border border-border bg-background focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50"
+          className={`w-full h-11 px-3 rounded-xl border bg-background focus:ring-2 outline-none transition-all text-[13px] font-medium text-foreground placeholder:text-muted-foreground/50 ${errors.price ? "border-danger focus:border-danger focus:ring-danger/15" : "border-border focus:border-accent focus:ring-accent/15"}`}
           value={price}
-          onChange={(e) => setPrice(sanitizeAmount(e.target.value))}
+          onChange={(e) => {
+            setPrice(sanitizeAmount(e.target.value));
+            if (errors.price) setErrors((prev) => { const er = { ...prev }; delete er.price; return er; });
+          }}
           placeholder="Enter price"
           type="number"
           maxLength={7}

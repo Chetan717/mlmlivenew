@@ -41,14 +41,25 @@ export default function ImageEditorCanvas({
   const [reopenedOnce, setReopenedOnce] = useState(false);
   const [isDoing,      setIsDoing]      = useState(false);
 
-  const selll  = getSelType();
-  const isAchv = selll?.type === "Achievements";
+  const selll       = getSelType();
+  const isAchv      = selll?.type === "Achievements";
+  const isMeeting   = selll?.type === "Meeting";
+  const isCapping   = selll?.type === "Capping";
+  const isIncome    = selll?.type === "Income";
+  const isAnyversary = selll?.type === "Anniversary_Birthday";
+  const isClosing   = selll?.Subtype === "CLOSING";
+  const isWelcome   = selll?.Subtype === "WELCOME";
+  const isBonanza   = selll?.type === "Bonanza";
+
+  const rankW = isMeeting ? 135 : isCapping ? 100 : isIncome ? 100 : isAnyversary ? 130 : 110;
+  const rankH = isMeeting ? 200 : isCapping ? 150 : isIncome ? 150 : isAnyversary ? 220
+              : isClosing ? 130 : isWelcome ? 160 : isBonanza ? 180 : 190;
 
   const ASPECT_RATIO =
     editingType === "proof"   ? 2 / 2 :
     editingType === "feature" ? 2 / 2 :
     editingType === "main"    ? 2 / 1 :
-                                2 / 2.5;
+                                rankW / rankH;
 
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
@@ -305,7 +316,7 @@ export default function ImageEditorCanvas({
     const flipV    = flipVRef.current;
     const zoomVal  = zoomRef.current;
 
-    const TARGET = 1080;
+    const TARGET = 800;
     const outW = ASPECT_RATIO >= 1 ? TARGET : Math.round(TARGET * ASPECT_RATIO);
     const outH = ASPECT_RATIO >= 1 ? Math.round(TARGET / ASPECT_RATIO) : TARGET;
 
@@ -323,22 +334,28 @@ export default function ImageEditorCanvas({
     ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
 
-    out.toBlob((blob) => {
-      onDone(blob);
-      if (isAchv) {
-        if (!reopenedOnce) {
-          setReopenedOnce(true);
-          setCurrentSrc(blob);
-          setIsDoing(false);
-          return;
-        }
+    const dataUrl = out.toDataURL("image/png");
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    const blob = new Blob([u8arr], { type: mime });
+
+    onDone(blob);
+    if (isAchv) {
+      if (!reopenedOnce) {
+        setReopenedOnce(true);
+        setCurrentSrc(blob);
         setIsDoing(false);
-        setOpen(false);
         return;
       }
       setIsDoing(false);
       setOpen(false);
-    }, "image/jpeg", 0.92);
+      return;
+    }
+    setIsDoing(false);
+    setOpen(false);
   };
 
   const onCancelClick = () => { setOpen(false); onCancel(); };

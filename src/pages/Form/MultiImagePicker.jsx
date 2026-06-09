@@ -39,14 +39,16 @@ export default function MultiImagePicker({
           {/* Horizontally scrollable thumbnails area */}
           <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {totalSelected === 0 && (
-              <span className="text-[11px] text-muted-foreground px-2 py-3">No images selected yet</span>
+              <span className="text-[11px] text-muted-foreground px-2 py-3">
+                No images selected yet
+              </span>
             )}
             {selectedLinks.map((link, i) => (
               <div key={link || `sel-${i}`} className="relative flex-shrink-0">
                 <img
                   src={link}
                   alt=""
-                  className="w-14 h-14 rounded-full object-cover border-2 border-border bg-muted/30"
+                  className="w-14 h-14 rounded-full object-cover bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 font-bold text-transparent"
                 />
                 <button
                   type="button"
@@ -59,7 +61,10 @@ export default function MultiImagePicker({
               </div>
             ))}
             {customFiles.map((item, i) => (
-              <div key={item.previewURL || `cus-${i}`} className="relative flex-shrink-0">
+              <div
+                key={item.previewURL || `cus-${i}`}
+                className="relative flex-shrink-0"
+              >
                 <img
                   src={item.previewURL}
                   alt=""
@@ -84,7 +89,11 @@ export default function MultiImagePicker({
             className="flex-shrink-0 w-14 h-14 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
             title={isLimitReached ? "Limit reached" : "Add image"}
           >
-            <img src={photoupload} alt="Upload" className="w-5 h-5 opacity-70" />
+            <img
+              src={photoupload}
+              alt="Upload"
+              className="w-5 h-5 opacity-70"
+            />
           </button>
         </div>
       ) : (
@@ -95,20 +104,38 @@ export default function MultiImagePicker({
           className="w-full flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 border-dashed border-border hover:border-accent/60 bg-muted/20 hover:bg-accent/5 cursor-pointer transition-all duration-200 group"
         >
           <div className="w-9 h-9 rounded-xl bg-muted/40 border border-border group-hover:bg-accent/10 group-hover:border-accent/30 flex items-center justify-center transition-all duration-200 flex-shrink-0">
-            <img src={photoupload} alt="" className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+            <img
+              src={photoupload}
+              alt=""
+              className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity"
+            />
           </div>
           <div className="flex-1 text-left">
             <p className="text-[13px] font-semibold text-foreground group-hover:text-accent transition-colors">
-              {totalSelected > 0 ? `${totalSelected} image${totalSelected > 1 ? "s" : ""} selected` : "Upload Image"}
+              {totalSelected > 0
+                ? `${totalSelected} image${totalSelected > 1 ? "s" : ""} selected`
+                : "Upload Image"}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              {totalSelected > 0 ? `Tap to manage · max ${allowed}` : `From company or your gallery · max ${allowed}`}
+              {totalSelected > 0
+                ? `Tap to manage · max ${allowed}`
+                : `From company or your gallery · max ${allowed}`}
             </p>
           </div>
           {totalSelected > 0 && (
             <div className="w-6 h-6 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                <path d="M20 6 9 17l-5-5"/>
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-accent"
+              >
+                <path d="M20 6 9 17l-5-5" />
               </svg>
             </div>
           )}
@@ -137,7 +164,7 @@ export default function MultiImagePicker({
                 <div className="flex gap-1.5 p-1 bg-muted/30 rounded-2xl">
                   {[
                     { key: "company", label: "Company Photos" },
-                    { key: "upload",  label: "Upload New" },
+                    { key: "upload", label: "Upload New" },
                   ].map(({ key, label }) => (
                     <button
                       key={key}
@@ -160,12 +187,25 @@ export default function MultiImagePicker({
                     {companyImages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 gap-2">
                         <div className="w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center">
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                            <path d="m21 15-5-5L5 21"/>
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-muted-foreground"
+                          >
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <path d="m21 15-5-5L5 21" />
                           </svg>
                         </div>
-                        <p className="text-[12px] text-muted-foreground font-medium">No company images found</p>
+                        <p className="text-[12px] text-muted-foreground font-medium">
+                          No company images found
+                        </p>
                       </div>
                     ) : (
                       <div className={`grid ${colClass} gap-3`}>
@@ -188,16 +228,33 @@ export default function MultiImagePicker({
                               }`}
                             >
                               {img.link ? (
-                                <img src={img.link} alt="" className="w-full h-full object-contain bg-muted/20" />
+                                <img
+                                  src={img.link}
+                                  alt=""
+                                  className="w-full h-full object-contain bg-muted/20"
+                                />
                               ) : (
                                 <div className="w-full h-full bg-muted/30 flex items-center justify-center">
-                                  <span className="text-[10px] text-muted-foreground">No image</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    No image
+                                  </span>
                                 </div>
                               )}
                               {selected && (
                                 <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center shadow">
-                                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                  >
+                                    <path
+                                      d="M2 6l3 3 5-5"
+                                      stroke="white"
+                                      strokeWidth="1.8"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
                                   </svg>
                                 </div>
                               )}
@@ -227,9 +284,13 @@ export default function MultiImagePicker({
                       </div>
                       <div className="text-left">
                         <p className="text-[13px] font-semibold text-foreground group-hover:text-accent transition-colors">
-                          {isLimitReached ? "Image limit reached" : "Choose from gallery"}
+                          {isLimitReached
+                            ? "Image limit reached"
+                            : "Choose from gallery"}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">JPG, PNG, WEBP</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          JPG, PNG, WEBP
+                        </p>
                       </div>
                     </button>
 
@@ -250,15 +311,32 @@ export default function MultiImagePicker({
                     {customFiles.length > 0 && (
                       <div className={`grid ${colClass} gap-3`}>
                         {customFiles.map((item, i) => (
-                          <div key={i} className="relative border-2 border-accent/40 rounded-xl overflow-hidden aspect-square">
-                            <img src={item.previewURL} alt="" className={`w-full ${thumbHeight} object-contain bg-muted/20`} />
+                          <div
+                            key={i}
+                            className="relative border-2 border-accent/40 rounded-xl overflow-hidden aspect-square"
+                          >
+                            <img
+                              src={item.previewURL}
+                              alt=""
+                              className={`w-full ${thumbHeight} object-contain bg-muted/20`}
+                            />
                             <button
                               type="button"
                               onClick={() => onRemoveCustomFile(i)}
                               className="absolute top-1 right-1 w-5 h-5 bg-danger/80 hover:bg-danger rounded-full flex items-center justify-center transition-colors shadow"
                             >
-                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                                <path d="M2 2l8 8M10 2l-8 8" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                              >
+                                <path
+                                  d="M2 2l8 8M10 2l-8 8"
+                                  stroke="white"
+                                  strokeWidth="1.8"
+                                  strokeLinecap="round"
+                                />
                               </svg>
                             </button>
                           </div>
@@ -269,14 +347,43 @@ export default function MultiImagePicker({
                 )}
 
                 {/* Count indicator */}
-                <div className={`flex items-center justify-center gap-1.5 py-2 rounded-xl ${isLimitReached ? "bg-danger/8 border border-danger/20" : "bg-muted/30"}`}>
+                <div
+                  className={`flex items-center justify-center gap-1.5 py-2 rounded-xl ${isLimitReached ? "bg-danger/8 border border-danger/20" : "bg-muted/30"}`}
+                >
                   {isLimitReached ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-danger"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      className="text-danger"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4M12 16h.01" />
+                    </svg>
                   ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M20 6 9 17l-5-5"/></svg>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-accent"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
                   )}
-                  <p className={`text-[11px] font-bold ${isLimitReached ? "text-danger" : "text-accent"}`}>
-                    {totalSelected} / {allowed} {isLimitReached ? "— limit reached" : "images selected"}
+                  <p
+                    className={`text-[11px] font-bold ${isLimitReached ? "text-danger" : "text-accent"}`}
+                  >
+                    {totalSelected} / {allowed}{" "}
+                    {isLimitReached ? "— limit reached" : "images selected"}
                   </p>
                 </div>
               </div>
