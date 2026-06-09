@@ -22,6 +22,8 @@ import threedn from "./sociallogo/3d2n.webp";
 import fourdn from "./sociallogo/4d3n.webp";
 import familly from "./sociallogo/family.webp";
 import { Button, isRTL, Spinner } from "@heroui/react";
+// Bundle the FFmpeg core locally (served from this app's own origin) so the
+// video export does not depend on external CDNs, which can be blocked/timeout.
 import ffmpegCoreURL from "@ffmpeg/core?url";
 import ffmpegWasmURL from "@ffmpeg/core/wasm?url";
 import {
@@ -32,7 +34,8 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@firebase-config";
+import { db } from "@firebase-config"; // ← adjust to your firebase config path
+// Golden amount number images
 import num0 from "./amount_numberImage/number_0.png";
 import num1 from "./amount_numberImage/number_1.png";
 import num2 from "./amount_numberImage/number_2.png";
@@ -46,24 +49,29 @@ import num9 from "./amount_numberImage/number_9.png";
 import numComma from "./amount_numberImage/comma.png";
 import numRupee from "./amount_numberImage/rupee.png";
 
-const FONT_SCALE =
-  typeof window !== "undefined" && window.__fontScale > 0
-    ? window.__fontScale
-    : 1;
-const fs = (n) => n / FONT_SCALE;
-
 const STAGE_WIDTH = 320;
 const STAGE_HEIGHT = 320;
 const EXPORT_PIXEL_RATIO = 6;
 
-const VIDEO_PIXEL_RATIO = 4;
-const MAX_MUSIC_SECONDS = 20;
+// Video export tuning — kept separate from the (frozen) image EXPORT_PIXEL_RATIO.
+// A smaller frame means far fewer pixels for FFmpeg to encode, so the
+// image+music -> video conversion is dramatically faster.
+const VIDEO_PIXEL_RATIO = 4; // 320 * 2 = 640px square frame
+const MAX_MUSIC_SECONDS = 20; // hard-trim every track to 0:20
 
-const IMAGE_CREDIT_COST = 1;
-const VIDEO_CREDIT_COST = 2;
+// Credit cost per export type.
+const IMAGE_CREDIT_COST = 1; // image download = 1 credit
+const VIDEO_CREDIT_COST = 2; // image+music video = 2 credits
 
+// Preset background tracks. Add tracks here in the future (hosted by URL):
+//   { name: "Upbeat Vibes", url: "https://your-cdn.com/audio/upbeat.mp3" }
+// They will appear as selectable options in the music modal.
 const PRESET_AUDIOS = [];
 
+// ── Video background drawn onto the Konva canvas ──────────────────────────────
+// Follows the Konva "video on canvas" pattern: an off-DOM <video> element is
+// fed into a Konva.Image, and a Konva.Animation redraws the layer each frame
+// while the clip is playing so the moving frames are visible on the stage.
 const VideoCanvas = React.memo(function VideoCanvas({
   src,
   playing,
@@ -77,8 +85,12 @@ const VideoCanvas = React.memo(function VideoCanvas({
   const videoEl = useMemo(() => {
     if (typeof document === "undefined") return null;
     const el = document.createElement("video");
+    // crossOrigin must be set BEFORE src so the request is made in CORS mode
+    // (same as images via useImage(..., "anonymous")) and the canvas isn't tainted.
     el.crossOrigin = "anonymous";
     el.loop = true;
+    // Sound on. If the browser blocks autoplay-with-sound we fall back to muted
+    // playback (see tryPlay below); tapping the center play button re-enables it.
     el.muted = false;
     el.playsInline = true;
     el.preload = "auto";
@@ -86,6 +98,8 @@ const VideoCanvas = React.memo(function VideoCanvas({
     return el;
   }, [src]);
 
+  // Expose the <video> element to the parent so the video-export path can pull
+  // its audio track when recording the canvas.
   useEffect(() => {
     if (videoElRef) videoElRef.current = videoEl || null;
     return () => {
@@ -93,6 +107,8 @@ const VideoCanvas = React.memo(function VideoCanvas({
     };
   }, [videoEl, videoElRef]);
 
+  // Surface load/decode failures (codec, CORS, network) so the parent can
+  // drop out of the "playing" state instead of showing a blank canvas.
   useEffect(() => {
     if (!videoEl) return;
     const handleError = () => onError && onError();
@@ -113,10 +129,13 @@ const VideoCanvas = React.memo(function VideoCanvas({
     };
 
     if (playing) {
+      // Wait for the clip to be decodable before play() to avoid a silent
+      // no-op when the source was just swapped and is not ready yet.
       const tryPlay = () => {
         const p = videoEl.play();
         if (p && typeof p.catch === "function") {
           p.catch(() => {
+            // Autoplay with sound blocked — play muted so frames still show.
             videoEl.muted = true;
             videoEl.play().catch(() => {});
           });
@@ -178,6 +197,7 @@ export const GENERAL_SELECT_TYPES2 = [
   { name: "Good_Morning", value: "Good_Morning" },
   { name: "Health_Tips", value: "Health_Tips" },
   { name: "Greeting & Wishes", value: "Greeting_Wishes" },
+  // { name: "Anniversary_Birthday", value: "Anniversary_Birthday" },
   { name: "Devotional_Spiritual", value: "Devotional_Spiritual" },
   { name: "Leader_Quotes", value: "Leader_Quotes" },
   { name: "Festival", value: "Festival" },
@@ -186,6 +206,7 @@ export const GENERAL_SELECT_TYPES2 = [
 
 const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
+// Categories whose banners should NOT show the ImageFooter overlay
 const NO_FOOTER_TYPES = new Set([
   "Rank_Promotion",
   "Bonanza",
@@ -197,6 +218,7 @@ const NO_FOOTER_TYPES = new Set([
   "Capping",
 ]);
 
+// ── Parse "DD MMM YYYY" → Date ────────────────────────────────────────────────
 const parseExpiryDate = (dateStr) => {
   if (!dateStr) return null;
   const months = {
@@ -220,6 +242,7 @@ const parseExpiryDate = (dateStr) => {
 };
 
 const AMOUNT_GRADIENT_OPTIONS = [
+  // Gold variants
   {
     id: "gold1",
     name: "Gold Classic",
@@ -256,6 +279,7 @@ const AMOUNT_GRADIENT_OPTIONS = [
     preview:
       "linear-gradient(135deg, #ffed4e 0%, #ffd700 25%, #ffb347 50%, #ff8c00 75%, #daa520 100%)",
   },
+  // Silver variants
   {
     id: "silver1",
     name: "Silver Frost",
@@ -292,6 +316,7 @@ const AMOUNT_GRADIENT_OPTIONS = [
     preview:
       "linear-gradient(135deg, #e6e6fa 0%, #d3d3d3 25%, #b0b0b0 50%, #909090 75%, #778899 100%)",
   },
+  // Diamond variants (Red-tinted)
   {
     id: "diamond1",
     name: "Red Diamond",
@@ -347,6 +372,7 @@ const btnStyle = (bg) => ({
   boxShadow: `0 4px 12px ${bg}55`,
 });
 
+// ── Toast component ───────────────────────────────────────────────────────────
 function Toast({ message, type }) {
   const colors = { error: "#ef4444", success: "#22c55e", info: "#6366f1" };
   return (
@@ -372,6 +398,8 @@ function Toast({ message, type }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Audio duration promise helper (reliable — avoids race condition) ──────────
 const getAudioDuration = (fileOrUrl) =>
   new Promise((resolve, reject) => {
     const isUrl = typeof fileOrUrl === "string";
@@ -392,6 +420,7 @@ const getAudioDuration = (fileOrUrl) =>
     audio.src = url;
   });
 
+// ── Smooth animated progress counter ─────────────────────────────────────────
 function useAnimatedProgress(target) {
   const [displayed, setDisplayed] = React.useState(0);
   React.useEffect(() => {
@@ -419,7 +448,7 @@ function GeneralEditPage({
   setmiddaleImage,
 }) {
   const stageRef = useRef(null);
-  const videoElRef = useRef(null);
+  const videoElRef = useRef(null); // off-DOM <video> from VideoCanvas (for export audio)
   const profileImageRef = useRef(null);
   const rankImageRef = useRef(null);
   const stickerImageRef = useRef(null);
@@ -433,15 +462,16 @@ function GeneralEditPage({
   const [selectedImageType, setSelectedImageType] = useState(null);
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0, width: 0 });
 
-  const [activeSub, setActiveSub] = useState(null);
-  const [userData, setUserData] = useState(null);
+  // ── Subscription & user state ─────────────────────────────────────────────
+  const [activeSub, setActiveSub] = useState(null); // single active sub object
+  const [userData, setUserData] = useState(null); // user doc
   const [subLoading, setSubLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [exportedUri, setExportedUri] = useState(null);
-  const [achievementForm, setAchievementForm] = useState(null);
-  const [incomeFormData, setIncomeFormData] = useState(null);
-  const [meetingData, setMeetingData] = useState(null);
+  const [toast, setToast] = useState(null); // { message, type }
+  const [exportedUri, setExportedUri] = useState(null); // for share modal
+  const [achievementForm, setAchievementForm] = useState(null); // loaded from localStorage
+  const [incomeFormData, setIncomeFormData] = useState(null); // loaded from localStorage
+  const [meetingData, setMeetingData] = useState(null); // loaded from localStorage
   const [showSocial, setShowSocial] = useState("no");
   const [showTopupline] = useState(
     () => localStorage.getItem("showTopuplineImages") ?? "yes",
@@ -450,9 +480,11 @@ function GeneralEditPage({
     () => localStorage.getItem("showCompanyLogo") ?? "yes",
   );
 
+  // ── Music + export progress ─────────────────────────────────────────────
   const [selectedMusic, setSelectedMusic] = useState(null);
   const [musicExporting, setMusicExporting] = useState(false);
   const [musicModalOpen, setMusicModalOpen] = useState(false);
+  // ── Video background: play/pause for the clip chosen in the Video tab ─────
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [presetLoadingUrl, setPresetLoadingUrl] = useState(null);
   const [deviceLoading, setDeviceLoading] = useState(false);
@@ -461,7 +493,7 @@ function GeneralEditPage({
   const [progressLogs, setProgressLogs] = useState([]);
   const musicInputRef = useRef(null);
   const ffmpegRef = useRef(null);
-  const exportInProgressRef = useRef(false);
+  const exportInProgressRef = useRef(false); // hard re-entry guard for credit safety
   const displayProgress = useAnimatedProgress(progressTarget);
 
   const showToast = (message, type = "info", duration = 3000) => {
@@ -469,31 +501,43 @@ function GeneralEditPage({
     setTimeout(() => setToast(null), duration);
   };
 
+  // Load achievement, income form, and meeting data from localStorage
   useEffect(() => {
     try {
       const savedAchieve = localStorage.getItem("achieve_form");
+      const ShowSocial = localStorage.getItem("socialradio");
       setShowSocial("no");
-      if (savedAchieve) setAchievementForm(JSON.parse(savedAchieve));
+      if (savedAchieve) {
+        const data = JSON.parse(savedAchieve);
+        setAchievementForm(data);
+      }
     } catch (err) {
       console.error("Failed to load achieve_form:", err);
     }
 
     try {
       const savedIncome = localStorage.getItem("income_form");
-      if (savedIncome) setIncomeFormData(JSON.parse(savedIncome));
+      if (savedIncome) {
+        const data = JSON.parse(savedIncome);
+        setIncomeFormData(data);
+      }
     } catch (err) {
       console.error("Failed to load income_form:", err);
     }
 
     try {
       const savedMeeting = localStorage.getItem("Meeting");
-      if (savedMeeting) setMeetingData(JSON.parse(savedMeeting));
+      if (savedMeeting) {
+        const data = JSON.parse(savedMeeting);
+        setMeetingData(data);
+      }
     } catch (err) {
       console.error("Failed to load Meeting data:", err);
     }
   }, []);
 
   const isRight = selected?.position === "right";
+
   const selll = getSelType();
 
   const [closeFilter, setCloseFilter] = useState(() => {
@@ -530,7 +574,6 @@ function GeneralEditPage({
     scaleY: 1,
     offsetY: 0,
   });
-
   const isBonanza = Template_Type === "Bonanza";
   const isWelcomeClosing = Template_Type === "Welcome_Closing";
   const isAchievement = Template_Type === "Achievements";
@@ -572,7 +615,9 @@ function GeneralEditPage({
                     ? 200
                     : 10,
       y: isMeeting
-        ? 81.8
+        ? isRight
+          ? 81.8
+          : 81.8
         : isCapping
           ? 65
           : isIncome
@@ -595,6 +640,7 @@ function GeneralEditPage({
             : isAnyversary
               ? 130
               : 110,
+
       height: isMeeting
         ? 200
         : isCapping
@@ -612,8 +658,8 @@ function GeneralEditPage({
                     : 190,
       scaleX: 1,
       offsetX: 0,
-      scaleY: 1,
-      offsetY: 0,
+      scaleY: 1, // ← add
+      offsetY: 0, // ← add
     };
   }, [isRight, Template_Type]);
 
@@ -655,14 +701,16 @@ function GeneralEditPage({
             : isAchievement
               ? 185
               : isClosing
-                ? 225
+                ? isRight
+                  ? 225
+                  : 225
                 : isWelcome
                   ? isRight
                     ? 189
                     : 192
                   : isBonanza
                     ? 182
-                    : 218,
+                    : 222,
       width: isIncome
         ? 140
         : isAnyversary
@@ -689,8 +737,8 @@ function GeneralEditPage({
                   : 30,
       scaleX: 1,
       offsetX: 0,
-      scaleY: 1,
-      offsetY: 0,
+      scaleY: 1, // ← add
+      offsetY: 0, // ← add
     }),
     [isRight, Template_Type],
   );
@@ -721,7 +769,9 @@ function GeneralEditPage({
     }
   }
 
+  // ── Image gestures: tap = flip in place + select · drag = move · handles = resize ──
   const justDraggedRef = useRef(false);
+  // Tracks an in-progress two-finger pinch: last finger distance + active flag.
   const pinchRef = useRef({ dist: 0, active: false });
 
   const getAttrsByType = (type) =>
@@ -737,10 +787,13 @@ function GeneralEditPage({
     else if (type === "sticker") setStickerAttrs(updater);
   };
 
+  // Horizontal flip that keeps the image's bounding box (position) fixed.
+  // Convention: scaleX === -1 → offsetX = width, x = left edge → box stays [left, left+W].
   const flipImageInPlace = (type) => {
     const prev = getAttrsByType(type);
     if (!prev) return;
     const W = prev.width;
+    // Current visual left edge, independent of which flip convention prev used.
     const left =
       prev.scaleX === -1 ? prev.x + prev.offsetX - W : prev.x - prev.offsetX;
     const newScaleX = prev.scaleX === -1 ? 1 : -1;
@@ -751,6 +804,8 @@ function GeneralEditPage({
       x: left,
     };
     setAttrsByType(type, next);
+
+    // Mirror onto the live Konva node so the flip is instant and glitch-free.
     const nodeMap = {
       profile: profileImageRef.current,
       rank: rankImageRef.current,
@@ -762,18 +817,21 @@ function GeneralEditPage({
       node.offsetX(next.offsetX);
       node.x(next.x);
       node.getLayer()?.batchDraw();
+      // Re-sync the Transformer so the next resize starts from the flipped box.
       transformerRef.current?.forceUpdate();
     }
   };
 
   const handleImageClick = (type) => (e) => {
     e.cancelBubble = true;
+    // Always select so the resize handles (Transformer) show for finger-dragging.
     setIsImageSelected(true);
     setSelectedImageType(type);
+    // A click that immediately follows a drag must NOT flip (accidental flip guard).
     if (justDraggedRef.current) return;
+    // Single tap flips the image horizontally, in place.
     flipImageInPlace(type);
   };
-
   const handleTransformEnd = (type) => (e) => {
     const node = e.target;
     const s = node.scaleX();
@@ -784,14 +842,20 @@ function GeneralEditPage({
     const h0 = node.height();
     const px = node.x();
     const py = node.y();
+
     const newWidth = Math.max(10, w0 * Math.abs(s));
     const newHeight = Math.max(10, h0 * Math.abs(sy));
+
+    // Visual top-left from the node's current transform (robust to flip + offset).
     const left = Math.min(px + s * (0 - ox), px + s * (w0 - ox));
     const top = Math.min(py + sy * (0 - oy), py + sy * (h0 - oy));
+
     const currentScaleX = s < 0 ? -1 : 1;
     const currentScaleY = sy < 0 ? -1 : 1;
     const newOffsetX = currentScaleX === -1 ? newWidth : 0;
     const newOffsetY = currentScaleY === -1 ? newHeight : 0;
+
+    // Normalise so the box is exactly [left, left+newWidth] x [top, top+newHeight].
     node.scaleX(currentScaleX);
     node.scaleY(currentScaleY);
     node.width(newWidth);
@@ -802,6 +866,7 @@ function GeneralEditPage({
     node.y(top);
     node.getLayer()?.batchDraw();
     transformerRef.current?.forceUpdate();
+
     const update = (prev) => ({
       ...prev,
       x: left,
@@ -813,6 +878,7 @@ function GeneralEditPage({
       scaleY: currentScaleY,
       offsetY: newOffsetY,
     });
+
     if (type === "profile") setProfileAttrs(update);
     else if (type === "rank") setRankAttrs(update);
     else if (type === "sticker") setStickerAttrs(update);
@@ -820,22 +886,30 @@ function GeneralEditPage({
 
   const handleDragEnd = (type) => (e) => {
     const node = e.target;
+    // Final-frame safety: a fast pointer release may skip the last dragmove and
+    // leave the node a few px outside the limit, so clamp once more before saving.
     applyDragClamp(node, type);
+    // Suppress the click/tap that may fire right after a drag, then auto-clear.
     justDraggedRef.current = true;
     setTimeout(() => {
       justDraggedRef.current = false;
     }, 0);
+
     setIsImageSelected(true);
     setSelectedImageType(type);
-    if (type === "profile")
+
+    if (type === "profile") {
       setProfileAttrs((prev) => ({ ...prev, x: node.x(), y: node.y() }));
-    else if (type === "rank")
+    } else if (type === "rank") {
       setRankAttrs((prev) => ({ ...prev, x: node.x(), y: node.y() }));
-    else if (type === "sticker")
+    } else if (type === "sticker") {
       setStickerAttrs((prev) => ({ ...prev, x: node.x(), y: node.y() }));
+    }
   };
 
   const boundBoxFunc = (oldBox, newBox) => {
+    // When the image is flipped, Konva can report a negative width/height here,
+    // so always work with absolute size and a normalised top-left corner.
     const w = Math.abs(newBox.width);
     const h = Math.abs(newBox.height);
     if (w < 20 || h < 20) return oldBox;
@@ -846,13 +920,21 @@ function GeneralEditPage({
     return newBox;
   };
 
+  // The image is pinned to its fixed home position: it may only nudge up to
+  // MOVE_RANGE px on each axis (both directions) from that spot — no further.
   const MOVE_RANGE = 20;
   const homePos = {
     profile: { x: isRight ? 164.5 : 0.5, y: 80 },
     rank: { x: rankInitialAttrs.x, y: rankInitialAttrs.y },
     sticker: { x: stickerInitialAttrs.x, y: stickerInitialAttrs.y },
   };
-
+  // Clamp during drag using the node's TRUE visual bounding box (getClientRect),
+  // not its raw x/y. After a horizontal flip the node carries a negative scaleX
+  // plus an offsetX, so node.x() no longer lines up with the box's left edge the
+  // way it does before flipping — that mismatch is why a flipped image escaped
+  // the limit. getClientRect always returns the real on-screen box regardless of
+  // flip/scale/offset, so we measure overflow from it and nudge the node back by
+  // exactly that amount. Works identically before and after any flip.
   const applyDragClamp = (node, type) => {
     const home = homePos[type];
     if (!node || !home) return;
@@ -872,11 +954,18 @@ function GeneralEditPage({
   };
   const makeDragMove = (type) => (e) => applyDragClamp(e.target, type);
 
+  // ── Pinch-to-resize (two fingers) ─────────────────────────────────────────
+  // Resize directly with two fingers: spread apart = bigger, pinch = smaller.
+  // Aspect ratio is kept; size is clamped between MIN_IMG_SIZE and the stage.
+  // The box top-left (x/y) stays put so the image grows toward bottom-right and
+  // the ±20px drag limit (which clamps the visual left/top) keeps holding.
   const MIN_IMG_SIZE = 30;
   const endPinch = () => {
     pinchRef.current.dist = 0;
     if (!pinchRef.current.active) return;
     pinchRef.current.active = false;
+    // Debounce so the tap that fires as the fingers lift can't trigger a flip,
+    // even though touches drop below 2 before the gesture is fully finished.
     setTimeout(() => {
       justDraggedRef.current = false;
     }, 200);
@@ -887,20 +976,28 @@ function GeneralEditPage({
     e.evt.preventDefault();
     e.cancelBubble = true;
     const node = e.target;
-    node.stopDrag();
+    node.stopDrag(); // a 2-finger gesture must resize, never drag
     pinchRef.current.active = true;
+    // A pinch must not be mistaken for a tap (which flips the image).
     justDraggedRef.current = true;
+
     const [t1, t2] = [touches[0], touches[1]];
     const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
     const last = pinchRef.current.dist;
     pinchRef.current.dist = dist;
-    if (!last) return;
+    if (!last) return; // first frame just records the starting distance
+
+    // Measure from the LIVE node (not React state) so rapid touch frames that
+    // outrun React re-renders don't read a stale size and stall/jump.
     const baseW = node.width();
     const baseH = node.height();
-    const left = node.x();
+    const left = node.x(); // box-left/top in our flip convention
     const top = node.y();
     const sx = node.scaleX() < 0 ? -1 : 1;
     const sy = node.scaleY() < 0 ? -1 : 1;
+
+    // Keep aspect ratio with one uniform factor, clamped so the image never
+    // shrinks below MIN_IMG_SIZE nor grows past the canvas edges from here.
     let factor = dist / last;
     factor = Math.min(
       factor,
@@ -910,12 +1007,16 @@ function GeneralEditPage({
     factor = Math.max(factor, MIN_IMG_SIZE / baseW, MIN_IMG_SIZE / baseH);
     const newW = baseW * factor;
     const newH = baseH * factor;
+
+    // Mirror onto the live node for smooth, immediate feedback. x/y stay put;
+    // when flipped, offset must follow the new size so box-left/top stay fixed.
     node.width(newW);
     node.height(newH);
     node.offsetX(sx === -1 ? newW : 0);
     node.offsetY(sy === -1 ? newH : 0);
     node.getLayer()?.batchDraw();
     transformerRef.current?.forceUpdate();
+
     setAttrsByType(type, (prev) => ({
       ...prev,
       width: newW,
@@ -929,6 +1030,7 @@ function GeneralEditPage({
   };
   const handleTouchCancel = () => endPinch();
 
+  // ── Load mlm form/profile from localStorage ───────────────────────────────
   useEffect(() => {
     const formData = localStorage.getItem("mlmform");
     const profileData = localStorage.getItem("mlmProfile");
@@ -940,6 +1042,7 @@ function GeneralEditPage({
     }
   }, []);
 
+  // ── Fetch ONLY active subscription + user referCredits ────────────────────
   const fetchSubscriptionAndUser = useCallback(async () => {
     try {
       setSubLoading(true);
@@ -948,28 +1051,38 @@ function GeneralEditPage({
       const user = JSON.parse(raw);
       const mobileNo = user?.mobileNo;
       if (!mobileNo) return;
+
+      // Only active subscription
       const activeQuery = query(
         collection(db, "subscription"),
         where("mobileNo", "==", mobileNo),
         where("Active", "==", true),
         where("Expire", "==", false),
       );
+
+      // Fetch user doc for referCredits
       const userQuery = query(
         collection(db, "users"),
         where("mobileNo", "==", mobileNo),
       );
+
       const [activeSnap, userSnap] = await Promise.all([
         getDocs(activeQuery),
         getDocs(userQuery),
       ]);
+
+      // Take the most recent active sub
       const activeSubs = activeSnap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .sort(
           (a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0),
         );
+
       setActiveSub(activeSubs[0] || null);
-      if (!userSnap.empty)
+
+      if (!userSnap.empty) {
         setUserData({ id: userSnap.docs[0].id, ...userSnap.docs[0].data() });
+      }
     } catch (err) {
       console.error("Error fetching subscription/user:", err);
     } finally {
@@ -981,6 +1094,7 @@ function GeneralEditPage({
     fetchSubscriptionAndUser();
   }, [fetchSubscriptionAndUser]);
 
+  // ── Transformer sync ──────────────────────────────────────────────────────
   const getSelectedImageRef = () => {
     if (selectedImageType === "profile") return profileImageRef.current;
     if (selectedImageType === "rank") return rankImageRef.current;
@@ -1011,6 +1125,7 @@ function GeneralEditPage({
     const attrs = getSelectedImageAttrs();
     if (!attrs) return;
     const { x, y, width } = attrs;
+    // Box stays [x, x+width] regardless of flip (normalised convention).
     setToolbarPos({ x, y, width });
   };
 
@@ -1023,6 +1138,8 @@ function GeneralEditPage({
     isImageSelected,
     selectedImageType,
   ]);
+
+  // ── Computed display values ───────────────────────────────────────────────
 
   const SocialURLs = mlmProfile?.socials || {};
   const socialText =
@@ -1039,18 +1156,47 @@ function GeneralEditPage({
   ].filter(Boolean);
 
   const socialIconShift = Math.max(0, socialText.length - 6);
+
   const socialIconBaseXLeft = !isSubGeneralType
     ? clamp(30 - socialIconShift, 160, 220)
     : clamp(210 - socialIconShift, 160, 220);
+
   const socialIconBaseXRight = !isSubGeneralType
     ? clamp(50 - socialIconShift, 95, 100)
     : clamp(65 - socialIconShift, 60, 100);
+
   const socialIconPositionsLeft = availableSocials.map(
     (_, i) => socialIconBaseXLeft + i * 6,
   );
   const socialIconPositionsRight = availableSocials.map(
     (_, i) => socialIconBaseXRight + i * 6,
   );
+
+  const socialTextXLeft =
+    availableSocials.length <= 2
+      ? !isSubGeneralType
+        ? 143
+        : 138
+      : availableSocials.length <= 3
+        ? !isSubGeneralType
+          ? 147
+          : 145
+        : isSubGeneralType
+          ? 149
+          : 149;
+
+  const socialTextXRight =
+    availableSocials.length <= 2
+      ? !isSubGeneralType
+        ? 86
+        : 1
+      : availableSocials.length <= 3
+        ? !isSubGeneralType
+          ? 90
+          : 1
+        : !isSubGeneralType
+          ? 80
+          : 2;
 
   const topuplineURLs =
     showTopupline === "no" ? [] : mlmProfile?.topuplineURLs || [];
@@ -1067,11 +1213,15 @@ function GeneralEditPage({
 
   const AchiveName = achievementForm?.name || "";
   const AchivePrice = achievementForm?.price || "";
+
   const incomePrice = incomeFormData?.amount || "";
   const incomeDay = incomeFormData?.noOfDay || "";
   const incomeType = incomeFormData?.typeOfIncome || "";
 
   const [bgImage, bgStatus] = useImage(`${selected?.url || ""}`, "anonymous");
+
+  // A video template selected from the Video tab carries a videoUrl. When one
+  // is selected we play it on the canvas (same crossOrigin "anonymous" as images).
   const selectedVideoUrl = selected?.videoUrl || selected?.VideoUrl || null;
   useEffect(() => {
     setVideoPlaying(!!selectedVideoUrl);
@@ -1099,6 +1249,7 @@ function GeneralEditPage({
     "anonymous",
   );
 
+  // ── Golden digit images ───────────────────────────────────────────────────
   const [imgNum0] = useImage(num0, "anonymous");
   const [imgNum1] = useImage(num1, "anonymous");
   const [imgNum2] = useImage(num2, "anonymous");
@@ -1143,6 +1294,7 @@ function GeneralEditPage({
     ],
   );
 
+  // ── Golden Amount Image Renderer ──────────────────────────────────────────────
   function GoldenAmountImages({
     amountText,
     digitImageMap,
@@ -1167,24 +1319,31 @@ function GeneralEditPage({
       ",": 0.28,
       X: 0.55,
     };
-    const yOffsetMap = { ",": digitHeight * 0.62 };
+
+    // ← ADD THIS: vertical offset per character
+    const yOffsetMap = {
+      ",": digitHeight * 0.62,
+    };
+
     const chars = amountText.split("");
     let curX = startX;
     const nodes = [];
+
     chars.forEach((ch, i) => {
       const img = digitImageMap[ch];
       const aspect = aspectMap[ch] ?? 0.6;
       const digitWidth = digitHeight * aspect;
-      const yOffset = yOffsetMap[ch] ?? 0;
+      const yOffset = yOffsetMap[ch] ?? 0; // ← ADD THIS
+
       if (img) {
         nodes.push(
           <Image
             key={`amt-${i}-${ch}`}
             image={img}
             x={curX}
-            y={y + yOffset}
+            y={y + yOffset} // ← USE yOffset HERE
             width={digitWidth + 7}
-            height={digitHeight * (ch === "," ? 0.45 : 1)}
+            height={digitHeight * (ch === "," ? 0.45 : 1)} // ← comma is shorter too
             onClick={onTap}
             onTap={onTap}
           />,
@@ -1193,11 +1352,10 @@ function GeneralEditPage({
         nodes.push(
           <Text
             key={`amt-${i}-${ch}`}
-            fontFamily="Roboto"
             x={curX}
-            y={y + yOffset + 2}
+            y={y + yOffset + 2} // ← AND HERE
             text={ch}
-            fontSize={fs(digitHeight * 0.78)}
+            fontSize={digitHeight * 0.78}
             fill="#ffd700"
             fontStyle="bold"
             onClick={onTap}
@@ -1205,8 +1363,10 @@ function GeneralEditPage({
           />,
         );
       }
+
       curX += digitWidth + spacing;
     });
+
     return <>{nodes}</>;
   }
 
@@ -1214,13 +1374,16 @@ function GeneralEditPage({
   const [Imagel2] = useImage(logoURLs?.[0] || "", "anonymous");
   const [Imagel3] = useImage(logoURLs?.[1] || "", "anonymous");
   const [Imagel4] = useImage(logoURLs?.[2] || "", "anonymous");
+
   const [Imagef1] = useImage(achievementForm?.features?.[0] || "", "anonymous");
   const [Imagef2] = useImage(achievementForm?.features?.[1] || "", "anonymous");
   const [Imagef3] = useImage(achievementForm?.features?.[2] || "", "anonymous");
+
   const [MainAchieveImage] = useImage(
     achievementForm?.mainImage || "",
     "anonymous",
   );
+
   const [MainIncomeProof] = useImage(
     incomeFormData?.proofImage || "",
     "anonymous",
@@ -1235,6 +1398,7 @@ function GeneralEditPage({
   const [Imagetop7] = useImage(topuplineURLs?.[6] || "", "anonymous");
   const [Imagetop8] = useImage(topuplineURLs?.[7] || "", "anonymous");
   const [ImageChief] = useImage(meetingData?.chiefImage || "", "anonymous");
+
   const [ImageProfile] = useImage(
     mlmForm?.promoter?.name
       ? `${mlmForm.promoter.image}`
@@ -1244,6 +1408,7 @@ function GeneralEditPage({
 
   const [amountPatternId, setAmountPatternId] = useState("gold1");
   const [isAmountModalOpen, setIsAmountModalOpen] = useState(false);
+
   const selectedAmountOption = AMOUNT_GRADIENT_OPTIONS.find(
     (option) => option.id === amountPatternId,
   );
@@ -1268,8 +1433,8 @@ function GeneralEditPage({
     String(formamount).trim() !== ""
       ? `₹${formatAmount(formamount)}`
       : "XXXXXXX";
-  const charslen = amountText.split("");
 
+  const charslen = amountText.split("");
   const [insta] = useImage(instagram, "anonymous");
   const [fb] = useImage(facebook, "anonymous");
   const [yt] = useImage(youtube, "anonymous");
@@ -1277,11 +1442,14 @@ function GeneralEditPage({
   const [zooml] = useImage(zoom, "anonymous");
   const [meetl] = useImage(meet, "anonymous");
   const [locl] = useImage(Loc, "anonymous");
-
+  // ── Download badge: plan downloads + referCredits ─────────────────────────
   const planDownloads = activeSub?.download ?? 0;
   const referCredits = userData?.referCredit ?? 0;
   const totalDownloadsAvailable = planDownloads + referCredits;
 
+  // ── Shared credit guard ───────────────────────────────────────────────────
+  // Returns true if the user may spend `cost` credits, else shows a toast and
+  // returns false. Used by both image and video export paths.
   const checkCredits = (cost) => {
     if (!activeSub) {
       showToast(
@@ -1309,15 +1477,22 @@ function GeneralEditPage({
     return true;
   };
 
+  // ── Shared credit deduction ───────────────────────────────────────────────
+  // Spends `cost` credits: plan downloads first, then refer credits. Updates
+  // Firestore + local state and shows a result toast. Call AFTER a successful
+  // download/export. `prefix` starts the toast message (e.g. "Downloaded!").
   const deductCredits = async (cost, prefix = "Downloaded!") => {
     let remaining = cost;
     const fromPlan = Math.min(planDownloads, remaining);
     const newPlan = planDownloads - fromPlan;
     remaining -= fromPlan;
+
     const fromRefer = Math.min(referCredits, remaining);
     const newCredits = referCredits - fromRefer;
+
     const totalAfter = newPlan + newCredits;
     const planExhausted = newPlan === 0 && newCredits === 0;
+
     if (fromPlan > 0) {
       const subRef = doc(db, "subscription", activeSub.id);
       await updateDoc(subRef, {
@@ -1330,42 +1505,79 @@ function GeneralEditPage({
         ...(planExhausted ? { Active: false, Expire: true } : {}),
       }));
     }
+
     if (fromRefer > 0) {
       const userRef = doc(db, "users", userData.id);
       await updateDoc(userRef, { referCredit: newCredits });
       setUserData((prev) => ({ ...prev, referCredit: newCredits }));
     }
-    if (totalAfter === 0)
+
+    if (totalAfter === 0) {
       showToast(`${prefix} No download credits remaining.`, "error", 4000);
-    else
+    } else {
       showToast(
         `${prefix} ${totalAfter} credit${totalAfter > 1 ? "s" : ""} remaining.`,
         "success",
       );
+    }
   };
 
+  // ── Helper: post to RN and wait for confirmed device save ────────────────
+  // Wraps postMessage in a Promise that resolves ONLY when the native side
+  // dispatches rnDownloadResult with success:true.  Rejects on failure or timeout.
+  const rnDownloadConfirm = (payload) =>
+    new Promise((resolve, reject) => {
+      const TIMEOUT_MS = 30000;
+      const timer = setTimeout(() => {
+        window.removeEventListener("rnDownloadResult", handler);
+        reject(new Error("Download timed out. Please try again."));
+      }, TIMEOUT_MS);
+      const handler = (e) => {
+        clearTimeout(timer);
+        window.removeEventListener("rnDownloadResult", handler);
+        if (e.detail?.success) {
+          resolve();
+        } else {
+          const msg =
+            e.detail?.error === "permission_denied"
+              ? "Storage permission denied. Please allow access in Settings."
+              : "Failed to save on device. Please try again.";
+          reject(new Error(msg));
+        }
+      };
+      window.addEventListener("rnDownloadResult", handler);
+      window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+    });
+
+  // ── Core export guard + decrement logic ───────────────────────────────────
   const handleExport = async () => {
-    if (exportInProgressRef.current) return;
+    if (exportInProgressRef.current) return; // block rapid re-entry / double-tap
     if (!checkCredits(IMAGE_CREDIT_COST)) return;
     exportInProgressRef.current = true;
+
     setExportLoading(true);
     setIsImageSelected(false);
     setSelectedImageType(null);
+
+    // Small delay to let transformer deselect before canvas capture
     await new Promise((res) => setTimeout(res, 80));
+
     try {
+      // 4️⃣ Generate the image
       const uri = stageRef.current.toDataURL({
         pixelRatio: EXPORT_PIXEL_RATIO,
         mimeType: "image/png",
         quality: 1,
       });
+
+      // 5️⃣ Trigger actual download / RN bridge
       if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(
-          JSON.stringify({
-            type: "DOWNLOAD_IMAGE",
-            base64: uri,
-            fileName: "mlmbooster.png",
-          }),
-        );
+        // Wait for native confirmation before spending the credit
+        await rnDownloadConfirm({
+          type: "DOWNLOAD_IMAGE",
+          base64: uri,
+          fileName: "mlmbooster.png",
+        });
       } else {
         const link = document.createElement("a");
         link.download = "mlmbooster.png";
@@ -1374,7 +1586,11 @@ function GeneralEditPage({
         link.click();
         document.body.removeChild(link);
       }
+
+      // 6️⃣ Spend 1 credit only after confirmed device save
       await deductCredits(IMAGE_CREDIT_COST, "Downloaded!");
+
+      // 7️⃣ Show share modal
       setExportedUri(uri);
     } catch (err) {
       console.error("Export error:", err);
@@ -1385,6 +1601,10 @@ function GeneralEditPage({
     }
   };
 
+  // ── Export the selected background video (its own path) ────────────────────
+  // Separate from the image/music export: NO ffmpeg, NO music merge. Records the
+  // live canvas (design overlays + moving video) plus the clip's own audio via
+  // MediaRecorder and downloads a .webm.
   const handleExportVideo = async () => {
     if (exportInProgressRef.current) return;
     const stage = stageRef.current;
@@ -1404,22 +1624,29 @@ function GeneralEditPage({
       showToast("Video download isn't supported on this device.", "error");
       return;
     }
+
+    // Unmute + (re)start playback NOW, while still inside the click gesture, so
+    // the browser allows sound. Unmuting an already-playing element is fine.
     videoEl.muted = false;
     const startPlay = videoEl.play();
     if (startPlay && typeof startPlay.catch === "function")
       startPlay.catch(() => {});
     setVideoPlaying(true);
+
     if (!checkCredits(VIDEO_CREDIT_COST)) return;
     exportInProgressRef.current = true;
+
     setExportLoading(true);
     setIsImageSelected(false);
     setSelectedImageType(null);
-    await new Promise((res) => setTimeout(res, 80));
+    await new Promise((res) => setTimeout(res, 80)); // let transformer deselect
+
     let rafId = null;
     let recorder = null;
     let stream = null;
     let audioCap = null;
     try {
+      // Sound is required for a video export — grab the clip's audio track.
       audioCap = videoEl.captureStream
         ? videoEl.captureStream()
         : videoEl.mozCaptureStream();
@@ -1428,6 +1655,7 @@ function GeneralEditPage({
           ? audioCap.getAudioTracks()[0]
           : null;
       if (!audioTrack) {
+        // No credits spent — finally cleans up.
         showToast(
           "Couldn't capture the video's sound on this device.",
           "error",
@@ -1439,11 +1667,15 @@ function GeneralEditPage({
           await videoEl.play();
         } catch (_) {}
       }
+
       const ratio = 2;
       const rec = document.createElement("canvas");
       rec.width = STAGE_WIDTH * ratio;
       rec.height = STAGE_HEIGHT * ratio;
       const ctx = rec.getContext("2d");
+
+      // Continuously copy the composited stage (all layers + video frames) onto
+      // the recording canvas so MediaRecorder captures the full design.
       const drawFrame = () => {
         try {
           const c = stage.toCanvas({ pixelRatio: ratio });
@@ -1452,14 +1684,17 @@ function GeneralEditPage({
         rafId = requestAnimationFrame(drawFrame);
       };
       drawFrame();
+
       stream = rec.captureStream(30);
       stream.addTrack(audioTrack);
+
       const mime =
         [
           "video/webm;codecs=vp9,opus",
           "video/webm;codecs=vp8,opus",
           "video/webm",
         ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
+
       recorder = new MediaRecorder(stream, { mimeType: mime });
       const chunks = [];
       recorder.ondataavailable = (e) => {
@@ -1469,18 +1704,22 @@ function GeneralEditPage({
         recorder.onstop = resolve;
       });
       recorder.start();
+
+      // Record one loop of the clip, capped so exports stay quick.
       const clip =
         isFinite(videoEl.duration) && videoEl.duration > 0
           ? videoEl.duration
           : 8;
       const recordMs = Math.min(clip, 15) * 1000;
       await new Promise((res) => setTimeout(res, recordMs));
+
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
       }
       if (recorder.state !== "inactive") recorder.stop();
       await stopped;
+
       const blob = new Blob(chunks, { type: "video/webm" });
       if (!blob.size) throw new Error("Empty recording");
       const fileName = `mlmbooster_${Date.now()}.webm`;
@@ -1491,14 +1730,13 @@ function GeneralEditPage({
           reader.onerror = () => rej(new Error("Could not encode video"));
           reader.readAsDataURL(blob);
         });
-        window.ReactNativeWebView.postMessage(
-          JSON.stringify({
-            type: "DOWNLOAD_VIDEO",
-            base64,
-            fileName,
-            mimeType: "video/webm",
-          }),
-        );
+        // Wait for native confirmation before spending the credit
+        await rnDownloadConfirm({
+          type: "DOWNLOAD_VIDEO",
+          base64,
+          fileName,
+          mimeType: "video/webm",
+        });
       } else {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -1509,6 +1747,8 @@ function GeneralEditPage({
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 8000);
       }
+
+      // Spend 2 credits only after confirmed device save
       await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
     } catch (err) {
       console.error("Video export error:", err);
@@ -1529,6 +1769,9 @@ function GeneralEditPage({
     }
   };
 
+  // ── Music selection helpers (modal) ──────────────────────────────────────
+  // A device-uploaded file selected from the modal. We show a brief processing
+  // state while the audio is validated (read its metadata) before accepting it.
   const handleDeviceMusic = async (file) => {
     if (!file) return;
     try {
@@ -1553,6 +1796,8 @@ function GeneralEditPage({
     }
   };
 
+  // A preset track chosen by URL — fetched into a File so the export pipeline
+  // can treat it exactly like a device upload.
   const handlePresetMusic = async (preset) => {
     if (!preset?.url) return;
     try {
@@ -1585,14 +1830,17 @@ function GeneralEditPage({
     showToast("Music removed", "info");
   };
 
+  // ── Export with music — robust ffmpeg pipeline (matches Test.jsx + RN bridge) ──
   const handleExportWithMusic = async () => {
     if (!selectedMusic?.file) {
       handleExport();
       return;
     }
-    if (exportInProgressRef.current) return;
+    if (exportInProgressRef.current) return; // block rapid re-entry / double-tap
     if (!checkCredits(VIDEO_CREDIT_COST)) return;
     exportInProgressRef.current = true;
+
+    // Helper: race a promise against a timeout
     const withTimeout = (promise, ms, label) =>
       Promise.race([
         promise,
@@ -1608,19 +1856,24 @@ function GeneralEditPage({
           ),
         ),
       ]);
+
     setMusicExporting(true);
     setProgressTarget(0);
     setProgressLogs([]);
     setIsImageSelected(false);
     setSelectedImageType(null);
     await new Promise((res) => setTimeout(res, 80));
+
     let videoBlob = null;
     let videoDataUrl = null;
+
     try {
+      // ── Stage 1: load ffmpeg engine (cached after first run) ────────────
       setProgressTarget(5);
       setProgressLabel("Loading export engine...");
       const { FFmpeg } = await import("@ffmpeg/ffmpeg");
       const { fetchFile, toBlobURL } = await import("@ffmpeg/util");
+
       let ffmpeg = ffmpegRef.current;
       if (!ffmpeg) {
         ffmpeg = new FFmpeg();
@@ -1631,6 +1884,9 @@ function GeneralEditPage({
           const bump = Math.round(Math.min(Math.max(p, 0), 1) * 40) + 50;
           setProgressTarget((prev) => Math.max(prev, bump));
         });
+
+        // Try the locally-bundled core first (served from this app's origin —
+        // no external network needed), then fall back to public CDNs.
         const sources = [
           { label: "local", core: ffmpegCoreURL, wasm: ffmpegWasmURL },
           {
@@ -1646,6 +1902,7 @@ function GeneralEditPage({
         ];
         setProgressLabel("Loading codec...");
         setProgressTarget(8);
+
         let loaded = false;
         let lastErr = null;
         for (const src of sources) {
@@ -1681,6 +1938,8 @@ function GeneralEditPage({
           );
         ffmpegRef.current = ffmpeg;
       }
+
+      // ── Stage 2: read audio duration ────────────────────────────────────
       setProgressTarget(15);
       setProgressLabel("Reading audio duration...");
       let duration = null;
@@ -1691,7 +1950,12 @@ function GeneralEditPage({
         throw new Error(
           "Could not read audio duration. Try a different audio file.",
         );
+      // Hard-trim every track to 30s — keeps videos short and encoding fast.
       duration = Math.min(duration, MAX_MUSIC_SECONDS);
+
+      // ── Stage 3: capture canvas frame ──────────────────────────────────
+      // Use a smaller pixel ratio for the video frame than the (frozen) image
+      // export — fewer pixels = much faster FFmpeg encoding.
       setProgressTarget(25);
       setProgressLabel("Capturing design...");
       const uri = stageRef.current.toDataURL({
@@ -1701,6 +1965,8 @@ function GeneralEditPage({
       });
       if (!uri || uri.length < 100)
         throw new Error("Could not capture design. Try again.");
+
+      // ── Stage 4: write files into ffmpeg memory ────────────────────────
       setProgressTarget(35);
       setProgressLabel("Preparing files...");
       await ffmpeg.writeFile("input.png", await fetchFile(uri));
@@ -1713,6 +1979,8 @@ function GeneralEditPage({
       const audName = `input.${ext}`;
       await ffmpeg.writeFile(audName, await fetchFile(selectedMusic.file));
       setProgressTarget(50);
+
+      // ── Stage 5: encode (proven Test.jsx args) ─────────────────────────
       setProgressLabel("Encoding video (this may take a while)...");
       await ffmpeg.exec([
         "-loop",
@@ -1724,7 +1992,7 @@ function GeneralEditPage({
         "-i",
         audName,
         "-t",
-        String(duration),
+        String(duration), // trim to <= 30s
         "-vf",
         "scale=trunc(iw/2)*2:trunc(ih/2)*2",
         "-c:v",
@@ -1736,7 +2004,7 @@ function GeneralEditPage({
         "-c:a",
         "aac",
         "-b:a",
-        "96k",
+        "96k", // lighter audio -> smaller file, faster
         "-ar",
         "44100",
         "-ac",
@@ -1752,6 +2020,8 @@ function GeneralEditPage({
         "+faststart",
         "output.mp4",
       ]);
+
+      // ── Stage 6: read output ───────────────────────────────────────────
       setProgressTarget(95);
       setProgressLabel("Saving video...");
       const data = await ffmpeg.readFile("output.mp4");
@@ -1760,6 +2030,8 @@ function GeneralEditPage({
         throw new Error(
           "Video encoding failed (file too small). Try a different audio file.",
         );
+
+      // Cleanup ffmpeg memory before download
       try {
         await ffmpeg.deleteFile("input.png");
       } catch (_) {}
@@ -1769,8 +2041,11 @@ function GeneralEditPage({
       try {
         await ffmpeg.deleteFile("output.mp4");
       } catch (_) {}
+
+      // ── Stage 7: deliver video (RN bridge OR browser download) ─────────
       const fileName = `mlmbooster_${Date.now()}.mp4`;
       if (window.ReactNativeWebView) {
+        // Convert blob to base64 for RN bridge
         setProgressLabel("Sending to device...");
         videoDataUrl = await new Promise((res, rej) => {
           const reader = new FileReader();
@@ -1779,14 +2054,13 @@ function GeneralEditPage({
             rej(new Error("Could not encode video for download"));
           reader.readAsDataURL(videoBlob);
         });
-        window.ReactNativeWebView.postMessage(
-          JSON.stringify({
-            type: "DOWNLOAD_VIDEO",
-            base64: videoDataUrl,
-            fileName,
-            mimeType: "video/mp4",
-          }),
-        );
+        // Wait for native confirmation before spending the credit
+        await rnDownloadConfirm({
+          type: "DOWNLOAD_VIDEO",
+          base64: videoDataUrl,
+          fileName,
+          mimeType: "video/mp4",
+        });
       } else {
         const dlUrl = URL.createObjectURL(videoBlob);
         const link = document.createElement("a");
@@ -1797,15 +2071,21 @@ function GeneralEditPage({
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(dlUrl), 8000);
       }
+
       setProgressTarget(100);
       setProgressLabel("Done!");
+
+      // Spend 2 credits only after confirmed device save
       await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
     } catch (err) {
       console.error("Music export error:", err);
-      showToast(err?.message || "Video export failed", "error", 5000);
+      const msg = err?.message || "Video export failed";
+      showToast(msg, "error", 5000);
+      // Do NOT silently fall back to image — user wanted a video
     } finally {
       setMusicExporting(false);
       exportInProgressRef.current = false;
+      // Small delay so user can see 100% briefly
       setTimeout(() => {
         setProgressTarget(0);
         setProgressLabel("");
@@ -1814,26 +2094,33 @@ function GeneralEditPage({
     }
   };
 
+  // ── Flip horizontal ───────────────────────────────────────────────────────
   const handleFlip = (e) => {
     e.stopPropagation();
     if (!selectedImageType) return;
+
     const getAttrs = () => {
       if (selectedImageType === "profile") return profileAttrs;
       if (selectedImageType === "rank") return rankAttrs;
       if (selectedImageType === "sticker") return stickerAttrs;
     };
+
     const setAttrs = (updater) => {
       if (selectedImageType === "profile") setProfileAttrs(updater);
       else if (selectedImageType === "rank") setRankAttrs(updater);
       else if (selectedImageType === "sticker") setStickerAttrs(updater);
     };
+
     const current = getAttrs();
     const isFlipped = current.offsetY === -1;
+
     setAttrs((prev) => ({
       ...prev,
       scaleY: isFlipped ? 1 : -1,
       offsetY: isFlipped ? 0 : prev.height,
     }));
+
+    // Sync Konva node directly
     const nodeMap = {
       profile: profileImageRef.current,
       rank: rankImageRef.current,
@@ -1877,11 +2164,13 @@ function GeneralEditPage({
     STAGE_WIDTH - TOOLBAR_WIDTH,
   );
 
+  // Credits this export will spend: video (image+music) = 2, image = 1.
   const exportCost =
     selectedVideoUrl || selectedMusic?.file
       ? VIDEO_CREDIT_COST
       : IMAGE_CREDIT_COST;
 
+  // ── Download button label ─────────────────────────────────────────────────
   const downloadBtnLabel = () => {
     if (subLoading) return "Loading...";
     if (exportLoading) return "Exporting...";
@@ -1897,7 +2186,12 @@ function GeneralEditPage({
     totalDownloadsAvailable >= exportCost;
 
   return (
+    // Fixed device height so only the template list scrolls (canvas stays put).
+    // The TabBar is hidden on the editor route and Layout adds no bottom padding
+    // here, so we only subtract the Header (60px). If Header/Layout spacing
+    // changes, revisit this value.
     <div className="flex flex-col justify-start items-center w-full h-[calc(100dvh-60px)] overflow-hidden">
+      {/* Toast notification */}
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       <div
@@ -1905,9 +2199,10 @@ function GeneralEditPage({
         className="relative mt-2 flex-shrink-0"
         style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT }}
       >
+        {/* ── Canvas loading skeleton ── */}
         {bgStatus === "loading" && (
           <div
-            className="absolute inset-0 z-1 bg-white overflow-hidden pointer-events-none"
+            className="absolute inset-0 z-1 bg-white  overflow-hidden pointer-events-none"
             style={{
               background:
                 "linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)",
@@ -1915,8 +2210,10 @@ function GeneralEditPage({
               animation: "canvasShimmer 1.4s ease infinite",
             }}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div className="absolute  inset-0  flex flex-col items-center justify-center gap-3">
+              {/* <div className="w-10 h-10 rounded-xl bg-white/40 animate-pulse" /> */}
               <Spinner />
+              {/* <div className="h-2.5 w-24 rounded-full bg-white/40 animate-pulse" /> */}
             </div>
           </div>
         )}
@@ -1936,10 +2233,24 @@ function GeneralEditPage({
               width={STAGE_WIDTH}
               height={STAGE_HEIGHT}
             />
+            {/*   {selectedVideoUrl && (
+              <VideoCanvas
+                src={selectedVideoUrl}
+                playing={videoPlaying}
+                videoElRef={videoElRef}
+                width={STAGE_WIDTH}
+                height={STAGE_HEIGHT}
+                onError={() => {
+                  setVideoPlaying(false);
+                  showToast("Could not load this video. Try another one.", "error");
+                }}
+              />
+            )}*/}
             <Image image={Imagel2} x={3} y={2} width={25} height={25} />
             <Image image={Imagel3} x={260} y={2} width={25} height={25} />
             <Image image={Imagel4} x={290} y={2} width={25} height={25} />
 
+            {/* topupline — auto-centered */}
             {(() => {
               const slots = [
                 { img: Imagetop1 },
@@ -1999,7 +2310,6 @@ function GeneralEditPage({
 
             {isMeeting || isSubGeneralType || isSubGeneralType2 ? null : (
               <Text
-                fontFamily="Roboto"
                 x={
                   isCapping
                     ? isRight
@@ -2053,7 +2363,7 @@ function GeneralEditPage({
                 width={isCapping ? 130 : isAnyversary ? 175 : 165}
                 height={5}
                 text={`${formname.toUpperCase() || ActualProfilename}`}
-                fontSize={fs(isAnyversary ? 8 : 9.5)}
+                fontSize={isAnyversary ? 8 : 9.5}
                 fill="white"
                 fontStyle="1000"
                 letterSpacing={0.1}
@@ -2064,7 +2374,6 @@ function GeneralEditPage({
 
             {isMeeting || isSubGeneralType || isSubGeneralType2 ? null : (
               <Text
-                fontFamily="Roboto"
                 x={
                   isCapping
                     ? isRight
@@ -2118,7 +2427,7 @@ function GeneralEditPage({
                 width={50}
                 height={5}
                 text={"FROM/" + `${formcity.toUpperCase() || ""}`}
-                fontSize={fs(5)}
+                fontSize={5}
                 fill="white"
                 fontStyle="bold"
                 letterSpacing={0.1}
@@ -2169,7 +2478,7 @@ function GeneralEditPage({
                 height={rankAttrs.height}
                 scaleX={rankAttrs.scaleX}
                 offsetX={rankAttrs.offsetX}
-                scaleY={rankAttrs.scaleY}
+                scaleY={rankAttrs.scaleY} // ← add
                 offsetY={rankAttrs.offsetY}
                 draggable
                 onClick={handleImageClick("rank")}
@@ -2206,7 +2515,6 @@ function GeneralEditPage({
                 onTransformEnd={handleTransformEnd("sticker")}
               />
             )}
-
             {isBonanza ? (
               <Image
                 x={isRight ? 90 : 190}
@@ -2228,14 +2536,13 @@ function GeneralEditPage({
 
             {isAchievement ? (
               <Text
-                fontFamily="Roboto"
                 x={110}
                 y={232}
                 width={130}
                 height={30}
                 text={String(AchiveName.toUpperCase() || "")}
-                fontSize={fs(18)}
-                fill="gold"
+                fontSize={18}
+                fill={`gold`}
                 fontStyle="1000"
                 letterSpacing={0}
                 verticalAlign="center"
@@ -2245,20 +2552,58 @@ function GeneralEditPage({
 
             {isIncome ? (
               <Text
-                fontFamily="Roboto"
                 x={160}
                 y={197}
                 width={130}
                 height={30}
                 text={`${incomeDay} ${incomeType.toUpperCase()}`}
-                fontSize={fs(18)}
-                fill="white"
+                fontSize={18}
+                fill={`white`}
                 fontStyle="1000"
                 letterSpacing={0}
                 verticalAlign="center"
                 align="center"
               />
             ) : null}
+
+            {/* {isSubGeneralType ||
+            isSubGeneralType2 ||
+            Template_Type === "Anniversary_Birthday" ||
+            Template_Type === "Bonanza" ||
+            Template_Type === "Capping" ||
+            isWelcome ||
+            isMeeting ? null : (
+              <Text
+                x={
+                  isIncome
+                    ? isRight
+                      ? 5
+                      : 135
+                    : isClosing
+                      ? isRight
+                        ? 5
+                        : 135
+                      : isRight
+                        ? 158
+                        : 8
+                }
+                y={isIncome ? 132 : isClosing ? 135 : 250}
+                width={isRight ? 180 : 180}
+                height={30}
+                text={amountText}
+                fontSize={isIncome ? 26 : isClosing ? 30 : 28}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{ x: isRight ? 180 : 180, y: 0 }}
+                fillLinearGradientColorStops={selectedAmountOption?.stops || []}
+                fontStyle="1000"
+                letterSpacing={0}
+                verticalAlign="start"
+                align={isRight ? "center" : "start"}
+                onClick={() => setIsAmountModalOpen(true)}
+                onTap={() => setIsAmountModalOpen(true)}
+              />
+            )}
+ */}
 
             {isSubGeneralType ||
             isSubGeneralType2 ||
@@ -2290,8 +2635,8 @@ function GeneralEditPage({
                         : 8
                 }
                 y={isIncome ? 132 : isClosing ? 135 : 250}
-                digitHeight={isIncome ? 26 : isClosing ? 30 : 29}
-                spacing={0.8}
+                digitHeight={isIncome ? 26 : isClosing ? 30 : 28}
+                spacing={0.6}
               />
             )}
 
@@ -2334,6 +2679,7 @@ function GeneralEditPage({
                 image={Imagef2}
               />
             ) : null}
+
             {isAchievement ? (
               <Image
                 rotationDeg={10}
@@ -2356,37 +2702,34 @@ function GeneralEditPage({
                 />
               </Group>
             ) : null}
-
             {isMeeting ? (
               <>
                 <Text
-                  fontFamily="Roboto"
                   x={isRight ? -13 : 135}
                   y={175}
                   width={200}
                   height={30}
                   text={meetingData?.chiefName.toUpperCase()}
-                  fontSize={fs(13)}
+                  fontSize={13}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
                 <Text
-                  fontFamily="Roboto"
                   x={isRight ? -13 : 135}
                   y={190}
                   width={200}
                   height={30}
                   text={meetingData?.chiefDesignation.toUpperCase()}
-                  fontSize={fs(9)}
+                  fontSize={9}
                   fontStyle="500"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
               </>
             ) : null}
 
@@ -2394,56 +2737,52 @@ function GeneralEditPage({
               isRight ? (
                 <Group x={50} y={210}>
                   <Text
-                    fontFamily="Roboto"
                     x={0}
                     y={1}
                     text={meetingData?.date}
-                    fontSize={fs(13)}
+                    fontSize={13}
                     fontStyle="1000"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="start"
-                    align="start"
-                  />
+                    align={"start"}
+                  ></Text>
                   <Text
-                    fontFamily="Roboto"
                     x={0}
                     y={21}
                     text={meetingData?.time}
-                    fontSize={fs(13)}
+                    fontSize={13}
                     fontStyle="1000"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="start"
-                    align="start"
-                  />
+                    align={"start"}
+                  ></Text>
                 </Group>
               ) : (
                 <Group x={190} y={210}>
                   <Text
-                    fontFamily="Roboto"
                     x={0}
                     y={3}
                     text={meetingData?.date}
-                    fontSize={fs(13)}
+                    fontSize={13}
                     fontStyle="1000"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="end"
-                    align="end"
-                  />
+                    align={"end"}
+                  ></Text>
                   <Text
-                    fontFamily="Roboto"
                     x={0}
                     y={21}
                     text={meetingData?.time}
-                    fontSize={fs(13)}
+                    fontSize={13}
                     fontStyle="1000"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="end"
-                    align="end"
-                  />
+                    align={"end"}
+                  ></Text>
                 </Group>
               )
             ) : null}
@@ -2451,47 +2790,44 @@ function GeneralEditPage({
             {meetingData?.hostMode === "add" && isMeeting ? (
               <Group X={isRight ? 5 : 100} Y={0.9}>
                 <Text
-                  fontFamily="Roboto"
                   x={20}
                   y={285.5}
                   width={180}
                   height={30}
                   text={meetingData?.hostName.toUpperCase()}
-                  fontSize={fs(7)}
+                  fontSize={7}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
                 <Text
-                  fontFamily="Roboto"
                   x={20}
                   y={295}
                   width={180}
                   height={30}
                   text={ActualDesignation}
-                  fontSize={fs(6)}
+                  fontSize={6}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
                 <Text
-                  fontFamily="Roboto"
                   x={20}
                   y={303}
                   width={180}
                   height={30}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(6)}
+                  fontSize={6}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
               </Group>
             ) : null}
 
@@ -2550,37 +2886,34 @@ function GeneralEditPage({
             {isMeeting ? (
               isRight ? (
                 <Text
-                  fontFamily="Roboto"
                   x={12}
                   y={40}
                   width={180}
                   height={30}
                   text={meetingData?.teamName.toUpperCase()}
-                  fontSize={fs(9)}
+                  fontSize={9}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
               ) : (
                 <Text
-                  fontFamily="Roboto"
                   x={125}
                   y={40}
                   width={180}
                   height={30}
                   text={meetingData?.teamName.toUpperCase()}
-                  fontSize={fs(9)}
+                  fontSize={9}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
               )
             ) : null}
-
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
                 meetingData?.platformType === "instagram" ||
@@ -2603,17 +2936,16 @@ function GeneralEditPage({
                       height={25}
                     />
                     <Text
-                      fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={5}
                       text={meetingData?.platformInput}
-                      fontSize={fs(12)}
+                      fontSize={12}
                       fontStyle="1000"
-                      fill="white"
+                      fill={`white`}
                       letterSpacing={0}
                       verticalAlign="start"
-                      align="start"
-                    />
+                      align={"start"}
+                    ></Text>
                   </Group>
                 ) : (
                   <Group x={isRight ? 175 : 0} y={285}>
@@ -2631,60 +2963,62 @@ function GeneralEditPage({
                       height={25}
                     />
                     <Text
-                      fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={4}
                       text={meetingData?.meetingId}
-                      fontSize={fs(9)}
+                      fontSize={9}
                       fontStyle="1000"
-                      fill="white"
+                      fill={`white`}
                       letterSpacing={0}
                       verticalAlign="start"
-                      align="start"
-                    />
+                      align={"start"}
+                    ></Text>
                     <Text
-                      fontFamily="Roboto"
                       x={isRight ? 35 : 45}
                       y={15}
                       text={meetingData?.meetingPassword}
-                      fontSize={fs(9)}
+                      fontSize={9}
                       fontStyle="1000"
-                      fill="white"
+                      fill={`white`}
                       letterSpacing={0}
                       verticalAlign="start"
-                      align="start"
-                    />
+                      align={"start"}
+                    ></Text>
                   </Group>
                 )
               ) : (
                 <Group x={isRight ? 140 : 15} y={285}>
-                  <Image image={locl} x={0} y={0} width={25} height={25} />
+                  <Image
+                    image={locl}
+                    x={isRight ? 0 : 0}
+                    y={0}
+                    width={25}
+                    height={25}
+                  />
                   <Text
-                    fontFamily="Roboto"
                     x={30}
                     y={5}
                     text={meetingData?.address1}
-                    fontSize={fs(10)}
+                    fontSize={10}
                     fontStyle="1000"
                     fontVariant="italic"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="center"
-                    align="center"
-                  />
+                    align={"center"}
+                  ></Text>
                   <Text
-                    fontFamily="Roboto"
                     x={30}
                     y={15}
                     text={meetingData?.address2}
-                    fontSize={fs(7.5)}
+                    fontSize={7.5}
                     fontStyle="1000"
                     fontVariant="italic"
-                    fill="white"
+                    fill={`white`}
                     letterSpacing={0}
                     verticalAlign="end"
-                    align="end"
-                  />
+                    align={"end"}
+                  ></Text>
                 </Group>
               )
             ) : null}
@@ -2692,57 +3026,80 @@ function GeneralEditPage({
             {isMeeting && meetingData?.hostMode === "none" ? (
               <Group x={isRight ? 0 : 240} y={298}>
                 <Text
-                  fontFamily="Roboto"
                   x={3}
                   y={0}
                   text={"For More Details Contact On :-"}
-                  fontSize={fs(5.5)}
+                  fontSize={5.5}
                   fontStyle="1000"
                   fontVariant="italic"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="center"
-                  align="center"
-                />
+                  align={"center"}
+                ></Text>
                 <Text
-                  fontFamily="Roboto"
                   x={12}
                   y={6}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(7.5)}
+                  fontSize={7.5}
                   fontStyle="1000"
-                  fill="white"
+                  fill={`white`}
                   letterSpacing={0}
                   verticalAlign="end"
-                  align="end"
-                />
+                  align={"end"}
+                ></Text>
               </Group>
             ) : null}
+            {/* main */}
 
             {isMeeting || isSubGeneralType ? null : isRight ? (
               <>
+                {/* <Text
+                  x={195}
+                  y={295}
+                  width={150}
+                  height={5}
+                  text="CALL FOR ASSOCIATION"
+                  fontSize={7}
+                  fill="white"
+                  fontStyle="bold"
+                  verticalAlign="middle"
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                /> */}
                 <Text
-                  fontFamily="Roboto"
-                  x={isSubGeneralType2 ? 240 : 252}
+                  x={252}
                   y={298}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={fs(4.5)}
+                  fontSize={4.5}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
                   onClick={() => setIsOpenFtr(true)}
                   onTap={() => setIsOpenFtr(true)}
                 />
-                <Text
-                  fontFamily="Roboto"
-                  x={isSubGeneralType2 ? 235 : 250}
+                {/* <Text
+                  x={190}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(7.5)}
+                  fontSize={12}
+                  fill="white"
+                  fontStyle="bold"
+                  verticalAlign="middle"
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                /> */}
+                <Text
+                  x={250}
+                  y={297}
+                  width={150}
+                  height={20}
+                  text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                  fontSize={7.5}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -2772,22 +3129,37 @@ function GeneralEditPage({
                   const socialGroupWidth = socialText
                     ? textStartX + socialText.length * 3.5
                     : 0;
+                  const parentWidth = 300;
                   const parentCenterX = isSubGeneralType
-                    ? 140 - 300 / 2
-                    : 170 - 300 / 2;
+                    ? 140 - parentWidth / 2
+                    : 170 - parentWidth / 2;
+
                   return (
                     <Group
                       x={parentCenterX}
                       y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                     >
-                      <Text
-                        fontFamily="Roboto"
-                        x={23}
-                        y={0}
+                      {/* <Text
+                        x={0}
+                        y={showSocial === "no" ? 4 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={fs(10)}
+                        fontSize={8}
+                        fill="white"
+                        fontStyle="1000"
+                        align="center"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      /> */}
+                      <Text
+                        x={23}
+                        y={showSocial === "no" ? 0 : 0}
+                        width={200}
+                        height={2}
+                        text={ActualProfilename}
+                        fontSize={10}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -2795,14 +3167,27 @@ function GeneralEditPage({
                         onClick={() => setIsOpenFtr(true)}
                         onTap={() => setIsOpenFtr(true)}
                       />
+                      {/* <Text
+                        x={0}
+                        y={showSocial === "no" ? 13 : 8}
+                        width={200}
+                        height={2}
+                        text={ActualDesignation}
+                        fontSize={6}
+                        fill="white"
+                        fontStyle="bold"
+                        align="center"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      /> */}
                       <Text
-                        fontFamily="Roboto"
                         x={25}
                         y={10.5}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={fs(6.5)}
+                        fontSize={6.5}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -2816,14 +3201,40 @@ function GeneralEditPage({
               </>
             ) : (
               <>
+                {/* <Text
+                  x={43}
+                  y={295}
+                  width={150}
+                  height={5}
+                  text="CALL FOR ASSOCIATION"
+                  fontSize={7}
+                  fill="white"
+                  fontStyle="bold"
+                  verticalAlign="middle"
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                />
                 <Text
-                  fontFamily="Roboto"
+                  x={39}
+                  y={297}
+                  width={150}
+                  height={20}
+                  text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
+                  fontSize={12}
+                  fill="white"
+                  fontStyle="bold"
+                  verticalAlign="middle"
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                /> */}
+
+                <Text
                   x={30}
                   y={298}
                   width={150}
                   height={5}
                   text="CALL FOR ASSOCIATION"
-                  fontSize={fs(4.5)}
+                  fontSize={4.5}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
@@ -2831,19 +3242,19 @@ function GeneralEditPage({
                   onTap={() => setIsOpenFtr(true)}
                 />
                 <Text
-                  fontFamily="Roboto"
                   x={28}
                   y={297}
                   width={150}
                   height={20}
                   text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                  fontSize={fs(7.5)}
+                  fontSize={7.5}
                   fill="white"
                   fontStyle="bold"
                   verticalAlign="middle"
                   onClick={() => setIsOpenFtr(true)}
                   onTap={() => setIsOpenFtr(true)}
                 />
+
                 {(() => {
                   let iconX = 0;
                   const iconPositions = {};
@@ -2867,22 +3278,23 @@ function GeneralEditPage({
                   const socialGroupWidth = socialText
                     ? textStartX + socialText.length * 3.5
                     : 0;
+                  const parentWidth = 300;
                   const parentCenterX = isSubGeneralType
-                    ? 285 - 300 / 2
-                    : 216 - 300 / 2;
+                    ? 285 - parentWidth / 2
+                    : 216 - parentWidth / 2;
+
                   return (
                     <Group
                       x={parentCenterX}
                       y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                     >
-                      <Text
-                        fontFamily="Roboto"
-                        x={15}
-                        y={0}
+                      {/* <Text
+                        x={0}
+                        y={showSocial === "no" ? 4 : 0}
                         width={200}
                         height={2}
                         text={ActualProfilename}
-                        fontSize={fs(10)}
+                        fontSize={8}
                         fill="white"
                         fontStyle="1000"
                         align="center"
@@ -2891,13 +3303,40 @@ function GeneralEditPage({
                         onTap={() => setIsOpenFtr(true)}
                       />
                       <Text
-                        fontFamily="Roboto"
+                        x={0}
+                        y={showSocial === "no" ? 13 : 8}
+                        width={200}
+                        height={2}
+                        text={ActualDesignation}
+                        fontSize={6}
+                        fill="white"
+                        fontStyle="bold"
+                        align="center"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      /> */}
+                      <Text
+                        x={15}
+                        y={showSocial === "no" ? 0 : 0}
+                        width={200}
+                        height={2}
+                        text={ActualProfilename}
+                        fontSize={10}
+                        fill="white"
+                        fontStyle="1000"
+                        align="center"
+                        verticalAlign="middle"
+                        onClick={() => setIsOpenFtr(true)}
+                        onTap={() => setIsOpenFtr(true)}
+                      />
+                      <Text
                         x={15}
                         y={showSocial === "no" ? 10.5 : 9.5}
                         width={200}
                         height={2}
                         text={ActualDesignation}
-                        fontSize={fs(6.5)}
+                        fontSize={6.5}
                         fill="white"
                         fontStyle="bold"
                         align="center"
@@ -2945,13 +3384,12 @@ function GeneralEditPage({
                                 />
                               )}
                               <Text
-                                fontFamily="Roboto"
                                 x={textStartX}
                                 y={0}
                                 width={100 - textStartX}
                                 height={9}
                                 text={socialText}
-                                fontSize={fs(6)}
+                                fontSize={6}
                                 fill="white"
                                 fontStyle="bold"
                                 align="left"
@@ -2967,18 +3405,18 @@ function GeneralEditPage({
                 })()}
               </>
             )}
+            {/* For Sub Type  */}
 
             {isSubGeneralType ? (
               isRight ? (
                 <>
                   <Text
-                    fontFamily="Roboto"
                     x={35}
                     y={298}
                     width={150}
                     height={5}
                     text="CALL FOR ASSOCIATION"
-                    fontSize={fs(4.5)}
+                    fontSize={4.5}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -2986,13 +3424,12 @@ function GeneralEditPage({
                     onTap={() => setIsOpenFtr(true)}
                   />
                   <Text
-                    fontFamily="Roboto"
                     x={30}
                     y={297}
                     width={150}
                     height={20}
                     text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={fs(7.5)}
+                    fontSize={7.5}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3022,19 +3459,23 @@ function GeneralEditPage({
                     const socialGroupWidth = socialText
                       ? textStartX + socialText.length * 3.5
                       : 0;
+                    const parentWidth = 300;
+                    const parentCenterX = isSubGeneralType
+                      ? 140 - parentWidth / 2
+                      : 170 - parentWidth / 2;
+
                     return (
                       <Group
                         x={105}
                         y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                       >
                         <Text
-                          fontFamily="Roboto"
                           x={23}
-                          y={0}
+                          y={showSocial === "no" ? 0 : 0}
                           width={200}
                           height={2}
                           text={ActualProfilename}
-                          fontSize={fs(11)}
+                          fontSize={11}
                           fill="white"
                           fontStyle="1000"
                           align="center"
@@ -3042,14 +3483,14 @@ function GeneralEditPage({
                           onClick={() => setIsOpenFtr(true)}
                           onTap={() => setIsOpenFtr(true)}
                         />
+
                         <Text
-                          fontFamily="Roboto"
                           x={25}
                           y={10.5}
                           width={200}
                           height={2}
                           text={ActualDesignation}
-                          fontSize={fs(7)}
+                          fontSize={7}
                           fill="white"
                           fontStyle="bold"
                           align="center"
@@ -3064,13 +3505,12 @@ function GeneralEditPage({
               ) : (
                 <>
                   <Text
-                    fontFamily="Roboto"
                     x={240}
                     y={298}
                     width={150}
                     height={5}
                     text="CALL FOR ASSOCIATION"
-                    fontSize={fs(4.5)}
+                    fontSize={4.5}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
@@ -3078,19 +3518,19 @@ function GeneralEditPage({
                     onTap={() => setIsOpenFtr(true)}
                   />
                   <Text
-                    fontFamily="Roboto"
                     x={235}
                     y={297}
                     width={150}
                     height={20}
                     text={`+91${profileMobile}` || "+91XXXXXXXXXX"}
-                    fontSize={fs(7.5)}
+                    fontSize={7.5}
                     fill="white"
                     fontStyle="bold"
                     verticalAlign="middle"
                     onClick={() => setIsOpenFtr(true)}
                     onTap={() => setIsOpenFtr(true)}
                   />
+
                   {(() => {
                     let iconX = 0;
                     const iconPositions = {};
@@ -3114,19 +3554,23 @@ function GeneralEditPage({
                     const socialGroupWidth = socialText
                       ? textStartX + socialText.length * 3.5
                       : 0;
+                    const parentWidth = 300;
+                    const parentCenterX = isSubGeneralType
+                      ? 285 - parentWidth / 2
+                      : 216 - parentWidth / 2;
+
                     return (
                       <Group
                         x={0}
                         y={isSubGeneralType || isSubGeneralType2 ? 295 : 300}
                       >
                         <Text
-                          fontFamily="Roboto"
                           x={-10}
-                          y={0}
+                          y={showSocial === "no" ? 0 : 0}
                           width={200}
                           height={2}
                           text={ActualProfilename}
-                          fontSize={fs(11)}
+                          fontSize={11}
                           fill="white"
                           fontStyle="1000"
                           align="center"
@@ -3135,13 +3579,12 @@ function GeneralEditPage({
                           onTap={() => setIsOpenFtr(true)}
                         />
                         <Text
-                          fontFamily="Roboto"
                           x={-10}
                           y={showSocial === "no" ? 10.5 : 9.5}
                           width={200}
                           height={2}
                           text={ActualDesignation}
-                          fontSize={fs(7)}
+                          fontSize={7}
                           fill="white"
                           fontStyle="bold"
                           align="center"
@@ -3189,13 +3632,12 @@ function GeneralEditPage({
                                   />
                                 )}
                                 <Text
-                                  fontFamily="Roboto"
                                   x={textStartX}
                                   y={0}
                                   width={100 - textStartX}
                                   height={9}
                                   text={socialText}
-                                  fontSize={fs(6)}
+                                  fontSize={6}
                                   fill="white"
                                   fontStyle="bold"
                                   align="left"
@@ -3245,10 +3687,13 @@ function GeneralEditPage({
           </Layer>
         </Stage>
 
+        {/* Center play / pause control for the video background */}
         {selectedVideoUrl && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <button
               onClick={() => {
+                // Tapping play is a user gesture — re-enable sound if autoplay
+                // had to fall back to muted.
                 if (videoElRef.current) videoElRef.current.muted = false;
                 setVideoPlaying((p) => !p);
               }}
@@ -3312,8 +3757,10 @@ function GeneralEditPage({
                 marginBottom: 14,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 700 }}>
-                Amount Graphics
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>
+                  Amount Graphics
+                </div>
               </div>
               <button
                 onClick={() => setIsAmountModalOpen(false)}
@@ -3328,6 +3775,7 @@ function GeneralEditPage({
                 ×
               </button>
             </div>
+
             <div
               style={{
                 display: "grid",
@@ -3382,6 +3830,7 @@ function GeneralEditPage({
         </div>
       )}
 
+      {/* Bottom controls */}
       <div className="flex lg:w-1/3 w-full flex-row gap-2 justify-between items-center mt-2 flex-shrink-0 px-1">
         <div className="flex flex-row justify-start items-center flex-1 min-w-0 h-[40px] ml-3 overflow-x-auto hide-scrollbar">
           {mlmProfile?.profileImageURLs?.map((img, index) => (
@@ -3389,12 +3838,15 @@ function GeneralEditPage({
               key={index}
               src={img}
               onClick={() => setmiddaleImage(img)}
-              className={`w-[35px] h-[35px] object-contain cursor-pointer transition-all flex-shrink-0 ${middaleImage === img ? "border-2 border-accent rounded" : ""}`}
+              className={`w-[35px] h-[35px] object-contain cursor-pointer transition-all flex-shrink-0
+                ${middaleImage === img ? "border-2 border-accent rounded" : ""}`}
             />
           ))}
         </div>
 
+        {/* Music toggle + Download button */}
         <div className="flex flex-row items-center gap-2 mr-3 flex-shrink-0">
+          {/* Music toggle — compact icon button next to download to save space */}
           <button
             title={
               selectedMusic
@@ -3402,7 +3854,11 @@ function GeneralEditPage({
                 : "Add background music"
             }
             onClick={() => setMusicModalOpen(true)}
-            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${selectedMusic ? "bg-green-500 text-white shadow-md" : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            className={`relative flex items-center justify-center w-9 h-9 rounded-xl transition-all flex-shrink-0 ${
+              selectedMusic
+                ? "bg-green-500 text-white shadow-md"
+                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
           >
             <svg
               width="15"
@@ -3432,6 +3888,21 @@ function GeneralEditPage({
               </span>
             )}
           </button>
+          {/* Refer credits badge */}
+          {/* {referCredits > 0 && (
+            <span
+              style={{
+                background: "#f59e0b",
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: 20,
+              }}
+            >
+              +{referCredits} refer
+            </span>
+          )} */}
           <Button
             size="sm"
             onClick={
@@ -3474,6 +3945,7 @@ function GeneralEditPage({
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
+      {/* ── Music selection modal ──────────────────────────────────────────── */}
       {musicModalOpen && (
         <div
           className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
@@ -3483,6 +3955,124 @@ function GeneralEditPage({
             className="bg-background dark:bg-[#141824] w-full sm:w-[92vw] sm:max-w-[420px] rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl max-h-[85vh] overflow-y-auto p-5"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
+            {/* <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-bold text-foreground">Add Music</h3>
+              <button
+                onClick={() => setMusicModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
+                aria-label="Close"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div> */}
+            {/* <p className="text-xs text-muted-foreground mb-4">
+              Tracks are trimmed to 20 seconds for a quick, lightweight video.
+            </p> */}
+
+            {/* {selectedMusic && (
+              <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-2xl bg-green-500/10 border border-green-500/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500 text-white flex-shrink-0">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium text-foreground truncate">
+                    {selectedMusic.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleRemoveMusic}
+                  className="text-xs font-semibold text-danger hover:underline flex-shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+            )} */}
+
+            {/* <button
+              onClick={() => musicInputRef.current?.click()}
+              disabled={deviceLoading}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors mb-4 ${
+                deviceLoading
+                  ? "border-accent bg-accent/5 opacity-80 cursor-wait"
+                  : "border-border hover:border-accent hover:bg-accent/5"
+              }`}
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
+                {deviceLoading ? (
+                  <svg
+                    className="animate-spin"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                  </svg>
+                )}
+              </span>
+              <span className="text-left">
+                <span className="block text-sm font-semibold text-foreground">
+                  {deviceLoading ? "Processing audio..." : "Upload from device"}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {deviceLoading
+                    ? "Reading your track, please wait"
+                    : "Pick an audio file from your phone"}
+                </span>
+              </span>
+            </button> */}
+            {/* <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Choose a track
+            </div> */}
             {PRESET_AUDIOS.length === 0 ? (
               <div className="text-sm text-muted-foreground text-center py-6 px-3 rounded-2xl border border-dashed border-border">
                 Music Feature coming soon!.
@@ -3497,7 +4087,11 @@ function GeneralEditPage({
                       key={preset.url}
                       onClick={() => handlePresetMusic(preset)}
                       disabled={isLoading}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${isActive ? "border-accent bg-accent/10" : "border-border hover:border-accent hover:bg-accent/5"} ${isLoading ? "opacity-60" : ""}`}
+                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${
+                        isActive
+                          ? "border-accent bg-accent/10"
+                          : "border-border hover:border-accent hover:bg-accent/5"
+                      } ${isLoading ? "opacity-60" : ""}`}
                     >
                       <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
                         {isLoading ? (
@@ -3566,6 +4160,7 @@ function GeneralEditPage({
         </div>
       )}
 
+      {/* Hidden music file input — triggered by the compact music toggle near the download button */}
       <input
         ref={musicInputRef}
         type="file"
@@ -3578,9 +4173,11 @@ function GeneralEditPage({
         }}
       />
 
+      {/* ── FFmpeg progress overlay ─────────────────────────────────────────── */}
       {musicExporting && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/75 backdrop-blur-sm">
           <div className="relative bg-background dark:bg-[#141824] rounded-3xl p-7 w-[88vw] max-w-[380px] shadow-2xl border border-border">
+            {/* Icon */}
             <div className="flex items-center justify-center mb-5">
               <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
                 <svg
@@ -3610,6 +4207,7 @@ function GeneralEditPage({
             <p className="text-[12px] text-muted-foreground text-center mb-5">
               {progressLabel || "Processing..."}
             </p>
+            {/* Progress bar */}
             <div className="space-y-2 mb-4">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] text-muted-foreground">
@@ -3629,6 +4227,7 @@ function GeneralEditPage({
                 />
               </div>
             </div>
+            {/* Logs */}
             {progressLogs.length > 0 && (
               <div className="bg-black/20 dark:bg-black/40 rounded-xl p-3 space-y-0.5 max-h-[60px] overflow-hidden">
                 {progressLogs.slice(-3).map((l, i) => (
@@ -3648,6 +4247,17 @@ function GeneralEditPage({
         </div>
       )}
 
+      {/* ── AI retouch modal (shown after a successful image export) ─────────── */}
+      {/* {exportedUri && (
+        <AiRetouchModal
+          imageUri={exportedUri}
+          onClose={() => setExportedUri(null)}
+          onToast={showToast}
+        />
+      )} */}
+
+      {/* Template list fills the remaining device height and scrolls internally,
+          while the canvas above stays fixed (non-scrollable). */}
       <div className="w-full lg:w-1/3 flex-1 min-h-0 flex flex-col overflow-hidden">
         <ListOfTemplates selected={selected} setSelected={setSelected} />
       </div>

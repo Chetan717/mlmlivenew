@@ -24,57 +24,10 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { CreditCard, History, Clock, Download, IndianRupee } from "lucide-react";
 
-// ─── Server Date ───────────────────────────────────────────────────────────────
-// Fetches the real current time from a public server so device clock manipulation
-// cannot affect subscription validity. Falls back to device time only if both
-// servers are unreachable.
-async function getServerDate() {
-  // Attempt 1: worldtimeapi.org
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch("https://worldtimeapi.org/api/ip", {
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.datetime) return new Date(data.datetime);
-    }
-  } catch {}
-
-  // Attempt 2: timeapi.io (India timezone)
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch(
-      "https://timeapi.io/api/time/current/zone?timeZone=Asia/Kolkata",
-      { cache: "no-store", signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.dateTime) return new Date(data.dateTime);
-    }
-  } catch {}
-
-  // Last resort: device time
-  return new Date();
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// Normalise a Firestore Timestamp object OR a plain date string → JS Date
-function toDate(ts) {
-  if (!ts) return null;
-  if (ts?.seconds) return new Date(ts.seconds * 1000);
-  const d = new Date(ts);
-  return isNaN(d.getTime()) ? null : d;
-}
-
 const formatDate = (ts) => {
-  const d = toDate(ts);
-  if (!d) return "N/A";
+  if (!ts) return "N/A";
+  const d = ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -82,41 +35,32 @@ const formatDate = (ts) => {
   });
 };
 
-// Returns days remaining using the server date (not device clock).
-// Positive = days left, 0 = expires today, negative = already expired.
-function daysLeft(expiryTs, serverDate) {
-  const expiry = toDate(expiryTs);
-  if (!expiry) return -1;
-  const now = serverDate || new Date();
-  return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-// Compare only the calendar date (ignoring time-of-day).
-// A plan whose expiry date is TODAY is still considered Active.
-function isActiveByDate(sub, serverDate) {
-  const expiry = toDate(sub.expirydate);
-  if (!expiry) return false;
-  const expiryDay = new Date(expiry); expiryDay.setHours(0, 0, 0, 0);
-  const todayDay  = new Date(serverDate); todayDay.setHours(0, 0, 0, 0);
-  return expiryDay >= todayDay;
-}
+const daysLeft = (expiryStr) => {
+  const today = new Date();
+  const expiry = new Date(expiryStr);
+  const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  return diff;
+};
 
 // ─── Active Subscription Card ─────────────────────────────────────────────────
-function ActiveSubscriptionCard({ sub, serverDate }) {
-  const days      = daysLeft(sub.expirydate, serverDate);
+function ActiveSubscriptionCard({ sub }) {
+  const days = daysLeft(sub.expirydate);
   const totalDays = sub.duration ?? 1;
-  const usedDays  = totalDays - days;
-  const progress  = Math.min(100, Math.max(0, (usedDays / totalDays) * 100));
+  const usedDays = totalDays - days;
+  const progress = Math.min(100, Math.max(0, (usedDays / totalDays) * 100));
 
   return (
     <div className="relative rounded-[28px] overflow-hidden shadow-2xl" style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 50%, #0e245c 100%)" }}>
+      {/* Shimmer overlay */}
       <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(ellipse at 30% 0%, #6366f1 0%, transparent 70%), radial-gradient(ellipse at 80% 100%, #3b82f6 0%, transparent 60%)" }} />
+      {/* Top highlight */}
       <div className="absolute top-0 left-6 right-6 h-px bg-white/20 rounded-full" />
 
       <div className="relative p-6">
+        {/* Plan name + badge */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}>
               <CreditCard className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -134,7 +78,8 @@ function ActiveSubscriptionCard({ sub, serverDate }) {
           </div>
         </div>
 
-        <div className="mb-5 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.07)" }}>
+        {/* Progress timeline */}
+        <div className="mb-5 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(4px)" }}>
           <div className="flex items-end justify-between mb-3">
             <div>
               <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider mb-1">Started</p>
@@ -147,20 +92,21 @@ function ActiveSubscriptionCard({ sub, serverDate }) {
           </div>
           <div className="relative w-full h-2 rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.1)" }}>
             <div
-              className="absolute left-0 top-0 h-full rounded-full"
+              className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${progress}%`, background: "linear-gradient(90deg, #60a5fa, #a78bfa)" }}
             />
           </div>
           <p className="text-[11px] font-bold text-center text-blue-200">
-            {days > 0 ? `${days} day${days === 1 ? "" : "s"} remaining` : "Expires today"}
+            {days > 0 ? `${days} days remaining` : "Expiring today"}
           </p>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Downloads", value: sub.download ?? 0,          icon: <Download className="w-3.5 h-3.5" /> },
-            { label: "Duration",  value: `${sub.duration ?? 0}d`,    icon: <Clock className="w-3.5 h-3.5" /> },
-            { label: "Paid",      value: `₹${sub.PaymentAmount ?? 0}`, icon: <IndianRupee className="w-3.5 h-3.5" /> },
+            { label: "Downloads", value: sub.download ?? 0, icon: <Download className="w-3.5 h-3.5" /> },
+            { label: "Duration", value: `${sub.duration ?? 0}d`, icon: <Clock className="w-3.5 h-3.5" /> },
+            { label: "Paid", value: `₹${sub.PaymentAmount ?? 0}`, icon: <IndianRupee className="w-3.5 h-3.5" /> },
           ].map((s, i) => (
             <div key={i} className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,0.08)" }}>
               <div className="flex justify-center text-blue-200 mb-1.5">{s.icon}</div>
@@ -178,6 +124,7 @@ function ActiveSubscriptionCard({ sub, serverDate }) {
 function ExpiredSubscriptionCard({ sub }) {
   return (
     <div className="relative rounded-[24px] overflow-hidden border border-border/60 shadow-sm bg-muted/20">
+      {/* Faded stripe */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-muted-foreground/20 to-muted-foreground/10" />
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
@@ -212,8 +159,8 @@ function ExpiredSubscriptionCard({ sub }) {
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: "Downloads", value: sub.download ?? 0 },
-            { label: "Duration",  value: `${sub.duration ?? 0}d` },
-            { label: "Paid",      value: `₹${sub.PaymentAmount ?? 0}` },
+            { label: "Duration", value: `${sub.duration ?? 0}d` },
+            { label: "Paid", value: `₹${sub.PaymentAmount ?? 0}` },
           ].map((s, i) => (
             <div key={i} className="rounded-xl border border-border/50 bg-muted/20 p-2.5 text-center">
               <p className="text-[14px] font-bold text-foreground/60">{s.value}</p>
@@ -251,10 +198,15 @@ function SubSkeleton() {
 }
 
 // ─── Tabs Component ───────────────────────────────────────────────────────────
-function SubscriptionTabs({ activeTab, setActiveTab, activeCount, expiredCount }) {
+function SubscriptionTabs({
+  activeTab,
+  setActiveTab,
+  activeCount,
+  expiredCount,
+}) {
   const tabs = [
-    { key: "active",  label: "Active Plans", count: activeCount  },
-    { key: "expired", label: "History",      count: expiredCount },
+    { key: "active", label: "Active Plans", count: activeCount },
+    { key: "expired", label: "History", count: expiredCount },
   ];
 
   return (
@@ -263,11 +215,10 @@ function SubscriptionTabs({ activeTab, setActiveTab, activeCount, expiredCount }
         <button
           key={tab.key}
           onClick={() => setActiveTab(tab.key)}
-          style={{ touchAction: "manipulation" }}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-[13px] font-bold border ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-[13px] font-bold transition-all duration-300 border ${
             activeTab === tab.key
               ? "bg-accent text-white border-accent shadow-lg shadow-accent/20"
-              : "bg-muted/30 text-muted-foreground border-border"
+              : "bg-muted/30 text-muted-foreground hover:text-foreground border-border"
           }`}
         >
           {tab.key === "active" ? (
@@ -300,49 +251,56 @@ export default function MainSubscription() {
   const [openPlanModal, setOpenPlanModal] = useState(false);
   const [openCheckoutModal, setOpenCheckoutModal] = useState(false);
 
-  const [activeSubscriptions, setActiveSubscriptions]   = useState([]);
+  // Subscription states
+  const [activeSubscriptions, setActiveSubscriptions] = useState([]);
   const [expiredSubscriptions, setExpiredSubscriptions] = useState([]);
   const [subLoading, setSubLoading] = useState(true);
-  const [activeTab, setActiveTab]   = useState("active");
-  const [serverDate, setServerDate] = useState(null);
+  const [activeTab, setActiveTab] = useState("active");
 
-  // Fetch subscriptions — splits active vs expired using tamper-proof server time.
+  // Fetch both active and expired subscriptions
   const fetchSubscriptions = useCallback(async () => {
     try {
       setSubLoading(true);
       const raw = localStorage.getItem("usermlm");
       if (!raw) return;
-      const user     = JSON.parse(raw);
+      const user = JSON.parse(raw);
       const mobileNo = user?.mobileNo;
       if (!mobileNo) return;
 
-      // Fetch server time AND all user subscriptions in parallel
-      const [svrDate, allSnap] = await Promise.all([
-        getServerDate(),
-        getDocs(
-          query(
-            collection(db, "subscription"),
-            where("mobileNo", "==", mobileNo),
-          )
-        ),
+      // ── Active: Active=true, Expire=false ─────────────────────────────
+      const activeQuery = query(
+        collection(db, "subscription"),
+        where("mobileNo", "==", mobileNo),
+        where("Active", "==", true),
+        where("Expire", "==", false),
+      );
+
+      // ── Expired: Active=false, Expire=true ────────────────────────────
+      const expiredQuery = query(
+        collection(db, "subscription"),
+        where("mobileNo", "==", mobileNo),
+        where("Active", "==", false),
+        where("Expire", "==", true),
+      );
+
+      const [activeSnap, expiredSnap] = await Promise.all([
+        getDocs(activeQuery),
+        getDocs(expiredQuery),
       ]);
 
-      setServerDate(svrDate);
+      const sortByDate = (docs) =>
+        docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort(
+            (a, b) =>
+              (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0),
+          );
 
-      const sortByDate = (arr) =>
-        [...arr].sort((a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0));
+      setActiveSubscriptions(sortByDate(activeSnap.docs));
+      setExpiredSubscriptions(sortByDate(expiredSnap.docs));
 
-      const allSubs = allSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-      // Split purely by expiry date vs server date — Firestore Active/Expire
-      // boolean flags are NOT used so the UI always reflects the real calendar truth.
-      const active  = allSubs.filter((sub) => isActiveByDate(sub, svrDate));
-      const expired = allSubs.filter((sub) => !isActiveByDate(sub, svrDate));
-
-      setActiveSubscriptions(sortByDate(active));
-      setExpiredSubscriptions(sortByDate(expired));
-
-      if (active.length === 0 && expired.length > 0) {
+      // Auto-switch to expired tab if no active subs but has expired
+      if (activeSnap.empty && !expiredSnap.empty) {
         setActiveTab("expired");
       }
     } catch (err) {
@@ -352,6 +310,7 @@ export default function MainSubscription() {
     }
   }, []);
 
+  // Fetch available plans
   const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
@@ -360,11 +319,14 @@ export default function MainSubscription() {
       if (!raw) throw new Error("No company data found.");
       const company = JSON.parse(raw);
       if (!company?.id) throw new Error("Company ID not found.");
-      const docRef  = doc(db, "mlmcomp", company.id);
+      const docRef = doc(db, "mlmcomp", company.id);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) throw new Error("Company Doesnot Launch Any Plan Yet!.");
-      const data         = docSnap.data();
-      const fetchedPlans = (data?.Plans ?? []).filter((p) => p.PlanName || p.image_url);
+      const data = docSnap.data();
+      const fetchedPlans = (data?.Plans ?? []).filter(
+        (p) => p.PlanName || p.image_url,
+      );
+      
       setPlans(fetchedPlans);
     } catch (err) {
       console.error("Error fetching plans:", err);
@@ -374,27 +336,36 @@ export default function MainSubscription() {
     }
   }, []);
 
-  useEffect(() => { fetchSubscriptions(); }, [fetchSubscriptions]);
-  useEffect(() => { if (!subLoading) fetchPlans(); }, [subLoading, fetchPlans]);
+  useEffect(() => {
+    fetchSubscriptions();
+  }, [fetchSubscriptions]);
+
+  useEffect(() => {
+    if (!subLoading) {
+      fetchPlans();
+    }
+  }, [subLoading, fetchPlans]);
 
   const handleSlideClick = (plan) => {
     setSelectedPlan(plan);
     setOpenPlanModal(true);
-  };
-
+  };  
+  
   const handlePaymentSuccess = useCallback(() => {
     setOpenCheckoutModal(false);
     setOpenPlanModal(false);
     fetchSubscriptions();
   }, [fetchSubscriptions]);
 
-  const hasAnySub   = activeSubscriptions.length > 0 || expiredSubscriptions.length > 0;
+  const hasAnySub = activeSubscriptions.length > 0 || expiredSubscriptions.length > 0;
   const hasActiveSub = activeSubscriptions.length > 0;
 
   if (subLoading) {
     return (
       <div className="w-full min-h-full bg-background p-4 md:p-8">
-        <div className="max-w-2xl mx-auto"><SubSkeleton /></div>
+        <div className="max-w-2xl mx-auto">
+          <SubSkeleton />
+        </div>
       </div>
     );
   }
@@ -402,7 +373,7 @@ export default function MainSubscription() {
   return (
     <div className="w-full min-h-full bg-background p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-
+        
         {/* Premium Hero Header */}
         <div className="relative mb-8 rounded-[28px] overflow-hidden p-6" style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 60%, #0e245c 100%)" }}>
           <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(ellipse at 80% 20%, #6366f1 0%, transparent 60%)" }} />
@@ -420,7 +391,7 @@ export default function MainSubscription() {
           </div>
         </div>
 
-        {/* ── Subscription Tabs ── */}
+        {/* ── Subscription Tabs (only shown if user has any subs) ── */}
         {hasAnySub && (
           <div className="mb-10">
             <SubscriptionTabs
@@ -430,6 +401,7 @@ export default function MainSubscription() {
               expiredCount={expiredSubscriptions.length}
             />
 
+            {/* Active Tab Content */}
             {activeTab === "active" && (
               <div className="space-y-6">
                 {activeSubscriptions.length === 0 ? (
@@ -437,19 +409,22 @@ export default function MainSubscription() {
                     <div className="w-20 h-20 bg-white dark:bg-black rounded-full flex items-center justify-center shadow-sm mb-4">
                       <CreditCard className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-display font-bold text-foreground mb-2">No Active Plans</h3>
+                    <h3 className="text-xl font-display font-bold text-foreground mb-2">
+                      No Active Plans
+                    </h3>
                     <p className="text-muted-foreground text-center max-w-sm">
                       You don't have any active subscriptions. Choose a plan below to unlock premium features.
                     </p>
                   </div>
                 ) : (
                   activeSubscriptions.map((sub) => (
-                    <ActiveSubscriptionCard key={sub.id} sub={sub} serverDate={serverDate} />
+                    <ActiveSubscriptionCard key={sub.id} sub={sub} />
                   ))
                 )}
               </div>
             )}
 
+            {/* Expired Tab Content */}
             {activeTab === "expired" && (
               <div className="space-y-6">
                 {expiredSubscriptions.length === 0 ? (
@@ -457,8 +432,12 @@ export default function MainSubscription() {
                     <div className="w-20 h-20 bg-white dark:bg-black rounded-full flex items-center justify-center shadow-sm mb-4">
                       <History className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-display font-bold text-foreground mb-2">No History</h3>
-                    <p className="text-muted-foreground text-center">Your expired subscriptions will appear here.</p>
+                    <h3 className="text-xl font-display font-bold text-foreground mb-2">
+                      No History
+                    </h3>
+                    <p className="text-muted-foreground text-center">
+                      Your expired subscriptions will appear here.
+                    </p>
                   </div>
                 ) : (
                   expiredSubscriptions.map((sub) => (
@@ -470,7 +449,7 @@ export default function MainSubscription() {
           </div>
         )}
 
-        {/* ── Available Plans ── */}
+        {/* ── Available Plans Section (hidden when user has an active subscription) ── */}
         {!hasActiveSub && (
           <div className="mt-12">
             <div className="mb-7">
@@ -478,11 +457,11 @@ export default function MainSubscription() {
               <h2 className="text-[22px] font-display font-bold text-foreground">Upgrade Your Plan</h2>
               <p className="text-[13px] text-muted-foreground mt-1">Choose a plan that fits your workflow</p>
             </div>
-
+            
             {loading ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <Skeleton className="h-64 rounded-3xl" />
-                <Skeleton className="h-64 rounded-3xl" />
+                 <Skeleton className="h-64 rounded-3xl" />
+                 <Skeleton className="h-64 rounded-3xl" />
               </div>
             ) : error ? (
               <div className="p-6 rounded-2xl bg-danger/10 border border-danger/20 text-center">
@@ -498,17 +477,17 @@ export default function MainSubscription() {
                   <div
                     key={index}
                     onClick={() => handleSlideClick(plan)}
-                    className="group cursor-pointer rounded-[24px] overflow-hidden border border-border/60 shadow-md relative bg-white dark:bg-[#0f1525]"
-                    style={{ touchAction: "manipulation" }}
+                    className="group cursor-pointer rounded-[24px] overflow-hidden border border-border/60 hover:border-accent/40 shadow-md hover:shadow-xl transition-all duration-300 relative bg-white dark:bg-[#0f1525]"
                   >
-                    <div className="absolute top-0 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg, #0e245c, #4f6fd0)" }} />
+                    {/* Accent top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(90deg, #0e245c, #4f6fd0)" }} />
 
                     {plan.image_url ? (
                       <div className="aspect-[16/9] w-full overflow-hidden relative">
                         <img
                           src={plan.image_url}
                           alt={plan.PlanName}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -536,13 +515,13 @@ export default function MainSubscription() {
                             Premium
                           </div>
                         </div>
-                        <h3 className="font-display font-bold text-[18px] text-foreground mb-3">{plan.PlanName || "Premium Plan"}</h3>
+                        <h3 className="font-display font-bold text-[18px] text-foreground mb-3 group-hover:text-accent transition-colors">{plan.PlanName || "Premium Plan"}</h3>
                         <div className="flex items-end justify-between pt-3 border-t border-border/40">
                           <div>
                             <p className="text-[9px] text-muted-foreground/70 uppercase font-bold tracking-widest mb-0.5">One-time payment</p>
                             <p className="text-[26px] font-bold text-accent leading-none">₹{plan.PlanAmount ?? 0}</p>
                           </div>
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-accent text-white shadow-lg shadow-accent/25">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-accent text-white opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-lg shadow-accent/25">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>

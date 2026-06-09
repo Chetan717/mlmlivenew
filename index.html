@@ -2,6 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: blob: https:;
+      media-src 'self' data: blob: https:;
+      connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com
+        https://checkout.razorpay.com https://pserver.vercel.app https://api.remove.bg
+        https://2factor.in https://ik.imagekit.io;
+      frame-src https://checkout.razorpay.com;
+      worker-src blob:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    ">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>MLM LIVE</title>
     <meta name="description" content="MLM LIVE — built on Replit. Update this description to reflect the app." />
@@ -15,31 +31,10 @@
     <link rel="icon" type="image/svg+xml" href="/public/mlmboo2.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;700;900&display=block" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-  (function () {
-    try {
-      var probe = document.createElement('div');
-      probe.setAttribute('style', 'font-size:16px!important;position:fixed;top:-9999px;left:-9999px;visibility:hidden;');
-      document.documentElement.appendChild(probe);
-      var scaled = parseFloat(window.getComputedStyle(probe).fontSize);
-      document.documentElement.removeChild(probe);
-
-      // Expose font scale so Konva canvas text can compensate
-      window.__fontScale = (scaled && scaled > 0) ? scaled / 16 : 1;
-
-      if (scaled && Math.round(scaled) !== 16) {
-        var corrected = (16 * 16) / scaled;
-        document.documentElement.style.setProperty('font-size', corrected + 'px', 'important');
-      }
-    } catch (e) {
-      window.__fontScale = 1;
-    }
-  })();
-</script>
   </body>
 </html>

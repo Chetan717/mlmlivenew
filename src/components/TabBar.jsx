@@ -16,7 +16,7 @@ export default function TabBar() {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 ">
       {/* Glass backdrop */}
-      <div className="absolute inset-0 bg-background border-t border-border/60" />
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-2xl border-t border-border/60" />
 
       <div className="relative flex items-stretch h-[58px] px-2">
         {TABS.map(({ label, path, Icon }) => {
@@ -28,7 +28,7 @@ export default function TabBar() {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="relative flex-1 flex flex-col items-center justify-center gap-[3px] group"
+              className="relative flex-1 flex flex-col items-center justify-center gap-[3px] group active:scale-95 transition-transform duration-150"
             >
               {/* Pill background for active */}
               {isActive && (

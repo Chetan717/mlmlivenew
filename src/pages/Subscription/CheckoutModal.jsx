@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { Modal } from "@heroui/react";
 import { db } from "@firebase-config";
 import {
@@ -10,7 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-const RAZORPAY_KEY_ID = "rzp_test_AwYjl9iEgMP9Zk" || "";
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
@@ -53,61 +53,6 @@ const fmtDisplay = (date) =>
     year: "numeric",
   });
 
-// ── Success Screen ─────────────────────────────────────────────────────────────
-function PaymentSuccessScreen({ plan, paymentId, onDone }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 px-4 text-center gap-5">
-      {/* Animated checkmark */}
-      <div className="relative">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center"
-          style={{ background: "linear-gradient(135deg, #22c55e22, #16a34a22)", border: "2px solid #22c55e40" }}>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center bg-green-500 shadow-xl shadow-green-500/30">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        </div>
-        {/* Pulse ring */}
-        <div className="absolute inset-0 rounded-full border-2 border-green-400/30 animate-ping" />
-      </div>
-
-      <div className="space-y-1.5">
-        <h2 className="text-[22px] font-bold text-foreground">Payment Successful!</h2>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Your <span className="font-semibold text-foreground">{plan?.PlanName || "plan"}</span> subscription is now active.
-        </p>
-      </div>
-
-      {paymentId && (
-        <div className="w-full rounded-xl bg-muted/20 border border-border/50 px-4 py-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-1">
-            Payment Reference
-          </p>
-          <p className="text-[12px] font-mono font-semibold text-foreground break-all">{paymentId}</p>
-        </div>
-      )}
-
-      <div className="w-full rounded-xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-900/10 px-4 py-3">
-        <div className="flex items-center gap-2 justify-center">
-          <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <p className="text-xs font-semibold text-green-700 dark:text-green-400">
-            Subscription activated. Downloads ready to use.
-          </p>
-        </div>
-      </div>
-
-      <button
-        onClick={onDone}
-        className="w-full py-3.5 rounded-xl font-bold text-sm text-white bg-accent hover:opacity-90 active:scale-[0.98] transition-all duration-150 shadow-lg shadow-accent/25"
-      >
-        Go to My Subscriptions
-      </button>
-    </div>
-  );
-}
-
 export function CheckoutModal({
   plan,
   isOpen,
@@ -122,33 +67,10 @@ export function CheckoutModal({
   const [couponData, setCouponData] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [successPaymentId, setSuccessPaymentId] = useState(null);
-
   const inputRefs = useRef([]);
-  // Prevents ondismiss from firing the "cancelled" flow after a successful payment
-  const paymentSucceededRef = useRef(false);
-
-  // Reset all state when modal opens fresh
-  useEffect(() => {
-    if (isOpen) {
-      setPaymentError(null);
-      // Only reset success if it was shown and user dismissed
-    }
-  }, [isOpen]);
-
-  const resetCoupon = () => {
-    setCoupon(["", "", "", "", "", ""]);
-    setCouponStatus(null);
-    setDiscountPercent(0);
-    setCouponData(null);
-  };
 
   const handleConfirmPurchase = useCallback(async () => {
     if (!plan || paymentLoading) return;
-
-    // Reset for fresh attempt
-    paymentSucceededRef.current = false;
     setPaymentError(null);
     setPaymentLoading(true);
 
@@ -164,48 +86,33 @@ export function CheckoutModal({
       // ── Step 1: Load Razorpay SDK ──────────────────────────────────────
       const sdkLoaded = await loadRazorpayScript();
       if (!sdkLoaded) {
-        setPaymentError("Payment gateway failed to load. Please check your internet connection and try again.");
+        setPaymentError("Payment gateway failed to load. Check your connection.");
         setPaymentLoading(false);
         return;
       }
 
       // ── Step 2: Create order on backend ───────────────────────────────
-      let orderData;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch("https://pserver.vercel.app/?API_KEY=ADS360KEY", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Api-Key": "",
-          },
-          body: JSON.stringify({ amount: payableAmount }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
+      const res = await fetch("https://pserver.vercel.app", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": "ADS360KEY",
+        },
+        body: JSON.stringify({ amount: payableAmount }),
+      });
 
-        if (!res.ok) {
-          setPaymentError(`Order creation failed (${res.status}). Please try again in a moment.`);
-          setPaymentLoading(false);
-          return;
-        }
-        orderData = await res.json();
-      } catch (fetchErr) {
-        if (fetchErr.name === "AbortError") {
-          setPaymentError("Request timed out. Please check your connection and try again.");
-        } else {
-          setPaymentError("Could not reach payment server. Please check your internet and try again.");
-        }
+      if (!res.ok) {
+        setPaymentError(`Order creation failed. Please try again.`);
         setPaymentLoading(false);
         return;
       }
 
+      const orderData = await res.json();
       const orderId =
         orderData?.data?.order_id ?? orderData?.order_id ?? orderData?.id;
 
       if (!orderId) {
-        setPaymentError("Invalid response from payment server. Please try again.");
+        setPaymentError("Invalid order response. Please try again.");
         setPaymentLoading(false);
         return;
       }
@@ -256,16 +163,14 @@ export function CheckoutModal({
         },
         theme: { color: "#0e245c" },
 
-        // ✅ SUCCESS — fires when Razorpay captures the payment
+        // ✅ SUCCESS — fires when payment is captured
         handler: async (response) => {
-          // Mark as succeeded IMMEDIATELY so ondismiss ignores the close event
-          paymentSucceededRef.current = true;
-
           try {
             await addDoc(collection(db, "subscription"), {
               ...buildLogDoc("Success"),
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
+              // razorpay_invoice_id:response.razorpay_invoice_id,
               razorpay_signature: response.razorpay_signature,
               couponApplied: couponStatus === "valid" ? coupon.join("") : null,
               discountPercent,
@@ -276,64 +181,55 @@ export function CheckoutModal({
             ).catch(() => {});
           } catch (e) {
             console.error("Firestore save error:", e);
-            // Payment succeeded on Razorpay's end even if Firestore write fails.
-            // Still show success to user; data can be reconciled from Razorpay dashboard.
           } finally {
-            setSuccessPaymentId(response.razorpay_payment_id || null);
             setPaymentLoading(false);
-            setPaymentSuccess(true);
-            setIsOpen(true); // Re-open modal to show success screen
+            if (onPaymentSuccess) onPaymentSuccess();
           }
         },
 
         modal: {
-          // ✅ DISMISS — fires for every close action AND after payment.handler completes.
-          //    We guard against the post-success dismiss using paymentSucceededRef.
+          // ✅ DISMISS — fires for every close action:
+          //    X button, back button, swipe, tap outside.
+          //    Also fires AFTER payment.failed when user closes the screen.
           ondismiss: async () => {
-            if (paymentSucceededRef.current) {
-              // Payment was successful; Razorpay closed after handler — do nothing.
-              return;
-            }
             await addDoc(collection(db, "paymentlog"), {
               ...buildLogDoc("Dismissed"),
             }).catch(() => {});
             setPaymentLoading(false);
             setIsOpen(true);
-            setPaymentError("Payment was cancelled. You can try again anytime.");
+            setPaymentError("Payment cancelled. You can try again anytime.");
           },
         },
       };
 
       const rzp = new window.Razorpay(options);
 
-      // ✅ FAILED — fires when a payment attempt fails (card declined, UPI timeout, etc.)
-      //    Razorpay keeps its screen OPEN after this so the user can retry.
-      //    ondismiss will fire later when the user manually closes the screen.
+      // ✅ FAILED — fires when payment attempt fails (card declined, etc.)
+      //    Razorpay keeps the screen OPEN after this so user can retry.
+      //    ondismiss fires later when user manually closes the screen.
       rzp.on("payment.failed", async (failRes) => {
         const failedId =
           failRes?.error?.metadata?.order_id ||
           failRes?.error?.metadata?.payment_id ||
           orderId;
 
-        const errorDesc =
-          failRes?.error?.description || "Payment attempt failed.";
-
         await addDoc(collection(db, "paymentlog"), {
           ...buildLogDoc("Failed"),
           OrderId: failedId,
           UTRID: failedId,
           errorCode: failRes?.error?.code || "",
-          errorDescription: errorDesc,
+          errorDescription: failRes?.error?.description || "",
           errorReason: failRes?.error?.reason || "",
         }).catch(() => {});
 
-        // Do NOT close Razorpay here — user can retry inside Razorpay's screen.
+        // ✅ Don't close Razorpay here — let user retry inside Razorpay screen.
+        //    ondismiss will fire when they finally close it.
       });
 
       rzp.open();
     } catch (err) {
       console.error("Payment error:", err);
-      setPaymentError("Something went wrong while initiating payment. Please try again.");
+      setPaymentError("Something went wrong. Please try again.");
       setIsOpen(true);
       setPaymentLoading(false);
     }
@@ -345,15 +241,6 @@ export function CheckoutModal({
     paymentLoading,
     onPaymentSuccess,
   ]);
-
-  const handleSuccessDone = useCallback(() => {
-    setPaymentSuccess(false);
-    setSuccessPaymentId(null);
-    paymentSucceededRef.current = false;
-    resetCoupon();
-    setIsOpen(false);
-    if (onPaymentSuccess) onPaymentSuccess();
-  }, [onPaymentSuccess, setIsOpen]);
 
   if (!plan) return null;
 
@@ -432,11 +319,7 @@ export function CheckoutModal({
       setCouponData(data);
     } catch (err) {
       console.error("Coupon validation error:", err);
-      if (err.message?.includes("network") || err.code === "unavailable") {
-        setCouponStatus("network-error");
-      } else {
-        setCouponStatus("invalid");
-      }
+      setCouponStatus("invalid");
       setDiscountPercent(0);
     } finally {
       setCouponLoading(false);
@@ -457,274 +340,251 @@ export function CheckoutModal({
       <Modal.Backdrop className="bg-black/60 backdrop-blur-sm">
         <Modal.Container placement="center" className="px-4">
           <Modal.Dialog className="w-full max-w-md mx-auto rounded-2xl border border-border shadow-2xl bg-background overflow-hidden max-h-[92vh] flex flex-col">
-
-            {/* ── Success Screen (replaces normal content) ── */}
-            {paymentSuccess ? (
-              <div className="px-4 py-2 overflow-y-auto">
-                <PaymentSuccessScreen
-                  plan={plan}
-                  paymentId={successPaymentId}
-                  onDone={handleSuccessDone}
-                />
-              </div>
-            ) : (
-              <>
-                <Modal.Body className="space-y-3 pt-0 px-4 overflow-y-auto flex-1">
-                  {/* ── Plan card ── */}
-                  <div className="rounded-xl border border-accent/25 bg-accent/5 p-4 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground text-[13px] truncate">
-                        {plan.PlanName || "Unnamed Plan"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {plan.Type || "—"}&nbsp;·&nbsp;{plan.Day_value ?? 0} Days
-                      </p>
-                    </div>
-                    <p className="text-lg font-extrabold text-accent shrink-0">
-                      ₹{baseAmount}
-                    </p>
-                  </div>
-
-                  {/* ── Validity strip ── */}
-                  <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 px-4 py-3 flex items-center justify-between gap-2">
-                    <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Start
-                      </p>
-                      <p className="text-[12px] font-semibold text-foreground">
-                        {fmtDisplay(today)}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center gap-0.5">
-                      <div className="w-full flex items-center gap-1">
-                        <div className="flex-1 h-px bg-accent/30" />
-                        <div className="w-2 h-2 rounded-full bg-accent" />
-                        <div className="flex-1 h-px bg-accent/30" />
-                      </div>
-                      <p className="text-[10px] text-accent font-semibold">
-                        {plan.Day_value ?? 0} Days
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Expiry
-                      </p>
-                      <p className="text-xs font-semibold text-red-500 dark:text-red-400">
-                        {fmtDisplay(expiryDate)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* ── Coupon section ── */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Coupon Code</p>
-                      <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
-                    </div>
-
-                    <div
-                      className="flex items-center justify-center gap-2"
-                      onPaste={handleCouponPaste}
-                    >
-                      {coupon.map((char, idx) => (
-                        <input
-                          key={idx}
-                          ref={(el) => (inputRefs.current[idx] = el)}
-                          type="text"
-                          inputMode="text"
-                          maxLength={1}
-                          value={char}
-                          disabled={couponLoading || couponStatus === "valid"}
-                          onChange={(e) => handleCouponChange(e.target.value, idx)}
-                          onKeyDown={(e) => handleCouponKeyDown(e, idx)}
-                          className={[
-                            "w-10 h-11 text-center text-sm font-bold rounded-xl border-2 outline-none",
-                            "transition-all duration-150 bg-muted/10",
-                            "text-foreground focus:border-accent focus:bg-accent/5",
-                            "disabled:opacity-60 disabled:cursor-not-allowed",
-                            couponStatus === "valid"
-                              ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
-                              : couponStatus === "invalid" ||
-                                  couponStatus === "inactive" ||
-                                  couponStatus === "network-error"
-                                ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-500"
-                                : "border-border/30 border-black/15",
-                          ].join(" ")}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between px-1 min-h-[20px]">
-                      <span className="text-xs font-medium">
-                        {couponStatus === "valid" && (
-                          <span className="text-green-500">
-                            {discountPercent}% discount applied!
-                          </span>
-                        )}
-                        {couponStatus === "invalid" && (
-                          <span className="text-red-500">Coupon not found</span>
-                        )}
-                        {couponStatus === "inactive" && (
-                          <span className="text-orange-500">
-                            Coupon is no longer active
-                          </span>
-                        )}
-                        {couponStatus === "network-error" && (
-                          <span className="text-red-500">
-                            Network error. Please retry.
-                          </span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        {couponLoading && (
-                          <span className="text-xs text-muted-foreground animate-pulse">
-                            Checking…
-                          </span>
-                        )}
-                        {!couponLoading &&
-                          isCouponFilled &&
-                          couponStatus !== "valid" && (
-                            <button
-                              onClick={handleApplyCoupon}
-                              className="text-xs font-bold text-accent underline underline-offset-2"
-                            >
-                              {couponStatus === "network-error" ? "Retry" : "Apply"}
-                            </button>
-                          )}
-                        {couponString && (
-                          <button
-                            onClick={handleClearCoupon}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Price breakdown ── */}
-                  <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 p-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Plan Amount
-                      </span>
-                      <span className="text-foreground font-medium">
-                        ₹{baseAmount}
-                      </span>
-                    </div>
-                    {couponStatus === "valid" && discountAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-500">
-                          Coupon Discount ({discountPercent}%)
-                        </span>
-                        <span className="text-green-500 font-medium">
-                          − ₹{discountAmount}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        GST / Taxes
-                      </span>
-                      <span className="text-foreground font-medium">
-                        Included
-                      </span>
-                    </div>
-                    <div className="h-px dark:bg-white/10 bg-black/10 my-1" />
-                    <div className="flex justify-between text-base font-bold">
-                      <span className="text-foreground">
-                        Total Payable
-                      </span>
-                      <span className="text-accent">₹{finalAmount}</span>
-                    </div>
-                  </div>
-
-                  {/* ── Error message ── */}
-                  {paymentError && (
-                    <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 px-4 py-3 flex items-start gap-2">
-                      <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                      </svg>
-                      <p className="text-xs text-red-600 dark:text-red-400">
-                        {paymentError}
-                      </p>
-                    </div>
-                  )}
-                </Modal.Body>
-
-                {/* ── Footer ── */}
-                <Modal.Footer className="flex flex-col gap-2 pt-2 px-4 pb-3 border-t border-border bg-background flex-shrink-0">
-                  <button
-                    onClick={handleConfirmPurchase}
-                    disabled={paymentLoading}
-                    className={[
-                      "w-full py-3.5 rounded-xl font-bold text-sm text-white",
-                      "flex items-center justify-center gap-2 shadow-lg shadow-accent/25",
-                      "transition-all duration-150",
-                      paymentLoading
-                        ? "bg-accent/60 cursor-not-allowed"
-                        : "bg-accent hover:opacity-90 active:scale-[0.98]",
-                    ].join(" ")}
-                  >
-                    {paymentLoading ? (
-                      <>
-                        <svg
-                          className="animate-spin h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8H4z"
-                          />
-                        </svg>
-                        Processing…
-                      </>
-                    ) : (
-                      <>
-                        Confirm Purchase &nbsp;·&nbsp; ₹
-                        {finalAmount}
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    disabled={paymentLoading}
-                    onClick={() => {
-                      if (paymentLoading) return;
-                      setIsOpen(false);
-                      if (onBack) onBack();
-                    }}
-                    className="w-full py-2.5 rounded-xl text-sm font-medium
-                      text-muted-foreground
-                      dark:hover:bg-white/5 hover:bg-black/5
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                      transition-colors duration-150"
-                  >
-                    ← Back to Plan Details
-                  </button>
-
-                  <p className="text-center text-[10px] text-muted-foreground pb-1">
-                    Secured by Razorpay &nbsp;·&nbsp; 256-bit SSL Encryption
+            <Modal.Body className="space-y-3 pt-0 px-4 overflow-y-auto flex-1">
+              {/* ── Plan card ── */}
+              <div className="rounded-xl border border-accent/25 bg-accent/5 p-4 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground text-[13px] truncate">
+                    {plan.PlanName || "Unnamed Plan"}
                   </p>
-                </Modal.Footer>
-              </>
-            )}
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {plan.Type || "—"}&nbsp;·&nbsp;{plan.Day_value ?? 0} Days
+                  </p>
+                </div>
+                <p className="text-lg font-extrabold text-accent shrink-0">
+                  ₹{baseAmount}
+                </p>
+              </div>
+
+              {/* ── Validity strip ── */}
+              <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 px-4 py-3 flex items-center justify-between gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Start
+                  </p>
+                  <p className="text-[12px] font-semibold text-foreground">
+                    {fmtDisplay(today)}
+                  </p>
+                </div>
+                <div className="flex-1 flex flex-col items-center gap-0.5">
+                  <div className="w-full flex items-center gap-1">
+                    <div className="flex-1 h-px bg-accent/30" />
+                    <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="flex-1 h-px bg-accent/30" />
+                  </div>
+                  <p className="text-[10px] text-accent font-semibold">
+                    {plan.Day_value ?? 0} Days
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                    Expiry
+                  </p>
+                  <p className="text-xs font-semibold text-red-500 dark:text-red-400">
+                    {fmtDisplay(expiryDate)}
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Coupon section ── */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Coupon Code</p>
+                  <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
+                </div>
+
+                <div
+                  className="flex items-center justify-center gap-2"
+                  onPaste={handleCouponPaste}
+                >
+                  {coupon.map((char, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => (inputRefs.current[idx] = el)}
+                      type="text"
+                      inputMode="text"
+                      maxLength={1}
+                      value={char}
+                      disabled={couponLoading || couponStatus === "valid"}
+                      onChange={(e) => handleCouponChange(e.target.value, idx)}
+                      onKeyDown={(e) => handleCouponKeyDown(e, idx)}
+                      className={[
+                        "w-10 h-11 text-center text-sm font-bold rounded-xl border-2 outline-none",
+                        "transition-all duration-150 bg-muted/10",
+                        "text-foreground focus:border-accent focus:bg-accent/5",
+                        "disabled:opacity-60 disabled:cursor-not-allowed",
+                        couponStatus === "valid"
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                          : couponStatus === "invalid" ||
+                              couponStatus === "inactive"
+                            ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-500"
+                            : "border-border/30 border-black/15",
+                      ].join(" ")}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between px-1 min-h-[20px]">
+                  <span className="text-xs font-medium">
+                    {couponStatus === "valid" && (
+                      <span className="text-green-500">
+                        {discountPercent}% discount applied!
+                      </span>
+                    )}
+                    {couponStatus === "invalid" && (
+                      <span className="text-red-500">Coupon not found</span>
+                    )}
+                    {couponStatus === "inactive" && (
+                      <span className="text-orange-500">
+                        Coupon is no longer active
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    {couponLoading && (
+                      <span className="text-xs text-muted-foreground animate-pulse">
+                        Checking…
+                      </span>
+                    )}
+                    {!couponLoading &&
+                      isCouponFilled &&
+                      couponStatus !== "valid" && (
+                        <button
+                          onClick={handleApplyCoupon}
+                          className="text-xs font-bold text-accent underline underline-offset-2"
+                        >
+                          Apply
+                        </button>
+                      )}
+                    {couponString && (
+                      <button
+                        onClick={handleClearCoupon}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Price breakdown ── */}
+              <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Plan Amount
+                  </span>
+                  <span className="text-foreground font-medium">
+                    ₹{baseAmount}
+                  </span>
+                </div>
+                {couponStatus === "valid" && discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-500">
+                      Coupon Discount ({discountPercent}%)
+                    </span>
+                    <span className="text-green-500 font-medium">
+                      − ₹{discountAmount}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    GST / Taxes
+                  </span>
+                  <span className="text-foreground font-medium">
+                    Included
+                  </span>
+                </div>
+                <div className="h-px dark:bg-white/10 bg-black/10 my-1" />
+                <div className="flex justify-between text-base font-bold">
+                  <span className="text-foreground">
+                    Total Payable
+                  </span>
+                  <span className="text-accent">₹{finalAmount}</span>
+                </div>
+              </div>
+
+              {/* ── Error message ── */}
+              {paymentError && (
+                <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 px-4 py-3">
+                  <p className="text-xs text-red-600 dark:text-red-400 text-center">
+                    {paymentError}
+                  </p>
+                </div>
+              )}
+            </Modal.Body>
+
+            {/* ── Footer ── */}
+            <Modal.Footer className="flex flex-col gap-2 pt-2 px-4 pb-3 border-t border-border bg-background flex-shrink-0">
+              <button
+                onClick={handleConfirmPurchase}
+                disabled={paymentLoading}
+                className={[
+                  "w-full py-3.5 rounded-xl font-bold text-sm text-white",
+                  "flex items-center justify-center gap-2 shadow-lg shadow-accent/25",
+                  "transition-all duration-150",
+                  paymentLoading
+                    ? "bg-accent/60 cursor-not-allowed"
+                    : "bg-accent hover:opacity-90 active:scale-[0.98]",
+                ].join(" ")}
+              >
+                {paymentLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    Confirm Purchase &nbsp;·&nbsp; ₹
+                    {finalAmount}
+                  </>
+                )}
+              </button>
+
+              <button
+                disabled={paymentLoading}
+                onClick={() => {
+                  if (paymentLoading) return;
+                  setIsOpen(false);
+                  if (onBack) onBack();
+                }}
+                className="w-full py-2.5 rounded-xl text-sm font-medium
+                  text-muted-foreground
+                  dark:hover:bg-white/5 hover:bg-black/5
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-colors duration-150"
+              >
+                ← Back to Plan Details
+              </button>
+
+              <p className="text-center text-[10px] text-muted-foreground pb-1">
+                Secured by Razorpay &nbsp;·&nbsp; 256-bit SSL Encryption
+              </p>
+            </Modal.Footer>
           </Modal.Dialog>
         </Modal.Container>
       </Modal.Backdrop>

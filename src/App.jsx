@@ -32,11 +32,8 @@ const MainEditor = lazy(() => import("./pages/Editor/MainEditor"));
 const Myprofile = lazy(() => import("./pages/Profile/Myprofile"));
 
 // Preload functions — called eagerly in the background so navigation is instant
-const _preloadEditor       = () => import("./pages/Editor/MainEditor");
-const _preloadForm         = () => import("./pages/mainform/components/SalesExecutiveForm");
-const _preloadSubscription = () => import("./pages/Subscription/MainSubscription");
-const _preloadProfile      = () => import("./pages/Profile/Myprofile");
-const _preloadMlmProfile   = () => import("./pages/Mymlmprofile/MlmProfile");
+const _preloadEditor = () => import("./pages/Editor/MainEditor");
+const _preloadForm   = () => import("./pages/mainform/components/SalesExecutiveForm");
 
 const progressStyle = `
   @keyframes routeBarFill {
@@ -147,9 +144,6 @@ function PersistentPages({ pathname }) {
     const t = setTimeout(() => {
       _preloadEditor();
       _preloadForm();
-      _preloadSubscription();
-      _preloadProfile();
-      _preloadMlmProfile();
     }, 800);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
