@@ -10,6 +10,8 @@ export const GENERAL_SELECT_TYPES = [
   { name: "Festival", value: "Festival" },
   { name: "Motivational", value: "Motivational" },
   { name: "Good Morning", value: "Good_Morning" },
+  { name: "Sport", value: "Sport" },
+  { name: "Daily_Life", value: "Daily_Life" },
   { name: "Devotional / Spiritual", value: "Devotional_Spiritual" },
   { name: "Leader Quotes", value: "Leader_Quotes" },
   { name: "Health Tips", value: "Health_Tips" },

@@ -8,6 +8,8 @@ const TYPE_GROUPS = [
     "Bonanza",
     "Welcome_Closing",
     "Good_Morning",
+    "Sport",
+    "Daily_Life",
     "Greeting_Wishes",
     "Health_Tips",
     "Achievements",

@@ -27,7 +27,10 @@ function TemplateImage({ src, alt }) {
         style={{ transition: loaded ? "none" : "opacity 0.15s" }}
         loading="lazy"
         decoding="auto"
-        onLoad={() => { _seenImages.add(src); setLoaded(true); }}
+        onLoad={() => {
+          _seenImages.add(src);
+          setLoaded(true);
+        }}
       />
     </div>
   );
@@ -58,16 +61,16 @@ export default function AllTemplates() {
   const selType = getSelType(contextSelType);
   const cacheKey = selType?.type || "";
 
-  const [tempdata, setTempData]             = useState([]);
-  const [lastDoc, setLastDoc]               = useState(null);
-  const [hasMore, setHasMore]               = useState(true);
-  const [isInitialLoading, setInitialLoad]  = useState(true);
-  const [isFetchingMore, setFetchingMore]   = useState(false);
-  const [selectedId, setSelectedId]         = useState(null);
+  const [tempdata, setTempData] = useState([]);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isInitialLoading, setInitialLoad] = useState(true);
+  const [isFetchingMore, setFetchingMore] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
-  const observerRef  = useRef(null);
-  const sentinelRef  = useRef(null);
-  const lastKeyRef   = useRef(null); // track which type we last loaded
+  const observerRef = useRef(null);
+  const sentinelRef = useRef(null);
+  const lastKeyRef = useRef(null); // track which type we last loaded
 
   // ── Load or restore data whenever the selected type changes ──────────────
   useEffect(() => {
@@ -96,31 +99,40 @@ export default function AllTemplates() {
     loadFirstPage(key);
   }, [contextSelType]); // eslint-disable-line
 
-  const loadFirstPage = useCallback(async (type) => {
-    try {
-      const { templates, lastDoc: ld, hasMore: more } =
-        await Alltemplateservice(type, null, 12);
-      setTempData(templates);
-      setLastDoc(ld);
-      setHasMore(more);
-      setAllTemplatesCache((prev) => ({
-        ...prev,
-        [type]: { templates, lastDoc: ld, hasMore: more },
-      }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setInitialLoad(false);
-    }
-  }, [setAllTemplatesCache]);
+  const loadFirstPage = useCallback(
+    async (type) => {
+      try {
+        const {
+          templates,
+          lastDoc: ld,
+          hasMore: more,
+        } = await Alltemplateservice(type, null, 12);
+        setTempData(templates);
+        setLastDoc(ld);
+        setHasMore(more);
+        setAllTemplatesCache((prev) => ({
+          ...prev,
+          [type]: { templates, lastDoc: ld, hasMore: more },
+        }));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setInitialLoad(false);
+      }
+    },
+    [setAllTemplatesCache],
+  );
 
   const loadMorePage = useCallback(async () => {
     const activeType = getSelType(contextSelType);
     if (!activeType?.type || !lastDoc) return;
     setFetchingMore(true);
     try {
-      const { templates, lastDoc: ld, hasMore: more } =
-        await Alltemplateservice(activeType.type, lastDoc, 6);
+      const {
+        templates,
+        lastDoc: ld,
+        hasMore: more,
+      } = await Alltemplateservice(activeType.type, lastDoc, 6);
       setTempData((prev) => {
         const next = [...prev, ...templates];
         setAllTemplatesCache((c) => ({
@@ -141,7 +153,12 @@ export default function AllTemplates() {
   // ── Infinite scroll sentinel ─────────────────────────────────────────────
   const handleObserver = useCallback(
     (entries) => {
-      if (entries[0].isIntersecting && hasMore && !isFetchingMore && !isInitialLoading) {
+      if (
+        entries[0].isIntersecting &&
+        hasMore &&
+        !isFetchingMore &&
+        !isInitialLoading
+      ) {
         loadMorePage();
       }
     },
@@ -164,17 +181,31 @@ export default function AllTemplates() {
     const Profile = JSON.parse(localStorage.getItem("mlmProfile") || "{}");
     if (Profile?.companyId) {
       const GENERAL_SELECT_TYPES = new Set([
-        "Trending", "Festival", "Motivational", "Good_Morning",
-        "Devotional_Spiritual", "Leader_Quotes", "Health_Tips",
-        "Meeting", "Greeting_Wishes", "ThankYou_Birthday_Anniversary",
+        "Trending",
+        "Festival",
+        "Motivational",
+        "Good_Morning",
+        "Sport",
+        "Daily_Life",
+        "Devotional_Spiritual",
+        "Leader_Quotes",
+        "Health_Tips",
+        "Meeting",
+        "Greeting_Wishes",
+        "ThankYou_Birthday_Anniversary",
       ]);
       const seltype = {
-        id: item.id, type: item.type, serial: item.serial,
-        ShowCaseForm: item.ShowCaseForm, Subtype: item.Subtype,
+        id: item.id,
+        type: item.type,
+        serial: item.serial,
+        ShowCaseForm: item.ShowCaseForm,
+        Subtype: item.Subtype,
       };
       setSelType(seltype);
       localStorage.setItem("selType", JSON.stringify(seltype));
-      navigate(GENERAL_SELECT_TYPES.has(selType?.type) ? "/editor" : "/mlmform");
+      navigate(
+        GENERAL_SELECT_TYPES.has(selType?.type) ? "/editor" : "/mlmform",
+      );
     } else {
       navigate("/mlmprofile");
     }
@@ -213,8 +244,12 @@ export default function AllTemplates() {
             <div className="w-20 h-20 bg-white dark:bg-black/20 rounded-full flex items-center justify-center shadow-sm border border-border mb-4">
               <Compass className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-display font-bold text-foreground mb-2">No templates found</h3>
-            <p className="text-muted-foreground">Check back later for new designs in this category.</p>
+            <h3 className="text-xl font-display font-bold text-foreground mb-2">
+              No templates found
+            </h3>
+            <p className="text-muted-foreground">
+              Check back later for new designs in this category.
+            </p>
           </div>
         )}
 
@@ -226,12 +261,16 @@ export default function AllTemplates() {
                 key={card.id}
                 onClick={() => onImageSelect(card)}
                 className={`relative rounded-[24px] overflow-hidden cursor-pointer aspect-square bg-white dark:bg-black/20 card-press
-                  ${isSelected
-                    ? "ring-2 ring-accent ring-offset-2 dark:ring-offset-[#0b0f19] shadow-lg scale-[0.98]"
-                    : "border border-border shadow-sm"
+                  ${
+                    isSelected
+                      ? "ring-2 ring-accent ring-offset-2 dark:ring-offset-[#0b0f19] shadow-lg scale-[0.98]"
+                      : "border border-border shadow-sm"
                   }`}
               >
-                <TemplateImage src={card.image} alt={card.Subtype || "Template design"} />
+                <TemplateImage
+                  src={card.image}
+                  alt={card.Subtype || "Template design"}
+                />
                 {isSelected && (
                   <>
                     <div className="absolute inset-0 border-4 border-accent rounded-[24px] pointer-events-none" />

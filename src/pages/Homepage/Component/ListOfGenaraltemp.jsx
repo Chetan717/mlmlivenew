@@ -103,6 +103,8 @@ const GENERAL_SELECT_TYPES = new Set([
   "Festival",
   "Motivational",
   "Good_Morning",
+  "Sport",
+  "Daily_Life",
   "Devotional_Spiritual",
   "Leader_Quotes",
   "Health_Tips",
