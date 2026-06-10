@@ -3,7 +3,7 @@ import { useGeneralData } from "../../../Context/GeneralContext";
 import { useNavigate } from "react-router";
 import { ArrowUpRight, Sparkles } from "@gravity-ui/icons";
 import { preloadImage } from "./templateCacheUtils";
-
+import profileCreate from "../../../../public/prcrete.png";
 // Module-level set: tracks images loaded at least once this session
 // Survives component unmount/remount so returning to home never re-shows skeleton
 const _seenImages = new Set();
@@ -28,7 +28,10 @@ const ImageWithSkeleton = React.memo(({ src, alt, className }) => {
         className={`${className} ${loaded ? "opacity-100" : "opacity-0"}`}
         style={loaded ? undefined : { transition: "opacity 0.15s" }}
         decoding="auto"
-        onLoad={() => { _seenImages.add(src); setLoaded(true); }}
+        onLoad={() => {
+          _seenImages.add(src);
+          setLoaded(true);
+        }}
       />
     </div>
   );
@@ -38,37 +41,55 @@ const ImageWithSkeleton = React.memo(({ src, alt, className }) => {
 function CreateProfileModal({ onConfirm, onDismiss }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-70 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onDismiss}
     >
       <div
-        className="bg-background w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl p-6 pb-10 sm:pb-6"
+        className="bg-[#d4e4f8] w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl p-6 pb-10 sm:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-center mb-5">
-          <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-              <circle cx="12" cy="8" r="4"/>
-              <path d="M6 20v-2a6 6 0 0112 0v2"/>
+        {/* <div className="flex items-center justify-center mb-5">
+          {/* <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-accent"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M6 20v-2a6 6 0 0112 0v2" />
             </svg>
-          </div>
-        </div>
-        <h2 className="text-[17px] font-bold text-foreground text-center mb-2">
+          </div> 
+        </div> */}
+        {/* <h2 className="text-[17px] font-bold text-foreground text-center mb-2">
           Create Your Profile First
         </h2>
         <p className="text-[13px] text-muted-foreground text-center mb-6 leading-relaxed">
           To personalise your designs with your name, photo and details, please set up your MLM profile.
-        </p>
+        </p> */}
+        <img
+          src={profileCreate}
+          alt="create profile"
+          className={` rounded-xl`}
+          decoding="auto"
+        />
         <button
           onClick={onConfirm}
-          className="w-full py-3.5 rounded-2xl text-white font-bold text-[14px] shadow-lg shadow-accent/20 mb-2"
-          style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)" }}
+          className="w-full py-3.5 mt-5 rounded-2xl text-white font-bold text-[14px] shadow-lg shadow-accent/20 "
+          style={{
+            background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)",
+          }}
         >
           Create Profile →
         </button>
         <button
           onClick={onDismiss}
-          className="w-full py-2 text-[12px] font-medium text-muted-foreground text-center"
+          className="w-full py-2 mt-2 text-[12px] font-medium text-muted-foreground text-center"
         >
           Maybe later
         </button>

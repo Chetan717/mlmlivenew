@@ -153,7 +153,7 @@ export default function SelectComp() {
                     onClick={() => handleSelect(item)}
                     className={`flex flex-col items-center gap-3 p-4 rounded-[24px] cursor-pointer transition-all duration-300 transform active:scale-95 border bg-white dark:bg-black/20 ${
                       isSelected
-                        ? "border-accent ring-2 ring-accent ring-offset-2 dark:ring-offset-background shadow-lg scale-105 z-10"
+                        ? " ring-1 ring-accent ring-offset-2 dark:ring-offset-background shadow-lg scale-105 z-10"
                         : "border-border shadow-sm hover:shadow-md hover:border-accent/50"
                     }`}
                   >
@@ -198,7 +198,7 @@ export default function SelectComp() {
                   : "bg-muted text-muted-foreground opacity-90 translate-y-2 pointer-events-none"
               }`}
             >
-              {selectedCompany ? `Continue with ${selectedCompany.name}` : "Select a Company"}
+              {selectedCompany ? `Continue` : "Select a Company"}
             </Button>
           </div>
         </div>
