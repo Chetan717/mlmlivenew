@@ -92,7 +92,7 @@ export function CheckoutModal({
       }
 
       // ── Step 2: Create order on backend   ───────────────────────────────
-    const res = await fetch("https://pserver.vercel.app/?ADS360KEY", {
+    const res = await fetch("https://pserver.vercel.app/?API_KEY=ADS360KEY", {
       //donot change this above url configure if you edit on replit
       method: "POST",
       headers: {
