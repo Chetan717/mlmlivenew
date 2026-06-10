@@ -51,9 +51,9 @@ export default function ImageEditorCanvas({
   const isWelcome   = selll?.Subtype === "WELCOME";
   const isBonanza   = selll?.type === "Bonanza";
 
-  const rankW = isMeeting ? 135 : isCapping ? 100 : isIncome ? 100 : isAnyversary ? 130 : 110;
-  const rankH = isMeeting ? 200 : isCapping ? 150 : isIncome ? 150 : isAnyversary ? 220
-              : isClosing ? 130 : isWelcome ? 160 : isBonanza ? 180 : 190;
+  const rankW = isMeeting ? 135 : isCapping ? 100 : isIncome ? 105 : isAnyversary ? 130 : 110;
+  const rankH = isMeeting ? 200 : isCapping ? 150 : isIncome ? 195 : isAnyversary ? 220
+              : isClosing ? 190 : isWelcome ? 190 : isBonanza ? 180 : 190;
 
   const ASPECT_RATIO =
     editingType === "proof"   ? 2 / 2 :

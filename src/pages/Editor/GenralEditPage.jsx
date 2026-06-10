@@ -556,8 +556,8 @@ function GeneralEditPage({
             : 10
           : isIncome
             ? isRight
-              ? 215
-              : 17
+              ? 210
+              : 15
             : isAnyversary
               ? isRight
                 ? 180
@@ -582,7 +582,7 @@ function GeneralEditPage({
             : isAnyversary
               ? 40
               : isClosing
-                ? 110
+                ? 60
                 : isWelcome
                   ? 34
                   : isBonanza
@@ -593,7 +593,7 @@ function GeneralEditPage({
         : isCapping
           ? 100
           : isIncome
-            ? 100
+            ? 105
             : isAnyversary
               ? 130
               : 110,
@@ -606,7 +606,7 @@ function GeneralEditPage({
             : isAnyversary
               ? 220
               : isClosing
-                ? 130
+                ? 190
                 : isWelcome
                   ? 190
                   : isBonanza

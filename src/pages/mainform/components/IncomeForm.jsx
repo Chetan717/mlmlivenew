@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ImageUploadSquare from "./ImageUploadSquare";
 import { sanitizeAmount, sanitizeFormValue } from "../utils/inputSanitize";
-import { toast } from "../../../utils/toast";
+import { toast } from "@heroui/react";
 
 const IncomeForm = ({ onSaved }) => {
   const STORAGE_KEY = "income_form";
@@ -68,7 +68,7 @@ const IncomeForm = ({ onSaved }) => {
 
   const handleSave = () => {
     if (!validate()) {
-      toast.error("Please fill all required fields");
+      toast.danger("Please fill all required fields");
       return;
     }
     try {
@@ -76,7 +76,7 @@ const IncomeForm = ({ onSaved }) => {
       toast.success("Income details saved!");
       onSaved?.();
     } catch (error) {
-      toast.error("Error saving form data");
+      toast.danger("Error saving form data");
       console.error("Error:", error);
     }
   };
