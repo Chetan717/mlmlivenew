@@ -91,15 +91,16 @@ export function CheckoutModal({
         return;
       }
 
-      // ── Step 2: Create order on backend ───────────────────────────────
-      const res = await fetch("https://pserver.vercel.app", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": "ADS360KEY",
-        },
-        body: JSON.stringify({ amount: payableAmount }),
-      });
+      // ── Step 2: Create order on backend   ───────────────────────────────
+    const res = await fetch("https://pserver.vercel.app/?ADS360KEY", {
+      //donot change this above url configure if you edit on replit
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "",
+      },
+      body: JSON.stringify({ amount: payableAmount }),
+    });
 
       if (!res.ok) {
         setPaymentError(`Order creation failed. Please try again.`);
