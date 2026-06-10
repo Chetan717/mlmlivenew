@@ -10,7 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-const RAZORPAY_KEY_ID = "rzp_test_AwYjl9iEgMP9Zk" || "";
+const RAZORPAY_KEY_ID = "rzp_test_AwYjl9iEgMP9Zk" || ""; // donot change this if you are replit 
 
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
