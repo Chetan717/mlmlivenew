@@ -17,6 +17,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { CheckoutModal } from "./CheckoutModal";
 import { PlanModal } from "./PlanModal";
@@ -257,6 +258,18 @@ export default function MainSubscription() {
   const [subLoading, setSubLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("active");
 
+  // ── Helper: check if an expirydate (Firestore Timestamp or string) is past today ──
+  const isExpiredByDate = (expirydate) => {
+    if (!expirydate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = expirydate?.seconds
+      ? new Date(expirydate.seconds * 1000)
+      : new Date(expirydate);
+    expiry.setHours(0, 0, 0, 0);
+    return expiry < today;
+  };
+
   // Fetch both active and expired subscriptions
   const fetchSubscriptions = useCallback(async () => {
     try {
@@ -288,21 +301,40 @@ export default function MainSubscription() {
         getDocs(expiredQuery),
       ]);
 
-      const sortByDate = (docs) =>
-        docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .sort(
-            (a, b) =>
-              (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0),
-          );
+      const sortByDate = (arr) =>
+        arr.sort((a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0));
 
-      setActiveSubscriptions(sortByDate(activeSnap.docs));
-      setExpiredSubscriptions(sortByDate(expiredSnap.docs));
+      // ── Auto-expire: if expirydate < today, update Firestore and move to expired ──
+      const nowActive = [];
+      const autoExpired = [];
+
+      for (const d of activeSnap.docs) {
+        const data = { id: d.id, ...d.data() };
+        if (isExpiredByDate(data.expirydate)) {
+          autoExpired.push(data);
+          // Fire-and-forget Firestore update — don't block UI
+          updateDoc(doc(db, "subscription", d.id), { Active: false, Expire: true }).catch(
+            (e) => console.error("Failed to mark expired:", e),
+          );
+        } else {
+          nowActive.push(data);
+        }
+      }
+
+      const expiredList = sortByDate([
+        ...autoExpired,
+        ...expiredSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      ]);
+      const activeList = sortByDate(nowActive);
+
+      setActiveSubscriptions(activeList);
+      setExpiredSubscriptions(expiredList);
 
       // Auto-switch to expired tab if no active subs but has expired
-      if (activeSnap.empty && !expiredSnap.empty) {
+      if (activeList.length === 0 && expiredList.length > 0) {
         setActiveTab("expired");
       }
+
     } catch (err) {
       console.error("Error fetching subscriptions:", err);
     } finally {

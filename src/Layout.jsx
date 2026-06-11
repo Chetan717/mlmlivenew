@@ -3,6 +3,7 @@ import { useLocation } from "react-router";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import TabBar from "./components/TabBar";
+import ExpiryAlertBanner from "./components/ExpiryAlertBanner";
 import { ToastRoot } from "./utils/toast";
 
 export default function Layout({ children }) {
@@ -42,6 +43,7 @@ export default function Layout({ children }) {
         </div>
 
         {!hideTabBar && <TabBar />}
+        {!hideTabBar && <ExpiryAlertBanner />}
       </div>
 
       <ToastRoot />

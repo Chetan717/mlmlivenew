@@ -146,9 +146,17 @@ export default function ReferCard() {
   }, [user?.referCode]);
 
   const handleShare = useCallback(() => {
-    const msg = `Hey! Use my refer code ${referCode} and get 1 month FREE on MLM LIVE. Join now! https://play.google.com/store/apps/details?id=com.mlmbooster.mlmbooster`;
-    if (navigator.share) navigator.share({ title: "Refer & Earn", text: msg });
-    else navigator.clipboard.writeText(msg).catch(() => {});
+    const msg =
+      `🌟 *Join MLM LIVE & Grow Your Network!*\n\n` +
+      `Hey! I'm using *MLM LIVE* — the best app to create stunning marketing images for your MLM business instantly.\n\n` +
+      `🎁 *Use my referral code:* \`${referCode}\`\n\n` +
+      `✅ *You get:* 10 Free Credits on joining\n` +
+      `🎉 *I get:* 10 Credits for referring you\n\n` +
+      `📲 Download now from Play Store:\n` +
+      `👉 https://play.google.com/store/apps/details?id=com.mlmbooster.mlmbooster`;
+
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
   }, [referCode]);
 
   return (

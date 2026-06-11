@@ -30,6 +30,7 @@ const SalesExecutiveForm = lazy(
 );
 const MainEditor = lazy(() => import("./pages/Editor/MainEditor"));
 const Myprofile = lazy(() => import("./pages/Profile/Myprofile"));
+const Reporting = lazy(() => import("./pages/Reporting/Reporting"));
 
 // Preload functions — called eagerly in the background so navigation is instant
 const _preloadEditor = () => import("./pages/Editor/MainEditor");
@@ -287,6 +288,18 @@ function App() {
                 <ProtectMlmProfile>
                   <Layout>
                     <Myprofile />
+                  </Layout>
+                </ProtectMlmProfile>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reporting"
+            element={
+              <ProtectedRoute>
+                <ProtectMlmProfile>
+                  <Layout>
+                    <Reporting />
                   </Layout>
                 </ProtectMlmProfile>
               </ProtectedRoute>
