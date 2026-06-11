@@ -4,13 +4,13 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB8i48UiJ9YJ1w9_e-cwthvbqB94eNLulc",
-  authDomain: "mlmbooster-a4887.firebaseapp.com",
-  projectId: "mlmbooster-a4887",
-  storageBucket: "mlmbooster-a4887.firebasestorage.app",
-  messagingSenderId: "535257539526",
-  appId: "1:535257539526:web:13cbba2f093fcf277088c7",
-  measurementId: "G-YB76LFZQ5X"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
