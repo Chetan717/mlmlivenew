@@ -1,21 +1,94 @@
+import { useState, useEffect } from "react";
+import { db } from "../../Firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import CreateProfile from "./CreateProfile";
+import ManagerView from "./ManagerView";
+import MemberView from "./MemberView";
 import { BarChart3 } from "lucide-react";
 
 export default function Reporting() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-      <div className="w-20 h-20 rounded-[28px] flex items-center justify-center mb-6 shadow-lg"
-        style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)" }}>
-        <BarChart3 className="w-9 h-9 text-white" />
+  const [status, setStatus] = useState("loading");
+  const [profile, setProfile] = useState(null);
+  const [userMobile, setUserMobile] = useState("");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const raw = localStorage.getItem("usermlm");
+    if (!raw) { setStatus("no-user"); return; }
+    const user = JSON.parse(raw);
+    const mobile = user.mobileNo || user.mobile || "";
+    const name = user.name || "";
+    setUserMobile(mobile);
+    setUserName(name);
+    if (!mobile) { setStatus("no-user"); return; }
+
+    getDocs(query(collection(db, "reportingUser"), where("userMobile", "==", mobile)))
+      .then((snap) => {
+        if (snap.empty) {
+          setStatus("no-profile");
+        } else {
+          const doc = snap.docs[0];
+          setProfile({ id: doc.id, ...doc.data() });
+          setStatus("has-profile");
+        }
+      })
+      .catch(() => setStatus("error"));
+  }, []);
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-border border-t-accent rounded-full animate-spin" />
+          <p className="text-[13px] text-muted-foreground">Loading reporting...</p>
+        </div>
       </div>
-      <h1 className="text-[26px] font-display font-bold text-foreground mb-2">Reporting</h1>
-      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
-        style={{ background: "rgba(14,36,92,0.08)", border: "1px solid rgba(14,36,92,0.15)" }}>
-        <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-        <span className="text-[12px] font-bold text-accent uppercase tracking-widest">Coming Soon</span>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center">
+          <BarChart3 className="w-7 h-7 text-red-500" />
+        </div>
+        <p className="text-[15px] font-bold text-foreground">Failed to load</p>
+        <p className="text-[12px] text-muted-foreground">Please check your connection and try again.</p>
+        <button onClick={() => window.location.reload()}
+          className="px-5 py-2 rounded-xl text-white text-[13px] font-bold"
+          style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+          Retry
+        </button>
       </div>
-      <p className="text-[14px] text-muted-foreground max-w-xs leading-relaxed">
-        Detailed analytics, download stats, team performance reports and more — launching very soon!
-      </p>
-    </div>
-  );
+    );
+  }
+
+  if (status === "no-user") {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-[15px] font-bold text-foreground">Not logged in</p>
+        <p className="text-[12px] text-muted-foreground mt-1">Please log in to access reporting.</p>
+      </div>
+    );
+  }
+
+  if (status === "no-profile") {
+    return (
+      <CreateProfile
+        userMobile={userMobile}
+        userName={userName}
+        onProfileCreated={(newProfile) => {
+          setProfile(newProfile);
+          setStatus("has-profile");
+        }}
+      />
+    );
+  }
+
+  if (status === "has-profile" && profile) {
+    if (profile.role === "Manager") return <ManagerView profile={profile} />;
+    if (profile.role === "Team Member") return <MemberView profile={profile} />;
+  }
+
+  return null;
 }

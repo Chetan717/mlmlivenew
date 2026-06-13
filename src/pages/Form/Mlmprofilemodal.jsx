@@ -896,7 +896,7 @@ export default function MLMProfilePage() {
       setTimeout(() => navigate("/logout"), 800);
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error("Failed to delete profile. Please try again.");
+      toast.danger("Failed to delete profile. Please try again.");
     } finally {
       setDeleting(false);
     }

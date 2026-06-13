@@ -3,7 +3,8 @@ import { Label, Button, Modal } from "@heroui/react";
 import ImageUploadWithBgRemove from "./ImageUploadWithBgRemove";
 import ImageEditorCanvas from "./ImageEditorCanvas";
 import { sanitizeAmount, sanitizeName } from "../utils/inputSanitize";
-import { toast } from "../../../utils/toast";
+
+import {toast} from "@heroui/react"
 
 const toBase64 = (blob) =>
   new Promise((res) => {
@@ -69,7 +70,7 @@ export default function AchievementForm({ onSaved }) {
 
   const handleSave = async () => {
     if (!validate()) {
-      toast.error("Please fill all required fields");
+      toast.danger("Please fill all required fields");
       return;
     }
     const payload = {
@@ -83,7 +84,7 @@ export default function AchievementForm({ onSaved }) {
       toast.success("Achievement details saved!");
       onSaved?.();
     } catch (err) {
-      toast.error("Error saving achievement data");
+      toast.danger("Error saving achievement data");
       console.error(err);
     }
   };

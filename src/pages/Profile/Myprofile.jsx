@@ -50,7 +50,7 @@ function Myprofile() {
       toast.success("Name updated successfully");
     } catch (err) {
       console.error("Error updating name:", err);
-      toast.error("Failed to update name");
+      toast.danger("Failed to update name");
     } finally {
       setLoading(false);
     }
