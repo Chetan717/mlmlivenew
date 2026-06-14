@@ -11,7 +11,7 @@ import useImage from "use-image";
 import ListOfTemplates from "./components/ListOfTemplates";
 import AiRetouchModal from "./AiRetouchModal";
 import facebook from "./sociallogo/facebook.png";
-import featurec from "./sociallogo/featurecoming.png";
+import featurec from "./sociallogo/featurecoming.webp";
 import instagram from "./sociallogo/insta.png";
 import youtube from "./sociallogo/youtube.png";
 import x from "./sociallogo/x.png";
