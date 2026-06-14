@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Modal } from "@heroui/react";
-import { Copy, Check, Xmark, Person } from "@gravity-ui/icons";
+import {
+  Copy,
+  Check,
+  Xmark,
+  Person,
+  NodesRight,
+  CreditCard,
+} from "@gravity-ui/icons";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import referGraphic from "./refer.png";
 
@@ -161,12 +168,19 @@ export default function ReferCard() {
 
   return (
     <>
-      <ReferEarningsModal user={user} isOpen={showModal} onClose={() => setShowModal(false)} />
+      <ReferEarningsModal
+        user={user}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
 
       <div className="w-full px-1">
         <div
           className="relative overflow-hidden rounded-2xl p-5 w-full"
-          style={{ background: "linear-gradient(135deg, #e8005a 0%, #c1005a 50%, #9b0066 100%)" }}
+          style={{
+            background:
+              "linear-gradient(135deg, #0e245c 0%, #122d73 60%, #1a3f99 100%)",
+          }}
         >
           {/* Decorative circles */}
           <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none" />
@@ -183,17 +197,19 @@ export default function ReferCard() {
 
             {/* Code box */}
             <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center gap-2 bg-white/18 border border-white/30 rounded-xl px-3 py-2 flex-1 min-w-0">
-                <span className="text-white text-[14px] font-mono font-bold tracking-widest truncate">
-                  {referCode}
+              <div className="flex items-center gap-2 bg-white/18 border border-white/30 rounded-xl px-3 py-2 flex-row min-w-0">
+                <span className="text-white text-[12px] font-mono font-bold tracking-widest truncate">
+                  {referCode}{" "}
                 </span>
                 <button
                   onClick={handleCopy}
                   className="text-white/80 hover:text-white transition-colors flex-shrink-0"
                 >
-                  {copied
-                    ? <Check width={15} height={15} className="text-green-300" />
-                    : <Copy width={15} height={15} />}
+                  {copied ? (
+                    <Check width={15} height={15} className="text-green-300" />
+                  ) : (
+                    <Copy width={15} height={15} />
+                  )}
                 </button>
               </div>
             </div>
@@ -202,15 +218,21 @@ export default function ReferCard() {
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={handleShare}
-                className="bg-white text-[#c1005a] font-bold text-[11px] px-4 py-1.5 rounded-full hover:opacity-90 active:scale-95 transition-all"
+                className="bg-white/15 flex flex-row gap-2  border border-white/35 text-white font-semibold text-[11px] px-4 py-1.5 rounded-full hover:bg-white/25 active:scale-95 transition-all"
               >
-                Share MLM LIVE
+                <span className="text-white text-[11px] font-mono font-bold tracking-widest truncate">
+                  Share MLMLIVE
+                </span>
+                <NodesRight width={15} height={15} />
               </button>
               <button
                 onClick={() => setShowModal(true)}
-                className="bg-white/15 border border-white/35 text-white font-semibold text-[11px] px-4 py-1.5 rounded-full hover:bg-white/25 active:scale-95 transition-all"
+                className="bg-white/15 flex flex-row gap-2  border border-white/35 text-white font-semibold text-[11px] px-4 py-1.5 rounded-full hover:bg-white/25 active:scale-95 transition-all"
               >
-                View Earnings
+                <span className="text-white text-[11px] font-mono font-bold tracking-widest truncate">
+                  View Referrals
+                </span>
+                <CreditCard width={15} height={15} />
               </button>
             </div>
           </div>

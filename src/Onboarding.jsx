@@ -7,8 +7,8 @@ const SLIDES = [
     id: 0,
     titleHindi: "MLM LIVE में\nआपका स्वागत है!",
     titleEng: "Welcome to MLM LIVE",
-    descHindi: "आपके MLM Business का सबसे\nअच्छा Digital Partner",
-    descEng: "Your Best Digital Partner\nfor MLM Business",
+    descHindi: "आपके Marketing Business का सबसे\nअच्छा Digital Partner",
+    descEng: "Your Best Digital Partner\nfor Marketing Business",
     graphic: "welcome",
   },
   {
@@ -121,43 +121,59 @@ export default function Onboarding() {
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col overflow-hidden select-none"
-      style={{ background: "linear-gradient(160deg, #040c22 0%, #0e245c 45%, #1a3a8f 100%)" }}
+      style={{
+        background:
+          "linear-gradient(160deg, #040c22 0%, #0e245c 45%, #1a3a8f 100%)",
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Skip */}
-      {!isLast && (
+      {/* {!isLast && (
         <button
           onClick={() => markDone("/login")}
+          onTap={() => markDone("/login")}
           className="absolute top-12 right-6 z-20 text-white/50 text-sm font-semibold tracking-wide py-1.5 px-3 rounded-full border border-white/10"
           style={{ touchAction: "manipulation" }}
         >
           Skip
         </button>
-      )}
+      )} */}
 
       {/* Decorative background blobs */}
-      <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }} />
-      <div className="absolute -bottom-32 -right-20 w-72 h-72 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }} />
+      <div
+        className="absolute -top-24 -left-24 w-64 h-64 rounded-full opacity-10"
+        style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }}
+      />
+      <div
+        className="absolute -bottom-32 -right-20 w-72 h-72 rounded-full opacity-10"
+        style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }}
+      />
 
       {/* Top section — logo + graphic */}
       <div className="relative flex-1 flex flex-col items-center justify-center px-8 gap-2 overflow-hidden">
         {/* Logo */}
-        <div className="mb-2 w-16 h-16 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-white/20 p-2"
+        {/* <div className="mb-2 w-16 h-16 bg-white rounded-2xl shadow-2xl flex items-center justify-center border border-white/20 p-2"
           style={{ boxShadow: "0 8px 32px rgba(14,36,92,0.5), 0 2px 8px rgba(0,0,0,0.2)" }}>
           <img src={logo} alt="MLM LIVE" className="w-full h-full object-contain" />
-        </div>
+        </div> */}
 
         {/* Slide graphic */}
-        <div className="w-64 h-48 mx-auto" style={{ filter: "drop-shadow(0 8px 24px rgba(79,108,196,0.3))" }}>
-          <Graphic />
+        <div
+          className="w-64 h-48 mx-auto"
+          style={{ filter: "drop-shadow(0 8px 24px rgba(79,108,196,0.3))" }}
+        >
+         <Graphic />
         </div>
 
         {/* Text content */}
         <div className="text-center mt-2 px-2">
           <h1
             className="text-white font-display font-bold text-2xl leading-tight mb-2 whitespace-pre-line"
-            style={{ fontFamily: "'Syne', sans-serif !important", textShadow: "0 2px 12px rgba(0,0,0,0.3)" }}
+            style={{
+              fontFamily: "'Syne', sans-serif !important",
+              textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            }}
           >
             {slide.titleHindi}
           </h1>
@@ -181,11 +197,10 @@ export default function Onboarding() {
             <button
               key={i}
               onClick={() => setCurrent(i)}
+              onTap={() => setCurrent(i)}
               style={{ touchAction: "manipulation" }}
               className={`rounded-full transition-all duration-300 ${
-                i === current
-                  ? "w-7 h-2.5 bg-white"
-                  : "w-2.5 h-2.5 bg-white/25"
+                i === current ? "w-7 h-2.5 bg-white" : "w-2.5 h-2.5 bg-white/25"
               }`}
             />
           ))}
@@ -196,10 +211,12 @@ export default function Onboarding() {
           <div className="w-full max-w-sm flex flex-col gap-3">
             <button
               onClick={() => markDone("/signup")}
+              onTap={() => markDone("/signup")}
               className="w-full h-14 rounded-2xl text-white font-bold text-base shadow-xl"
               style={{
                 background: "linear-gradient(135deg, #1a3a8f 0%, #4f6cc4 100%)",
-                boxShadow: "0 8px 24px rgba(79,108,196,0.4), 0 2px 6px rgba(0,0,0,0.2)",
+                boxShadow:
+                  "0 8px 24px rgba(79,108,196,0.4), 0 2px 6px rgba(0,0,0,0.2)",
                 touchAction: "manipulation",
               }}
             >
@@ -207,6 +224,7 @@ export default function Onboarding() {
             </button>
             <button
               onClick={() => markDone("/login")}
+              onTap={() => markDone("/login")}
               className="w-full h-14 rounded-2xl font-bold text-base border border-white/20"
               style={{
                 background: "rgba(255,255,255,0.08)",
@@ -220,10 +238,12 @@ export default function Onboarding() {
         ) : (
           <button
             onClick={() => setCurrent((c) => c + 1)}
+            onTap={() => setCurrent((c) => c + 1)}
             className="w-full max-w-sm h-14 rounded-2xl text-white font-bold text-base"
             style={{
               background: "linear-gradient(135deg, #1a3a8f 0%, #4f6cc4 100%)",
-              boxShadow: "0 8px 24px rgba(79,108,196,0.4), 0 2px 6px rgba(0,0,0,0.2)",
+              boxShadow:
+                "0 8px 24px rgba(79,108,196,0.4), 0 2px 6px rgba(0,0,0,0.2)",
               touchAction: "manipulation",
             }}
           >

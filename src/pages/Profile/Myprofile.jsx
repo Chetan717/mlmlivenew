@@ -71,20 +71,35 @@ function Myprofile() {
       {/* Edit name modal */}
       <Modal
         isOpen={editOpen}
-        onOpenChange={(open) => { if (!open) { setEditOpen(false); setNewName(userData.name); } }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditOpen(false);
+            setNewName(userData.name);
+          }
+        }}
       >
         <Modal.Backdrop>
           <Modal.Container placement="center">
             <Modal.Dialog className="w-full max-w-[400px]">
               <Modal.CloseTrigger className="absolute top-5 right-5 w-8 h-8 rounded-full bg-muted/30 hover:bg-muted/50 flex items-center justify-center transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </Modal.CloseTrigger>
 
               <Modal.Body>
                 <div className="mb-5">
-                  <h3 className="text-[18px] font-display font-bold text-foreground">Edit Name</h3>
+                  <h3 className="text-[18px] font-display font-bold text-foreground">
+                    Edit Name
+                  </h3>
                 </div>
 
                 <label className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider block mb-2 ml-1">
@@ -101,14 +116,21 @@ function Myprofile() {
 
                 <div className="flex gap-3 mt-5">
                   <button
-                    onClick={() => { setEditOpen(false); setNewName(userData.name); }}
+                    onClick={() => {
+                      setEditOpen(false);
+                      setNewName(userData.name);
+                    }}
                     className="flex-1 h-12 rounded-xl font-semibold text-[14px] bg-muted/30 hover:bg-muted/50 text-foreground transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleEditSave}
-                    disabled={loading || !newName.trim() || newName.trim() === userData.name}
+                    disabled={
+                      loading ||
+                      !newName.trim() ||
+                      newName.trim() === userData.name
+                    }
                     className="flex-1 h-12 rounded-xl font-bold text-[14px] bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (
@@ -126,7 +148,7 @@ function Myprofile() {
         </Modal.Backdrop>
       </Modal>
 
-      <div className="flex flex-col w-full min-h-screen bg-background pb-24 md:pb-10">
+      <div className="flex flex-col w-full min-h-screen bg-background pb-4 md:pb-10">
         {/* Hero header */}
         <div className="relative bg-accent dark:bg-[#080b14] pt-10 pb-16 px-5">
           <div className="absolute inset-0 bg-gradient-to-br from-white/8 to-transparent pointer-events-none" />
@@ -137,7 +159,9 @@ function Myprofile() {
             >
               <ArrowLeft className="w-4 h-4 text-white" />
             </button>
-            <h1 className="text-[18px] font-display font-bold text-white">My Profile</h1>
+            <h1 className="text-[18px] font-display font-bold text-white">
+              My Profile
+            </h1>
           </div>
 
           {/* Avatar row */}
@@ -155,8 +179,12 @@ function Myprofile() {
               </div>
             </div>
             <div className="pb-1 flex-1 min-w-0">
-              <h2 className="text-[20px] font-display font-bold text-white capitalize truncate">{userData.name}</h2>
-              <p className="text-white/65 text-[13px] font-mono mt-0.5">+91 {userData.mobileNo}</p>
+              <h2 className="text-[20px] font-display font-bold text-white capitalize truncate">
+                {userData.name}
+              </h2>
+              <p className="text-white/65 text-[13px] font-mono mt-0.5">
+                +91 {userData.mobileNo}
+              </p>
             </div>
             <button
               onClick={() => setEditOpen(true)}
@@ -170,7 +198,6 @@ function Myprofile() {
 
         {/* White card slides up over hero */}
         <div className="flex-1 bg-background dark:bg-background rounded-t-[28px] -mt-6 relative z-10 px-4 pt-5 space-y-4">
-
           {/* Refer Card */}
           <ReferCard />
 
@@ -188,9 +215,9 @@ function Myprofile() {
             Log Out Securely
           </button>
 
-          <div className="pb-6 text-center">
+          <div className="text-center">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-              Made with care in India
+              Made in India 🇮🇳
             </p>
           </div>
         </div>
