@@ -617,6 +617,7 @@ import {
 import { CheckoutModal } from "./CheckoutModal";
 import { PlanModal } from "./PlanModal";
 import "swiper/css";
+import subcric from "./sub.webp"
 import "swiper/css/pagination";
 import {
   CreditCard,
@@ -1121,8 +1122,9 @@ export default function MainSubscription() {
 
   return (
     <div className="w-full min-h-full bg-background p-4 md:p-8">
-      <div className="p-8 rounded-2xl border border-border bg-white dark:bg-black/20 text-center">
-        <p className="text-muted-foreground">Plans Coming Soon! 🎉</p>
+      <div className="p-1 rounded-2xl text-center">
+        {/* <p className="text-muted-foreground">Plans Coming Soon! 🎉</p> */}
+        <img src={subcric} alt="Plans Coming Soon" />
       </div>
     </div>
   );
