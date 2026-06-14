@@ -7,6 +7,7 @@ import ProtectMlmProfile from "./pages/SelectCompany/ProtectMlmProfile";
 import ProtectSelectComp from "./pages/SelectCompany/ProtectSelectComp";
 import Home from "./pages/Home";
 import AllTemplates from "./pages/Homepage/Component/AllTemplates";
+import Onboarding from "./Onboarding";
 
 const Login = lazy(() =>
   import("./Auth/Login").then((m) => ({ default: m.Login })),
@@ -188,12 +189,18 @@ function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  const showOnboarding =
+    !localStorage.getItem("onboardingDone") &&
+    !localStorage.getItem("usermlm");
+
   useEffect(() => {
     const handleBackPressed = () => navigate(-1);
     window.addEventListener("webviewBackPressed", handleBackPressed);
     return () =>
       window.removeEventListener("webviewBackPressed", handleBackPressed);
   }, [navigate]);
+
+  if (showOnboarding) return <Onboarding />;
 
   return (
     <>
