@@ -6,10 +6,26 @@ import { db } from "../Firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 const TABS = [
-  { label: "Home",         path: "/",            Icon: ({ className }) => <House    className={className} /> },
-  { label: "Subscription", path: "/subscription", Icon: ({ className }) => <Gem     className={className} /> },
-  { label: "Reporting",    path: "/reporting",    Icon: ({ className }) => <BarChart3 className={className} /> },
-  { label: "Profile",      path: "/profile",      Icon: ({ className }) => <Person  className={className} /> },
+  {
+    label: "Home",
+    path: "/",
+    Icon: ({ className }) => <House className={className} />,
+  },
+  {
+    label: "Subscription",
+    path: "/",
+    Icon: ({ className }) => <Gem className={className} />,
+  }, //"/subscription"
+  {
+    label: "Report",
+    path: "/reporting",
+    Icon: ({ className }) => <BarChart3 className={className} />,
+  },
+  {
+    label: "Profile",
+    path: "/profile",
+    Icon: ({ className }) => <Person className={className} />,
+  },
 ];
 
 function useReportingBadge() {

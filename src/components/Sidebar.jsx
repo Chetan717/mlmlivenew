@@ -12,12 +12,37 @@ import { useNavigate, useLocation } from "react-router";
 import { useGeneralData } from "../Context/GeneralContext";
 
 const NAV_ITEMS = [
-  { icon: Person,         label: "My Profile",          id: "Profile",       link: "/profile"      },
-  { icon: Gem,            label: "My Subscriptions",    id: "Subscriptions", link: "/subscription" },
-  { icon: Timestamps,     label: "My Company Profile",  id: "MyMLMProfile",  link: "/mlmprofile"   },
-  { icon: Comments,       label: "Customer Support",    id: "customerSupport", link: "https://wa.me/919229885383" },
-  { icon: ScalesBalanced, label: "Privacy Policy",      id: "privacyPolicy", link: "https://mlmlive.in/Privacy.html" },
-  { icon: Video,          label: "Learn How to Use",    id: "howtoUse",      link: "https://youtube.com/@mlmboosterapp?si=4AQiHvcR8x6CmOHX" },
+  { icon: Person, label: "My Profile", id: "Profile", link: "/profile" },
+  {
+    icon: Gem,
+    label: "My Subscriptions",
+    id: "Subscriptions",
+    link: "/",
+  }, // "/subscription"
+  {
+    icon: Timestamps,
+    label: "My Company Profile",
+    id: "MyMLMProfile",
+    link: "/mlmprofile",
+  },
+  {
+    icon: Comments,
+    label: "Customer Support",
+    id: "customerSupport",
+    link: "https://wa.me/919229885383",
+  },
+  {
+    icon: ScalesBalanced,
+    label: "Privacy Policy",
+    id: "privacyPolicy",
+    link: "https://mlmlive.in/Privacy.html",
+  },
+  {
+    icon: Video,
+    label: "Learn How to Use",
+    id: "howtoUse",
+    link: "https://youtube.com/@mlmboosterapp?si=4AQiHvcR8x6CmOHX",
+  },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
