@@ -39,9 +39,10 @@ const ProfileIcon = () => (
 );
 
 const TABS = [
-  { label: "Home",         path: "/",            Icon: HomeIcon         },
-  { label: "Subscription", path: "/Subscription", Icon: SubscriptionIcon },
-  { label: "Profile",      path: "/profile",      Icon: ProfileIcon      },
+  { label: "Home", path: "/", Icon: HomeIcon },
+  // { label: "Subscription", path: "/Subscription", Icon: SubscriptionIcon },
+  { label: "Subscription", path: "/", Icon: SubscriptionIcon },
+  { label: "Profile", path: "/profile", Icon: ProfileIcon },
 ];
 
 const HIDDEN_PATHS = [""];

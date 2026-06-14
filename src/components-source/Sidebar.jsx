@@ -24,11 +24,12 @@ const NAV_ITEMS = [
     id: "Profile",
     link: "/profile",
   },
-   {
+  {
     icon: Gem,
     label: "My Subscriptions",
     id: "Subscriptions",
-    link: "/Subscription",
+    // link: "/Subscription",
+    link: "/",
   },
   {
     icon: Timestamps,
@@ -36,7 +37,6 @@ const NAV_ITEMS = [
     id: "MyMLMProfile",
     link: "/mlmprofile",
   },
- 
 
   {
     icon: Comments,
