@@ -17,8 +17,8 @@ const NAV_ITEMS = [
     icon: Gem,
     label: "My Subscriptions",
     id: "Subscriptions",
-    link: "/",
-  }, // "/subscription"
+    link: "/subscription",
+  },
   {
     icon: Timestamps,
     label: "My Company Profile",
@@ -45,20 +45,33 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+export default function Sidebar({
+  collapsed,
+  setCollapsed,
+  mobileOpen,
+  setMobileOpen,
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useGeneralData();
 
-  let selectedCompany  = null;
-  let selectedProfile  = null;
-  try { selectedCompany = JSON.parse(localStorage.getItem("selectedCompany") || "null"); } catch {}
-  try { selectedProfile = JSON.parse(localStorage.getItem("mlmProfile")      || "null"); } catch {}
+  let selectedCompany = null;
+  let selectedProfile = null;
+  try {
+    selectedCompany = JSON.parse(
+      localStorage.getItem("selectedCompany") || "null",
+    );
+  } catch {}
+  try {
+    selectedProfile = JSON.parse(localStorage.getItem("mlmProfile") || "null");
+  } catch {}
 
-  const companyName = selectedCompany?.name || selectedProfile?.companyName || "MLM LIVE";
-  const companyLogo = selectedCompany?.logos?.[0]?.link || selectedProfile?.logoURLs?.[0] || "";
-  const fullName    = selectedProfile?.fullName || "";
-  const mobile      = selectedProfile?.mobile   || "";
+  const companyName =
+    selectedCompany?.name || selectedProfile?.companyName || "MLM LIVE";
+  const companyLogo =
+    selectedCompany?.logos?.[0]?.link || selectedProfile?.logoURLs?.[0] || "";
+  const fullName = selectedProfile?.fullName || "";
+  const mobile = selectedProfile?.mobile || "";
 
   const close = () => setMobileOpen(false);
 
@@ -76,7 +89,7 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
       {/* Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/70 md:hidden"
           onClick={close}
         />
       )}
@@ -89,7 +102,9 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           "transition-all duration-300 ease-in-out",
           "shadow-2xl md:shadow-none overflow-hidden",
           collapsed ? "md:w-[72px]" : "md:w-[268px]",
-          mobileOpen ? "w-[268px] translate-x-0" : "w-[268px] -translate-x-full md:translate-x-0",
+          mobileOpen
+            ? "w-[268px] translate-x-0"
+            : "w-[268px] -translate-x-full md:translate-x-0",
         ].join(" ")}
       >
         {/* Header */}
@@ -99,29 +114,41 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           {/* Mobile close */}
           <button
             onClick={close}
-            className="absolute top-4 right-4 md:hidden w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
+            className="absolute top-4 right-4 md:hidden w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white"
           >
             <Xmark className="w-4 h-4" />
           </button>
 
-          <div className={`flex items-center gap-3.5 relative z-10 ${collapsed ? "md:flex-col md:gap-2" : ""}`}>
+          <div
+            className={`flex items-center gap-3.5 relative z-10 ${collapsed ? "md:flex-col md:gap-2" : ""}`}
+          >
             <div className="w-11 h-11 rounded-xl bg-background shadow-md flex items-center justify-center shrink-0 overflow-hidden border border-border">
               {companyLogo ? (
-                <img src={companyLogo} alt="Logo" className="w-full h-full object-cover" />
+                <img
+                  src={companyLogo}
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span className="text-accent font-bold text-xl">M</span>
               )}
             </div>
 
-            <div className={`flex flex-col min-w-0 transition-all duration-300 ${collapsed ? "md:opacity-0 md:w-0 md:overflow-hidden" : "opacity-100"}`}>
+            <div
+              className={`flex flex-col min-w-0 transition-all duration-300 ${collapsed ? "md:opacity-0 md:w-0 md:overflow-hidden" : "opacity-100"}`}
+            >
               <h2 className="text-white font-display font-bold text-[15px] leading-tight truncate w-36">
                 {companyName}
               </h2>
               {fullName && (
-                <p className="text-white/75 text-[12px] font-medium mt-0.5 truncate w-36">{fullName}</p>
+                <p className="text-white/75 text-[12px] font-medium mt-0.5 truncate w-36">
+                  {fullName}
+                </p>
               )}
               {mobile && (
-                <p className="text-white/55 text-[11px] mt-0.5 font-mono">+91 {mobile}</p>
+                <p className="text-white/55 text-[11px] mt-0.5 font-mono">
+                  +91 {mobile}
+                </p>
               )}
             </div>
           </div>
@@ -142,14 +169,18 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                     "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150 group",
                     active
                       ? "bg-accent text-white shadow-sm"
-                      : "text-foreground/70 hover:bg-foreground/6 hover:text-foreground",
+                      : "text-foreground/70",
                   ].join(" ")}
                   title={collapsed ? label : undefined}
                 >
-                  <span className={`shrink-0 transition-transform duration-150 ${active ? "" : "group-hover:scale-110"}`}>
+                  <span
+                    className={`shrink-0 transition-transform duration-150 ${active ? "" : "group-hover:scale-110"}`}
+                  >
                     <Icon className="w-[18px] h-[18px]" />
                   </span>
-                  <span className={`flex-1 text-left whitespace-nowrap transition-all duration-300 ${collapsed ? "md:opacity-0 md:w-0 overflow-hidden" : ""}`}>
+                  <span
+                    className={`flex-1 text-left whitespace-nowrap transition-all duration-300 ${collapsed ? "md:opacity-0 md:w-0 overflow-hidden" : ""}`}
+                  >
                     {label}
                   </span>
                 </button>
@@ -160,13 +191,18 @@ export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           {/* Logout */}
           <div className="p-3 border-t border-border">
             <button
-              onClick={() => { close(); navigate("/logout"); }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium text-danger hover:bg-danger/8 transition-all duration-150 group"
+              onClick={() => {
+                close();
+                navigate("/logout");
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13.5px] font-medium text-danger group"
             >
-              <span className="shrink-0 group-hover:scale-110 transition-transform duration-150">
+              <span className="shrink-0 ">
                 <ArrowUpFromSquare className="w-[18px] h-[18px]" />
               </span>
-              <span className={`flex-1 text-left whitespace-nowrap ${collapsed ? "md:opacity-0 md:w-0 overflow-hidden" : ""}`}>
+              <span
+                className={`flex-1 text-left whitespace-nowrap ${collapsed ? "md:opacity-0 md:w-0 overflow-hidden" : ""}`}
+              >
                 Logout
               </span>
             </button>

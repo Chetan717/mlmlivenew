@@ -13,9 +13,9 @@ const TABS = [
   },
   {
     label: "Subscription",
-    path: "/",
+    path: "/subscription",
     Icon: ({ className }) => <Gem className={className} />,
-  }, //"/subscription"
+  }, 
   {
     label: "Report",
     path: "/reporting",
