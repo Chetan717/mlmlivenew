@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../../Firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { useSearchParams } from "react-router";
 import CreateProfile from "./CreateProfile";
 import ManagerView from "./ManagerView";
 import MemberView from "./MemberView";
@@ -11,6 +12,9 @@ export default function Reporting() {
   const [profile, setProfile] = useState(null);
   const [userMobile, setUserMobile] = useState("");
   const [userName, setUserName] = useState("");
+  const [searchParams] = useSearchParams();
+
+  const activeTab = searchParams.get("tab") || "dashboard";
 
   useEffect(() => {
     const raw = localStorage.getItem("usermlm");
@@ -25,10 +29,13 @@ export default function Reporting() {
     getDocs(query(collection(db, "reportingUser"), where("userMobile", "==", mobile)))
       .then((snap) => {
         if (snap.empty) {
+          localStorage.removeItem("reportingProfile");
           setStatus("no-profile");
         } else {
-          const doc = snap.docs[0];
-          setProfile({ id: doc.id, ...doc.data() });
+          const docSnap = snap.docs[0];
+          const p = { id: docSnap.id, ...docSnap.data() };
+          localStorage.setItem("reportingProfile", JSON.stringify(p));
+          setProfile(p);
           setStatus("has-profile");
         }
       })
@@ -86,8 +93,8 @@ export default function Reporting() {
   }
 
   if (status === "has-profile" && profile) {
-    if (profile.role === "Manager") return <ManagerView profile={profile} />;
-    if (profile.role === "Team Member") return <MemberView profile={profile} />;
+    if (profile.role === "Manager") return <ManagerView profile={profile} activeTab={activeTab} />;
+    if (profile.role === "Team Member") return <MemberView profile={profile} activeTab={activeTab} />;
   }
 
   return null;

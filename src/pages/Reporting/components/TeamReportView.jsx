@@ -112,9 +112,9 @@ export default function TeamReportView({ managerProfile }) {
     <>
       {/* PDF Modal */}
       {pdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-blur px-4"
           onClick={() => setPdfModal(false)}>
-          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4"
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center"

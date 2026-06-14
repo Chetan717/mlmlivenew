@@ -107,7 +107,7 @@ export default function MemberReportView({ memberProfile }) {
     <>
       {/* PDF Modal */}
       {pdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent px-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-blur px-4"
           onClick={() => setPdfModal(false)}>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}>

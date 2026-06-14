@@ -1,23 +1,68 @@
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { House, Gem, Person } from "@gravity-ui/icons";
 import { BarChart3 } from "lucide-react";
+import { db } from "../Firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 const TABS = [
-  { label: "Home", path: "/", Icon: ({ className }) => <House className={className} /> },
-  { label: "Subscription", path: "/subscription", Icon: ({ className }) => <Gem className={className} /> },
-  { label: "Reporting", path: "/reporting", Icon: ({ className }) => <BarChart3 className={className} /> },
-  { label: "Profile", path: "/profile", Icon: ({ className }) => <Person className={className} /> },
+  { label: "Home",         path: "/",            Icon: ({ className }) => <House    className={className} /> },
+  { label: "Subscription", path: "/subscription", Icon: ({ className }) => <Gem     className={className} /> },
+  { label: "Reporting",    path: "/reporting",    Icon: ({ className }) => <BarChart3 className={className} /> },
+  { label: "Profile",      path: "/profile",      Icon: ({ className }) => <Person  className={className} /> },
 ];
 
+function useReportingBadge() {
+  const [count, setCount] = useState(0);
+  const unsubRef = useRef(null);
+
+  useEffect(() => {
+    let reportingProfile = null;
+    try {
+      const raw = localStorage.getItem("reportingProfile");
+      if (raw) reportingProfile = JSON.parse(raw);
+    } catch {}
+
+    if (!reportingProfile || reportingProfile.role !== "Manager" || !reportingProfile.managerId) {
+      setCount(0);
+      return;
+    }
+
+    const managerId = reportingProfile.managerId;
+
+    const q = query(
+      collection(db, "reportingUser"),
+      where("managerId", "==", managerId),
+      where("role", "==", "Team Member")
+    );
+
+    unsubRef.current = onSnapshot(q, (snap) => {
+      let pending = 0;
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        if (!data.approvedByManager || data.sendDeleteApproval) pending++;
+      });
+      setCount(pending);
+    }, () => setCount(0));
+
+    return () => {
+      if (unsubRef.current) unsubRef.current();
+    };
+  }, []);
+
+  return count;
+}
+
 export default function TabBar() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const badgeCount = useReportingBadge();
+
   const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform"].includes(location.pathname);
   if (hide) return null;
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-      {/* Glass backdrop */}
       <div className="absolute inset-0 bg-background/90 backdrop-blur-2xl border-t border-border/60" />
 
       <div className="relative flex items-stretch h-[58px] px-1">
@@ -26,6 +71,9 @@ export default function TabBar() {
             location.pathname === path ||
             (path === "/" && location.pathname === "");
 
+          const isReporting = path === "/reporting";
+          const showBadge   = isReporting && badgeCount > 0;
+
           return (
             <button
               key={path}
@@ -33,19 +81,30 @@ export default function TabBar() {
               style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               className="relative flex-1 flex flex-col items-center justify-center gap-[3px] group"
             >
-              {/* Pill background for active */}
               {isActive && (
                 <div className="absolute inset-x-2 top-2 bottom-2 rounded-2xl bg-accent/10 dark:bg-accent/15" />
               )}
 
               <div className="relative z-10 flex flex-col items-center gap-[3px]">
-                <div
-                  className={`flex items-center justify-center w-[34px] h-[24px] rounded-xl transition-colors duration-200 ${
-                    isActive ? "text-accent" : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="w-[18px] h-[18px]" />
+                <div className="relative">
+                  <div
+                    className={`flex items-center justify-center w-[34px] h-[24px] rounded-xl transition-colors duration-200 ${
+                      isActive ? "text-accent" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="w-[18px] h-[18px]" />
+                  </div>
+
+                  {showBadge && (
+                    <span
+                      className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none shadow-sm"
+                      style={{ boxShadow: "0 1px 4px rgba(239,68,68,0.5)" }}
+                    >
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                  )}
                 </div>
+
                 <span
                   className={`text-[9px] font-semibold leading-none transition-colors duration-200 ${
                     isActive ? "text-accent" : "text-muted-foreground"
