@@ -1215,8 +1215,15 @@ function GeneralEditPage({
 
   const [Imagefooter] = useImage(selectedFooterFrame?.value, "anonymous");
   const [Imagel2] = useImage(logoURLs?.[0] || "", "anonymous");
-  const [Imagel3] = useImage(logoURLs?.[1] || "", "anonymous");
-  const [Imagel4] = useImage(logoURLs?.[2] || "", "anonymous");
+  const [Imagel3] = useImage(
+    logoURLs?.[2] ? logoURLs?.[1] : "" || "",
+    "anonymous",
+  );
+  const [Imagel4] = useImage(
+    !logoURLs?.[2] ? logoURLs?.[1] : logoURLs?.[2] || "",
+    "anonymous",
+  );
+
   const [Imagef1] = useImage(achievementForm?.features?.[0] || "", "anonymous");
   const [Imagef2] = useImage(achievementForm?.features?.[1] || "", "anonymous");
   const [Imagef3] = useImage(achievementForm?.features?.[2] || "", "anonymous");
