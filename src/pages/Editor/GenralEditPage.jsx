@@ -11,6 +11,7 @@ import useImage from "use-image";
 import ListOfTemplates from "./components/ListOfTemplates";
 import AiRetouchModal from "./AiRetouchModal";
 import facebook from "./sociallogo/facebook.png";
+import featurec from "./sociallogo/featurecoming.png";
 import instagram from "./sociallogo/insta.png";
 import youtube from "./sociallogo/youtube.png";
 import x from "./sociallogo/x.png";
@@ -1887,11 +1888,12 @@ function GeneralEditPage({
       : IMAGE_CREDIT_COST;
 
   const downloadBtnLabel = () => {
-    if (subLoading) return "Loading...";
-    if (exportLoading) return "Exporting...";
-    if (!activeSub) return "No Plan";
-    if (totalDownloadsAvailable < exportCost) return "Not enough credits";
-    return `Download (${totalDownloadsAvailable})`;
+    // if (subLoading) return "Loading...";
+    // if (exportLoading) return "Exporting...";
+    // if (!activeSub) return "No Plan";
+    // if (totalDownloadsAvailable < exportCost) return "Not enough credits";
+    // return `Download (${totalDownloadsAvailable})`;
+    return `Download`;
   };
 
   const canExport =
@@ -3470,16 +3472,17 @@ function GeneralEditPage({
           </button>
           <Button
             size="sm"
-            onClick={
-              selectedVideoUrl
-                ? handleExportVideo
-                : selectedMusic
-                  ? handleExportWithMusic
-                  : handleExport
-            }
-            disabled={!canExport || musicExporting}
+            // onClick={
+            //   selectedVideoUrl
+            //     ? handleExportVideo
+            //     : selectedMusic
+            //       ? handleExportWithMusic
+            //       : handleExport
+            // }
+            onClick={() => setMusicModalOpen(true)}
+            // disabled={!canExport || musicExporting}
             style={{
-              opacity: canExport ? 1 : 0.5,
+              // opacity: canExport ? 1 : 0.5,
               minWidth: 110,
               position: "relative",
             }}
@@ -3521,7 +3524,7 @@ function GeneralEditPage({
           >
             {PRESET_AUDIOS.length === 0 ? (
               <div className="text-sm text-muted-foreground text-center py-6 px-3 rounded-2xl border border-dashed border-border">
-                Music Feature coming soon!.
+                <img src={featurec} className="w-screen h-[160px]" />
               </div>
             ) : (
               <div className="flex flex-col gap-2">
