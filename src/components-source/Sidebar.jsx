@@ -144,7 +144,7 @@ export default function Sidebar({
               <img
                 src={companyLogo}
                 alt="Company Logo"
-                className="w-full h-full object-contain rounded-sm"
+                className="w-12 h-12 object-contain rounded-xs"
               />
             ) : (
               <span className="text-white font-bold text-sm">M</span>
