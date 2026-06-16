@@ -51,8 +51,13 @@ export default function Carosel() {
       serial: item.serial,
       ShowCaseForm: item.ShowCaseForm,
     };
+     const Profile = JSON.parse(localStorage.getItem("mlmProfile") || "{}");
+     if (Profile?.companyId) {
+       navigate("/editor");
+     } else {
+       navigate("/mlmprofile");
+     }
     setSelType(selttype);
-    navigate("/editor");
   };
 
   if (loading) {
