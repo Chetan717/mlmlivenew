@@ -14,7 +14,8 @@ export default function Festival() {
   const [selectedDate, setSelectedDate] = useState(dates[0].iso);
   const [festivaltempdata, setFestivalTempData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { setSelType, cachedFestivalData, setCachedFestivalData } = useGeneralData();
+  const { setSelType, cachedFestivalData, setCachedFestivalData } =
+    useGeneralData();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,7 +77,9 @@ export default function Festival() {
         <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">
           <Calendar className="w-5 h-5" />
         </div>
-        <h3 className="text-lg font-display font-bold text-foreground">Festival Calendar</h3>
+        <h3 className="text-lg font-display font-bold text-foreground">
+          Festival Calendar
+        </h3>
       </div>
 
       <div
@@ -95,10 +98,14 @@ export default function Festival() {
                   : "bg-white dark:bg-black/20 text-foreground border-border hover:border-accent/50 hover:bg-accent/5"
               }`}
             >
-              <span className={`text-[9px] font-semibold uppercase tracking-wider mb-0.5 ${isSelected ? "text-white/80" : "text-muted-foreground"}`}>
+              <span
+                className={`text-[9px] font-semibold uppercase tracking-wider mb-0.5 ${isSelected ? "text-white/80" : "text-muted-foreground"}`}
+              >
                 {d.monthShort}
               </span>
-              <span className={`text-xl font-display font-bold leading-none ${isSelected ? "text-white" : ""}`}>
+              <span
+                className={`text-xl font-display font-bold leading-none ${isSelected ? "text-white" : ""}`}
+              >
                 {d.day}
               </span>
             </button>
@@ -109,7 +116,7 @@ export default function Festival() {
       {loading ? (
         <div className="relative w-full">
           <div className="flex gap-4 overflow-x-hidden">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="shrink-0 flex flex-col gap-1">
                 <div className="w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden bg-white dark:bg-black/20 border border-border">
                   <Skeleton className="w-full h-full" />
@@ -147,9 +154,16 @@ export default function Festival() {
                   </div>
                 </div>
                 {card.Subtype ? (
-                  <p className="w-[85px] md:w-[140px] text-[10px] font-semibold text-center text-foreground/70 leading-tight line-clamp-1">
-                    {card.Subtype}
-                  </p>
+                  <div className="w-[85px] md:w-[140px] overflow-hidden">
+                    <div className="flex whitespace-nowrap animate-marquee-smooth">
+                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight pr-8">
+                        {card.Subtype}
+                      </span>
+                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight pr-8">
+                        {card.Subtype}
+                      </span>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             ))}

@@ -58,6 +58,21 @@ html {
   --shadow-elevated: 0 4px 24px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
+@keyframes marquee-smooth {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-smooth {
+  display: inline-flex;
+  animation: marquee-smooth 5s linear infinite;
+  width: max-content;
+}
 .dark,
 .default,
 [data-theme="dark"] {
