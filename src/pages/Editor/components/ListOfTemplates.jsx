@@ -6,8 +6,6 @@ const BATCH_SIZE = 20;
 
 const PRESET_VIDEO_ITEMS = [];
 
-// Module-level cache — survives editor unmount/remount within the session
-// Key: `${filterType}__${filterSubType}`, Value: filtered items array
 const _editorTemplateCache = new Map();
 
 function getSelType() {
@@ -21,7 +19,6 @@ function cleanItem(item) {
   return clean;
 }
 
-/* ── LazyImage — IntersectionObserver + CSS shimmer skeleton ────────────── */
 function LazyImage({ src, alt }) {
   const wrapperRef = useRef(null);
   const [realSrc, setRealSrc] = useState(null);
@@ -45,7 +42,6 @@ function LazyImage({ src, alt }) {
 
   return (
     <div ref={wrapperRef} className="absolute inset-0 w-full h-full overflow-hidden">
-      {/* Shimmer skeleton shown until the real image loads */}
       {!loaded && (
         <div
           className="absolute inset-0 bg-muted/40"
@@ -154,7 +150,6 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
         </div>
       )}
 
-      {/* Video badge */}
       {isVideo && (
         <div className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
           <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
@@ -180,7 +175,6 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
   );
 }
 
-/* ── Tab button ─────────────────────────────────────────────────────────── */
 function TabBtn({ active, onClick, icon, label, count }) {
   return (
     <button
@@ -202,7 +196,6 @@ function TabBtn({ active, onClick, icon, label, count }) {
   );
 }
 
-/* ── Main Component ─────────────────────────────────────────────────────── */
 export default function ListOfTemplates({ selected, setSelected }) {
   const selType       = getSelType();
   const filterType    = selType?.type || "";
@@ -218,14 +211,12 @@ export default function ListOfTemplates({ selected, setSelected }) {
   const sentinelRef   = useRef(null);
   const renderedCount = useRef(0);
 
-  /* ── Fetch ── */
   useEffect(() => {
     if (!filterType) { setLoading(false); return; }
 
     async function fetchTemplates() {
       const cacheKey = `${filterType}__${filterSubType}`;
 
-      // Return immediately from cache — no spinner, no network round-trip
       if (_editorTemplateCache.has(cacheKey)) {
         const filteredItems = _editorTemplateCache.get(cacheKey);
         setAllItems(filteredItems);
@@ -247,13 +238,19 @@ export default function ListOfTemplates({ selected, setSelected }) {
       setLoading(true);
       setError(null);
       try {
-        const q = query(
-          collection(db, "mlmtemplate"),
+        // Build query — only add Subtype filter when it's non-empty
+        // (Festival templates navigate here without a Subtype, so skip that filter)
+        const constraints = [
           where("SelectType", "==", filterType),
-          where("Subtype", "==", filterSubType),
           where("Active", "==", true),
           orderBy("serial"),
-        );
+        ];
+
+        if (filterSubType && filterSubType !== "") {
+          constraints.splice(1, 0, where("Subtype", "==", filterSubType));
+        }
+
+        const q = query(collection(db, "mlmtemplate"), ...constraints);
         const snap = await getDocs(q);
 
         const items = [];
@@ -283,7 +280,15 @@ export default function ListOfTemplates({ selected, setSelected }) {
           }
         } catch { filteredItems = items; }
 
-        // Store in module-level cache for instant reuse
+        // If a specific template ID was set (e.g. Festival), prioritize it first
+        if (selType?.id && filterSubType === "") {
+          const idx = filteredItems.findIndex((i) => i._template?.id === selType.id);
+          if (idx > 0) {
+            const [found] = filteredItems.splice(idx, 1);
+            filteredItems.unshift(found);
+          }
+        }
+
         _editorTemplateCache.set(cacheKey, filteredItems);
 
         setAllItems(filteredItems);
@@ -314,13 +319,11 @@ export default function ListOfTemplates({ selected, setSelected }) {
     fetchTemplates();
   }, [filterType, filterSubType]);
 
-  /* ── Tab-filtered items ── */
   const imageItems   = allItems.filter((item) => !item.videoUrl && !item.VideoUrl);
   const fbVideoItems = allItems.filter((item) => !!(item.videoUrl || item.VideoUrl));
   const videoItems   = fbVideoItems.length > 0 ? fbVideoItems : PRESET_VIDEO_ITEMS;
   const tabItems     = activeTab === "video" ? videoItems : imageItems;
 
-  /* ── Visible items derived from tabItems ── */
   const [visibleTabItems, setVisibleTabItems] = useState([]);
   const tabRenderedCount = useRef(0);
 
@@ -331,7 +334,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
     tabRenderedCount.current = firstBatch.length;
   }, [activeTab, allItems]);
 
-  /* ── Infinite scroll ── */
   const loadMore = useCallback(() => {
     if (tabRenderedCount.current >= tabItems.length) return;
     setLoadingMore(true);
@@ -362,8 +364,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
   };
 
   const handleSelect = (item) => {
-    const already = selected?.id === item.id;
-    // setSelected(already ? (tabItems.length > 0 ? cleanItem(tabItems[0]) : null) : cleanItem(item));
     setSelected(cleanItem(item));
   };
 
@@ -371,7 +371,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col">
-      {/* ── Tab bar ── */}
       <div className="flex items-center gap-1.5 p-2 bg-muted/20 border-t border-border flex-shrink-0">
         <TabBtn
           active={activeTab === "image"}
@@ -397,7 +396,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
         />
       </div>
 
-      {/* ── Grid ── */}
       <div className="w-full flex-1 min-h-0 overflow-y-auto p-2 pb-6">
         {error && (
           <div className="rounded-xl bg-danger/10 border border-danger/20 p-3 text-xs text-danger mb-2">{error}</div>

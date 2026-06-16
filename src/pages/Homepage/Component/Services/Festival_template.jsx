@@ -2,7 +2,7 @@ import { db } from "@firebase-config";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 
 const SS_KEY = "fest_v1_";
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour — festival dates change daily
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 const _mem = new Map();
 
@@ -48,6 +48,7 @@ export const Festival_template = async (Selected_date) => {
         image: data.Showcase_url || "",
         company: data.Company,
         type: data.SelectType,
+        Subtype: data.Subtype || "",
         ShowCaseForm: data?.ShowCaseForm,
         serial: data?.serial,
       };

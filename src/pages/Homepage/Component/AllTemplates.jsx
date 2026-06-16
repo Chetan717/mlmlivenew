@@ -57,6 +57,16 @@ export default function AllTemplates() {
     allTemplatesCache,
     setAllTemplatesCache,
   } = useGeneralData();
+const getCompanyNameFromStorage = () => {
+  try {
+    const selectedCompany = JSON.parse(localStorage.getItem("selectedCompany"));
+    const selectedProfile = JSON.parse(localStorage.getItem("mlmProfile"));
+    return selectedCompany?.id || selectedProfile?.companyId;
+  } catch {
+    return "";
+  }
+};
+  const companyName = getCompanyNameFromStorage();
 
   const selType = getSelType(contextSelType);
   const cacheKey = selType?.type || "";
@@ -106,7 +116,7 @@ export default function AllTemplates() {
           templates,
           lastDoc: ld,
           hasMore: more,
-        } = await Alltemplateservice(type, null, 12);
+        } = await Alltemplateservice(type, null, 12, companyName);
         setTempData(templates);
         setLastDoc(ld);
         setHasMore(more);
@@ -210,7 +220,7 @@ export default function AllTemplates() {
       navigate("/mlmprofile");
     }
   };
-
+console.log(tempdata);
   const displayName = selType?.type?.replaceAll("_", " ") || "Templates";
 
   return (

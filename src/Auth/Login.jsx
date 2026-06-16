@@ -11,9 +11,10 @@ import {
 import logo from "/mlmboo2.ico";
 import { InputOTP } from "@heroui/react";
 import { useNavigate } from "react-router";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { db } from "@firebase-config";
 import { toast } from "@heroui/react";
+import axios from "axios";
 
 export function Login() {
   const navigate = useNavigate();
@@ -23,6 +24,17 @@ export function Login() {
   const [pin, setPin] = useState("");
   const [lockout, setLockout] = useState(0);
   const failCountRef = useRef(0);
+
+  const sendOtp = async (phoneNumber) => {
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    await axios({
+      method: "get",
+      maxBodyLength: Infinity,
+      url: `https://2factor.in/API/V1/${import.meta.env.VITE_TWOFACTOR_API_KEY}/SMS/${"+91" + phoneNumber}/${otp}/OTP`,
+      headers: {},
+    });
+    return otp;
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -66,7 +78,17 @@ export function Login() {
       const userData = userDoc.data();
 
       if (!userData.isverified) {
-        setFormError("Account not verified. Please signup again.");
+        const otp = await sendOtp(data.mobile);
+        await updateDoc(doc(db, "users", userDoc.id), { otp });
+        toast.success("OTP भेजा गया! Verify करें।");
+        navigate("/signup", {
+          state: {
+            verifyMode: true,
+            userId: userDoc.id,
+            mobile: userData.mobileNo,
+            otp,
+          },
+        });
         return;
       }
 
@@ -129,7 +151,6 @@ export function Login() {
       className="flex flex-col min-h-screen relative overflow-hidden"
       style={{ background: "linear-gradient(170deg, #040c22 0%, #0e245c 40%, #f4f6fb 40%)" }}
     >
-      {/* ── Background decorative shapes ── */}
       <div className="absolute top-0 left-0 right-0 h-[50vh] overflow-hidden pointer-events-none">
         <div
           className="absolute -top-20 -right-20 w-56 h-56 rounded-full opacity-15"
@@ -144,7 +165,6 @@ export function Login() {
         <div className="absolute top-10 left-12 w-3 h-3 rounded-full bg-white/15" />
       </div>
 
-      {/* ── Hero area ── */}
       <div className="relative z-10 flex flex-col items-center pt-14 pb-10 px-6">
         <div
           className="w-[72px] h-[72px] bg-white rounded-[22px] flex items-center justify-center p-2 mb-5"
@@ -161,13 +181,11 @@ export function Login() {
         </p>
       </div>
 
-      {/* ── Form card ── */}
       <div className="relative z-10 flex-1 bg-[var(--background)] rounded-t-[32px] px-5 pt-6 pb-10"
         style={{ boxShadow: "0 -4px 32px rgba(0,0,0,0.12)" }}>
         <div className="w-full max-w-sm mx-auto">
           <Form className="flex w-full flex-col gap-5" onSubmit={onSubmit}>
 
-            {/* Mobile */}
             <TextField name="mobile" type="tel" className="w-full">
               <Label className="font-semibold text-[13px] text-foreground/70 mb-1.5 block">
                 Mobile Number / मोबाइल नंबर
@@ -185,7 +203,6 @@ export function Login() {
               <FieldError className="text-danger mt-1 text-xs" />
             </TextField>
 
-            {/* PIN */}
             <div className="flex flex-col gap-1 w-full">
               <div className="flex justify-between items-center mb-2">
                 <Label className="font-semibold text-[13px] text-foreground/70">
@@ -217,14 +234,12 @@ export function Login() {
               </InputOTP>
             </div>
 
-            {/* Error */}
             {formError && (
               <div className="bg-danger/8 border border-danger/20 text-danger text-[13px] text-center py-3 px-4 rounded-2xl font-medium">
                 {formError}
               </div>
             )}
 
-            {/* Submit */}
             <Button
               className="w-full h-[54px] text-white font-bold text-[15px] rounded-2xl mt-1"
               style={{
@@ -237,14 +252,12 @@ export function Login() {
               {loading ? "Logging in..." : "Login करें — Sign In"}
             </Button>
 
-            {/* Divider */}
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-[var(--border)]" />
               <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">or</span>
               <div className="flex-1 h-px bg-[var(--border)]" />
             </div>
 
-            {/* Register */}
             <button
               type="button"
               onClick={() => navigate("/signup")}

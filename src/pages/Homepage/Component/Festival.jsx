@@ -7,10 +7,10 @@ import { Calendar } from "@gravity-ui/icons";
 
 export default function Festival() {
   const sliderRef = useRef(null);
-  
-  // Memoize dates so we don't recreate them every render
+  const dateSliderRef = useRef(null);
+
   const dates = useMemo(() => generateDates(), []);
-  
+
   const [selectedDate, setSelectedDate] = useState(dates[0].iso);
   const [festivaltempdata, setFestivalTempData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +19,9 @@ export default function Festival() {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadFestival = async (date) => {
       setLoading(true);
-      // ✅ Return early if already cached
       if (cachedFestivalData[date]) {
         if (isMounted) {
           setFestivalTempData(cachedFestivalData[date]);
@@ -30,7 +29,7 @@ export default function Festival() {
         }
         return;
       }
-      
+
       try {
         const data = await Festival_template(date);
         if (isMounted) {
@@ -45,11 +44,19 @@ export default function Festival() {
     };
 
     loadFestival(selectedDate);
-    
+
+    if (sliderRef.current) {
+      sliderRef.current.scrollLeft = 0;
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [selectedDate, cachedFestivalData, setCachedFestivalData]);
+  }, [selectedDate]);
+
+  const handleDateSelect = (iso) => {
+    setSelectedDate(iso);
+  };
 
   const handleImagePress = (item) => {
     const selttype = {
@@ -57,6 +64,7 @@ export default function Festival() {
       type: item.type,
       serial: item.serial,
       ShowCaseForm: item.ShowCaseForm,
+      Subtype: item.Subtype || "",
     };
     setSelType(selttype);
     navigate("/editor");
@@ -64,25 +72,26 @@ export default function Festival() {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* HEADER & DATE SELECTOR */}
       <div className="flex items-center gap-2 px-1">
         <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">
           <Calendar className="w-5 h-5" />
         </div>
         <h3 className="text-lg font-display font-bold text-foreground">Festival Calendar</h3>
       </div>
-      
-      {/* DATE SLIDER */}
-      <div className="flex hide-scrollbar gap-3 overflow-x-auto w-full pt-2 pb-2 px-1 snap-x">
+
+      <div
+        ref={dateSliderRef}
+        className="flex hide-scrollbar gap-3 overflow-x-auto w-full pt-2 pb-2 px-1 snap-x"
+      >
         {dates.map((d) => {
           const isSelected = selectedDate === d.iso;
           return (
             <button
               key={d.iso}
-              onClick={() => setSelectedDate(d.iso)}
+              onClick={() => handleDateSelect(d.iso)}
               className={`flex flex-col items-center justify-center min-w-[56px] h-[64px] rounded-2xl transition-all duration-300 snap-center shrink-0 border ${
-                isSelected 
-                  ? "bg-accent text-white shadow-md border-transparent scale-105" 
+                isSelected
+                  ? "bg-accent text-white shadow-md border-transparent scale-105"
                   : "bg-white dark:bg-black/20 text-foreground border-border hover:border-accent/50 hover:bg-accent/5"
               }`}
             >
@@ -97,14 +106,15 @@ export default function Festival() {
         })}
       </div>
 
-      {/* TEMPLATE SLIDER — only render when loading or templates exist.
-          When there are no templates for the selected date, hide the box entirely. */}
       {loading ? (
         <div className="relative w-full">
           <div className="flex gap-4 overflow-x-hidden">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="shrink-0 w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden bg-white dark:bg-black/20 border border-border">
-                 <Skeleton className="w-full h-full" />
+              <div key={i} className="shrink-0 flex flex-col gap-1">
+                <div className="w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden bg-white dark:bg-black/20 border border-border">
+                  <Skeleton className="w-full h-full" />
+                </div>
+                <div className="w-[85px] md:w-[140px] h-3 rounded bg-muted animate-pulse" />
               </div>
             ))}
           </div>
@@ -119,16 +129,28 @@ export default function Festival() {
               <div
                 key={card.id}
                 onClick={() => handleImagePress(card)}
-                className="shrink-0 w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden cursor-pointer snap-start relative border border-border shadow-sm bg-white dark:bg-black/20 card-press"
+                className="shrink-0 flex flex-col gap-1.5 cursor-pointer snap-start"
               >
-                <img
-                  src={card.image}
-                  alt="festival template"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                <div className="w-[85px] md:w-[140px] aspect-square rounded-2xl overflow-hidden relative border border-border shadow-sm bg-white dark:bg-black/20 card-press">
+                  <img
+                    src={card.image}
+                    alt={card.Subtype || "festival template"}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                  <div className="absolute bottom-1.5 right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-lg bg-accent/90 backdrop-blur-sm flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold leading-none">
+                      {new Date(selectedDate + "T00:00:00").getDate()}
+                    </span>
+                  </div>
+                </div>
+                {card.Subtype ? (
+                  <p className="w-[85px] md:w-[140px] text-[10px] font-semibold text-center text-foreground/70 leading-tight line-clamp-1">
+                    {card.Subtype}
+                  </p>
+                ) : null}
               </div>
             ))}
           </div>
