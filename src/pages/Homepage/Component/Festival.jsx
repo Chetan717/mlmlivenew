@@ -324,8 +324,15 @@ export default function Festival() {
       ShowCaseForm: item.ShowCaseForm,
       Subtype: item.Subtype || "",
     };
+
+    const Profile = JSON.parse(localStorage.getItem("mlmProfile") || "{}");
+    if (Profile?.companyId) {
+      navigate("/editor");
+    } else {
+      navigate("/mlmprofile");
+    }
+
     setSelType(selttype);
-    navigate("/editor");
   };
 
   const isAnythingLoading = Object.values(loadingDates).some(Boolean);
@@ -421,7 +428,7 @@ export default function Festival() {
                     <span className="text-sm font-display font-bold text-accent leading-none">
                       {d.day}
                     </span>
-                  </div> 
+                  </div> *
                   <div className="w-[1px] flex-1 bg-accent/10 rounded-full min-h-[40px]" />
                 </div> */}
 
