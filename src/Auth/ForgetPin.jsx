@@ -19,6 +19,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../collections";
 
 export function Forgetpin() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export function Forgetpin() {
 
     try {
       setLoading(true);
-      const q = query(collection(db, "users"), where("mobileNo", "==", mobile));
+      const q = query(collection(db, COLLECTIONS.USERS), where("mobileNo", "==", mobile));
       const snapshot = await getDocs(q);
       if (snapshot.empty) { setError("No account found with this mobile number"); return; }
       setUserId(snapshot.docs[0].id);

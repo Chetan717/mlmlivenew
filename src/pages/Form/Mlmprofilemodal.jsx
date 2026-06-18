@@ -22,6 +22,7 @@ import { ImageEditorCanvas } from "./ImageEditorCanvas";
 import { toast, Button } from "@heroui/react";
 import { useNavigate, useLocation } from "react-router";
 import photoupload from "./photoupload.png";
+import { COLLECTIONS } from "../../collections";
 const storage = getStorage(app);
 
 let _keys = []; // [{ id, key }] — all keys from Firestore
@@ -38,7 +39,7 @@ async function loadKeys(forceRefresh = false) {
   }
 
   try {
-    const snap = await getDocs(collection(db, "removebg"));
+    const snap = await getDocs(collection(db, COLLECTIONS.REMOVEBG));
     _keys = snap.docs.map((d) => ({ id: d.id, key: d.data().key }));
     _lastFetch = now;
     // Reset exhausted set on re-fetch (picks up newly added keys too)
@@ -510,7 +511,7 @@ export default function MLMProfilePage() {
     setLoadingProfile(true);
     try {
       const q = query(
-        collection(db, "mlmprofiles"),
+        collection(db, COLLECTIONS.MLMPROFILES),
         where("mobile", "==", userMobile),
       );
       const snap = await getDocs(q);
@@ -847,7 +848,7 @@ export default function MLMProfilePage() {
           JSON.stringify({ id: existingDocId, ...profileData }),
         );
       } else {
-        const newDoc = await addDoc(collection(db, "mlmprofiles"), {
+        const newDoc = await addDoc(collection(db, COLLECTIONS.MLMPROFILES), {
           ...profileData,
           createdAt: serverTimestamp(),
         });
@@ -879,7 +880,7 @@ export default function MLMProfilePage() {
     setDeleting(true);
     try {
       const q = query(
-        collection(db, "mlmprofiles"),
+        collection(db, COLLECTIONS.MLMPROFILES),
         where("mobile", "==", userMobile),
       );
       const snap = await getDocs(q);

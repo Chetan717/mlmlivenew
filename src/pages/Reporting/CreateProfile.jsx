@@ -4,6 +4,7 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { generateManagerId, generateMemberId } from "./utils/reportIds";
 import { UserPlus, Users, User, ChevronDown } from "lucide-react";
 import { toast } from "@heroui/react";
+import { COLLECTIONS } from "../../collections";
 
 const NAME_MAX = 100;
 const ADDRESS_MAX = 300;
@@ -82,7 +83,7 @@ export default function CreateProfile({ userMobile, userName, onProfileCreated }
         };
       }
 
-      const ref = await addDoc(collection(db, "reportingUser"), docData);
+      const ref = await addDoc(collection(db, COLLECTIONS.REPORTINGUSER), docData);
       toast.success("Profile created successfully!");
       onProfileCreated({ id: ref.id, ...docData });
     } catch (err) {

@@ -5,6 +5,7 @@ import MlmEditPage from "./MlmEditPage";
 import GeneralEditPage from "./GenralEditPage";
 import FooterSelect from "./utils/FooterSelect";
 import TopuplineSelect from "./utils/TopuplineSelect";
+import { COLLECTIONS } from "../../collections";
 export const GENERAL_SELECT_TYPES = [
   { name: "Trending", value: "Trending" },
   { name: "Festival", value: "Festival" },
@@ -54,7 +55,7 @@ function MainEditor() {
       try {
         setLoading(true);
 
-        const snapshot = await getDocs(collection(db, "mlmgraphics"));
+        const snapshot = await getDocs(collection(db, COLLECTIONS.MLMGRAPHICS));
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),

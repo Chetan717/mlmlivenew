@@ -1,5 +1,6 @@
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../../../collections";
 
 let _keys = [];
 let _keyIndex = 0;
@@ -12,7 +13,7 @@ async function loadKeys(forceRefresh = false) {
   if (!forceRefresh && _keys.length > 0 && now - _lastFetch < CACHE_TTL) return;
 
   try {
-    const snap = await getDocs(collection(db, "removebg"));
+    const snap = await getDocs(collection(db, COLLECTIONS.REMOVEBG));
     _keys = snap.docs.map((d) => ({ id: d.id, key: d.data().key }));
     _lastFetch = now;
     _exhausted = new Set();

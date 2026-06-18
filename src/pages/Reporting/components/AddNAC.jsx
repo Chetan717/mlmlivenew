@@ -5,6 +5,7 @@ import { Award } from "lucide-react";
 import { toast } from "@heroui/react";
 import { SectionCard, BatchList, FormFields, ActionRow } from "./AddPlan";
 import SearchablePicker from "./SearchablePicker";
+import { COLLECTIONS } from "../../../collections";
 
 export default function AddNAC({ memberProfile }) {
   const [open, setOpen] = useState(false);
@@ -18,7 +19,7 @@ export default function AddNAC({ memberProfile }) {
   useEffect(() => {
     if (!open) return;
     setLoadingSP(true);
-    getDocs(query(collection(db, "reportsp"), where("memberId", "==", memberProfile.memberId)))
+    getDocs(query(collection(db, COLLECTIONS.REPORTSP), where("memberId", "==", memberProfile.memberId)))
       .then((snap) => setSpList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
       .catch(() => toast.danger("Failed to load SP Closed entries"))
       .finally(() => setLoadingSP(false));
@@ -49,7 +50,7 @@ export default function AddNAC({ memberProfile }) {
       const wb = writeBatch(db);
       const now = Timestamp.now();
       batch.forEach((item) => {
-        const ref = doc(collection(db, "reportnac"));
+        const ref = doc(collection(db, COLLECTIONS.REPORTNAC));
         wb.set(ref, {
           memberId: memberProfile.memberId,
           managerId: memberProfile.managerId,

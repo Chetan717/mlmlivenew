@@ -6,6 +6,7 @@ import CreateProfile from "./CreateProfile";
 import ManagerView from "./ManagerView";
 import MemberView from "./MemberView";
 import { BarChart3 } from "lucide-react";
+import { COLLECTIONS } from "../../collections";
 
 export default function Reporting() {
   const [status, setStatus] = useState("loading");
@@ -26,7 +27,7 @@ export default function Reporting() {
     setUserName(name);
     if (!mobile) { setStatus("no-user"); return; }
 
-    getDocs(query(collection(db, "reportingUser"), where("userMobile", "==", mobile)))
+    getDocs(query(collection(db, COLLECTIONS.REPORTINGUSER), where("userMobile", "==", mobile)))
       .then((snap) => {
         if (snap.empty) {
           localStorage.removeItem("reportingProfile");

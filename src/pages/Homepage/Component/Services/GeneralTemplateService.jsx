@@ -1,5 +1,6 @@
 import { db } from "@firebase-config";
 import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
+import { COLLECTIONS } from "../../../../collections";
 
 const TYPE_GROUPS = [
   [
@@ -104,7 +105,7 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
     const results = await Promise.all(
       selectedTypes.map(async (type) => {
         const generalQuery = query(
-          collection(db, "mlmtemplate"),
+          collection(db, COLLECTIONS.MLMTEMPLATE),
           where("MainType", "==", "General"),
           where("SelectType", "==", type),
           where("Active", "==", true),
@@ -118,7 +119,7 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
           company
             ? getDocs(
                 query(
-                  collection(db, "mlmtemplate"),
+                  collection(db, COLLECTIONS.MLMTEMPLATE),
                   where("MainType", "==", "MLM"),
                   where("Company", "==", company),
                   where("SelectType", "==", type),

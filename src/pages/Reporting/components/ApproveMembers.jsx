@@ -10,6 +10,7 @@ import {
   X, Search, Users, AlertTriangle, Trash2,
 } from "lucide-react";
 import { toast } from "@heroui/react";
+import { COLLECTIONS } from "../../../collections";
 
 const PAGE_SIZE      = 5;
 const MODAL_PAGE_SIZE = 8;
@@ -35,7 +36,7 @@ export default function ApproveMembers({ managerProfile }) {
   useEffect(() => {
     setLoading(true);
     const q = query(
-      collection(db, "reportingUser"),
+      collection(db, COLLECTIONS.REPORTINGUSER),
       where("managerId", "==", managerProfile.managerId),
       where("role",      "==", "Team Member"),
     );

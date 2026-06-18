@@ -4,6 +4,7 @@ import { collection, writeBatch, doc, Timestamp } from "firebase/firestore";
 import { Plus, Trash2, Send, Users, ChevronDown, ChevronUp } from "lucide-react";
 
 import {toast} from "@heroui/react"
+import { COLLECTIONS } from "../../../collections";
 
 export default function AddPlan({ memberProfile }) {
   const [open, setOpen] = useState(false);
@@ -29,7 +30,7 @@ export default function AddPlan({ memberProfile }) {
       const wb = writeBatch(db);
       const now = Timestamp.now();
       batch.forEach((item) => {
-        const ref = doc(collection(db, "reportplan"));
+        const ref = doc(collection(db, COLLECTIONS.REPORTPLAN));
         wb.set(ref, {
           memberId: memberProfile.memberId,
           managerId: memberProfile.managerId,

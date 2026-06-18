@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../../../collections";
 
 const BATCH_SIZE = 20;
 
@@ -250,7 +251,7 @@ export default function ListOfTemplates({ selected, setSelected }) {
           constraints.splice(1, 0, where("Subtype", "==", filterSubType));
         }
 
-        const q = query(collection(db, "mlmtemplate"), ...constraints);
+        const q = query(collection(db, COLLECTIONS.MLMTEMPLATE), ...constraints);
         const snap = await getDocs(q);
 
         const items = [];

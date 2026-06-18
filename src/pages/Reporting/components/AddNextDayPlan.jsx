@@ -5,6 +5,7 @@ import { CalendarPlus } from "lucide-react";
 
 import {toast} from "@heroui/react"
 import { SectionCard, BatchList, FormFields, ActionRow } from "./AddPlan";
+import { COLLECTIONS } from "../../../collections";
 
 export default function AddNextDayPlan({ memberProfile }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +26,7 @@ export default function AddNextDayPlan({ memberProfile }) {
       const wb = writeBatch(db);
       const now = Timestamp.now();
       batch.forEach((item) => {
-        const ref = doc(collection(db, "reportnextday"));
+        const ref = doc(collection(db, COLLECTIONS.REPORTNEXTDAY));
         wb.set(ref, { memberId: memberProfile.memberId, managerId: memberProfile.managerId, name: item.name, mobile: item.mobile, address: item.address, createdAt: now, date: now });
       });
       await wb.commit();

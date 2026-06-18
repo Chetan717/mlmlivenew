@@ -5,6 +5,7 @@ import { BookOpen } from "lucide-react";
 import { toast } from "@heroui/react";
 import { SectionCard, BatchList, FormFields, ActionRow } from "./AddPlan";
 import SearchablePicker from "./SearchablePicker";
+import { COLLECTIONS } from "../../../collections";
 
 export default function AddKitBook({ memberProfile }) {
   const [open, setOpen] = useState(false);
@@ -22,13 +23,13 @@ export default function AddKitBook({ memberProfile }) {
       try {
         // Fetch all plans for this member
         const plansSnap = await getDocs(
-          query(collection(db, "reportplan"), where("memberId", "==", memberProfile.memberId))
+          query(collection(db, COLLECTIONS.REPORTPLAN), where("memberId", "==", memberProfile.memberId))
         );
         const allPlans = plansSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Fetch all SP Closed entries to get closed plan IDs
         const spSnap = await getDocs(
-          query(collection(db, "reportsp"), where("memberId", "==", memberProfile.memberId))
+          query(collection(db, COLLECTIONS.REPORTSP), where("memberId", "==", memberProfile.memberId))
         );
         const closedPlanIds = new Set(spSnap.docs.map((d) => d.data().planId));
 
@@ -70,7 +71,7 @@ export default function AddKitBook({ memberProfile }) {
       const wb = writeBatch(db);
       const now = Timestamp.now();
       batch.forEach((item) => {
-        const ref = doc(collection(db, "reportkitbook"));
+        const ref = doc(collection(db, COLLECTIONS.REPORTKITBOOK));
         wb.set(ref, {
           memberId: memberProfile.memberId,
           managerId: memberProfile.managerId,

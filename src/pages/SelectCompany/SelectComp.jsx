@@ -5,6 +5,7 @@ import { db } from "@firebase-config";
 import { collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router";
 import { Search, MessageCircle } from "lucide-react";
+import { COLLECTIONS } from "../../collections";
 
 export default function SelectComp() {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function SelectComp() {
     const fetchCompanies = async () => {
       setLoading(true);
       try {
-        const snapshot = await getDocs(collection(db, "mlmcomp"));
+        const snapshot = await getDocs(collection(db, COLLECTIONS.MLMCOMP));
         if (!cancelled) {
           const data = snapshot.docs
             .map((doc) => normalizeCompany(doc))

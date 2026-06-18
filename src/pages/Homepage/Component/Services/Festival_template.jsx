@@ -1,5 +1,6 @@
 import { db } from "@firebase-config";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { COLLECTIONS } from "../../../../collections";
 
 const SS_KEY = "fest_v1_";
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -31,7 +32,7 @@ export const Festival_template = async (Selected_date) => {
 
   try {
     const q = query(
-      collection(db, "mlmtemplate"),
+      collection(db, COLLECTIONS.MLMTEMPLATE),
       where("SelectType", "==", "Festival"),
       where("Active", "==", true),
       where("Launched", "==", true),

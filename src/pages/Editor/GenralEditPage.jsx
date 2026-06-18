@@ -46,6 +46,7 @@ import num8 from "./amount_numberImage/number_8.png";
 import num9 from "./amount_numberImage/number_9.png";
 import numComma from "./amount_numberImage/comma.png";
 import numRupee from "./amount_numberImage/rupee.png";
+import { COLLECTIONS } from "../../collections";
 
 const fs = (n) => n;
 
@@ -952,13 +953,13 @@ function GeneralEditPage({
       const mobileNo = user?.mobileNo;
       if (!mobileNo) return;
       const activeQuery = query(
-        collection(db, "subscription"),
+        collection(db, COLLECTIONS.SUBSCRIPTION),
         where("mobileNo", "==", mobileNo),
         where("Active", "==", true),
         where("Expire", "==", false),
       );
       const userQuery = query(
-        collection(db, "users"),
+        collection(db, COLLECTIONS.USERS),
         where("mobileNo", "==", mobileNo),
       );
       const [activeSnap, userSnap] = await Promise.all([

@@ -65,7 +65,7 @@ export default function MemberReportView({ memberProfile }) {
       }));
 
       const nextSnap = await getDocs(
-        query(collection(db, "reportnextday"), where("memberId", "==", memberProfile.memberId))
+        query(collection(db, COLLECTIONS.REPORTNEXTDAY), where("memberId", "==", memberProfile.memberId))
       );
       nextSnap.docs.forEach((d) => {
         const raw = d.data().date;

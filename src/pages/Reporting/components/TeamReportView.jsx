@@ -33,7 +33,7 @@ export default function TeamReportView({ managerProfile }) {
 
   useEffect(() => {
     getDocs(query(
-      collection(db, "reportingUser"),
+      collection(db, COLLECTIONS.REPORTINGUSER),
       where("managerId", "==", managerProfile.managerId),
       where("role", "==", "Team Member"),
       where("approvedByManager", "==", true)
@@ -69,7 +69,7 @@ export default function TeamReportView({ managerProfile }) {
       }));
 
       // Next day plans
-      const nextSnap = await getDocs(query(collection(db, "reportnextday"), where("memberId", "==", selectedMemberId)));
+      const nextSnap = await getDocs(query(collection(db, COLLECTIONS.REPORTNEXTDAY), where("memberId", "==", selectedMemberId)));
       nextSnap.docs.forEach((d) => {
         const raw = d.data().date;
         const dt  = raw?.toDate ? raw.toDate() : (raw ? new Date(raw) : null);

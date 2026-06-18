@@ -1,4 +1,5 @@
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../../../../collections";
 import {
   collection,
   query,
@@ -56,12 +57,12 @@ export const Alltemplateservice = async (
       if (mlmConstraints) mlmConstraints.splice(-1, 0, startAfter(lastDoc));
     }
 
-    const generalQuery = query(collection(db, "mlmtemplate"), ...generalConstraints);
+    const generalQuery = query(collection(db, COLLECTIONS.MLMTEMPLATE), ...generalConstraints);
 
     const [generalSnapshot, mlmSnapshot] = await Promise.all([
       getDocs(generalQuery),
       mlmConstraints
-        ? getDocs(query(collection(db, "mlmtemplate"), ...mlmConstraints))
+        ? getDocs(query(collection(db, COLLECTIONS.MLMTEMPLATE), ...mlmConstraints))
         : Promise.resolve({ docs: [] }),
     ]);
 

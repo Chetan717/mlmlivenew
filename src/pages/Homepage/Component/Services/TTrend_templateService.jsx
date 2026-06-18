@@ -1,5 +1,6 @@
 import { db } from "@firebase-config";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { COLLECTIONS } from "../../../../collections";
 
 const SS_KEY = "trend_v1_";
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -33,7 +34,7 @@ export const TTrend_templateService = async () => {
 
   try {
     const q = query(
-      collection(db, "mlmtemplate"),
+      collection(db, COLLECTIONS.MLMTEMPLATE),
       where("SelectType", "==", "Trending"),
       where("Active", "==", true),
       where("Launched", "==", true),

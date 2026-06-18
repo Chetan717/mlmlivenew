@@ -13,6 +13,7 @@ import ReferCard from "./ReferCard";
 import SettingsMenu from "./Settingsmenu";
 import { PencilLine, ArrowLeft, LogOut, Check } from "lucide-react";
 import { toast } from "../../utils/toast";
+import { COLLECTIONS } from "../../collections";
 
 function Myprofile() {
   const [userData, setUserData]     = useState(null);
@@ -38,7 +39,7 @@ function Myprofile() {
     setLoading(true);
     try {
       const db  = getFirestore();
-      const q   = query(collection(db, "users"), where("mobileNo", "==", userData.mobileNo));
+      const q   = query(collection(db, COLLECTIONS.USERS), where("mobileNo", "==", userData.mobileNo));
       const snap = await getDocs(q);
       if (!snap.empty) {
         await updateDoc(snap.docs[0].ref, { name: newName.trim() });

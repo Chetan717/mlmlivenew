@@ -1,8 +1,9 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Modal } from "@heroui/react";
 import { db } from "@firebase-config";
-import { addDoc, serverTimestamp } from "firebase/firestore";
+import { addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { collection } from "firebase/firestore";
+import { COLLECTIONS } from "../../collections";
 
 const RAZORPAY_KEY_ID  = import.meta.env.VITE_RAZORPAY_KEY_ID  || "";
 const PSERVER_API_KEY  = import.meta.env.VITE_PSERVER_API_KEY  || "";
@@ -48,6 +49,44 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchMteamCoupon = async () => {
+      const user = getUserFromStorage();
+      const mteamCouponCode = user?.mteamCouponCode;
+      if (!mteamCouponCode || mteamCouponCode.length !== 6) return;
+
+      const chars = mteamCouponCode.toUpperCase().split("");
+      setCoupon(chars);
+
+      setCouponLoading(true);
+      try {
+        const res = await fetch(`${PSERVER_BASE_URL}/validate-coupon`, {
+          method: "POST",
+          headers: pserverHeaders(),
+          body: JSON.stringify({ code: mteamCouponCode.toUpperCase() }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.valid) {
+            setCouponStatus("valid");
+            setDiscountPercent(Number(data.discountPercent ?? 0));
+          } else {
+            setCouponStatus(data.reason === "inactive" ? "inactive" : "invalid");
+            setDiscountPercent(0);
+          }
+        }
+      } catch {
+        /* silent — user can still manually apply */
+      } finally {
+        setCouponLoading(false);
+      }
+    };
+
+    fetchMteamCoupon();
+  }, [isOpen]);
 
   const handleConfirmPurchase = useCallback(async () => {
     if (!plan || paymentLoading) return;
@@ -139,7 +178,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
 
         handler: async (response) => {
           try {
-            // Server verifies Razorpay signature before we write to Firestore
             const verifyRes = await fetch(`${PSERVER_BASE_URL}/verify-payment`, {
               method: "POST",
               headers: pserverHeaders(),
@@ -158,7 +196,7 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
               return;
             }
 
-            await addDoc(collection(db, "subscription"), {
+            await addDoc(collection(db, COLLECTIONS.SUBSCRIPTION), {
               ...buildLogDoc("Success"),
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id:   response.razorpay_order_id,
@@ -166,7 +204,7 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
               couponApplied:       couponStatus === "valid" ? coupon.join("") : null,
               discountPercent,
             });
-            await addDoc(collection(db, "paymentlog"), buildLogDoc("Success")).catch(() => {});
+            await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), buildLogDoc("Success")).catch(() => {});
           } catch (e) {
             console.error("Firestore save error:", e);
           } finally {
@@ -177,7 +215,7 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
 
         modal: {
           ondismiss: async () => {
-            await addDoc(collection(db, "paymentlog"), { ...buildLogDoc("Dismissed") }).catch(() => {});
+            await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), { ...buildLogDoc("Dismissed") }).catch(() => {});
             setPaymentLoading(false);
             setIsOpen(true);
             setPaymentError("Payment cancelled. You can try again anytime.");
@@ -192,7 +230,7 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
           failRes?.error?.metadata?.order_id ||
           failRes?.error?.metadata?.payment_id ||
           orderId;
-        await addDoc(collection(db, "paymentlog"), {
+        await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), {
           ...buildLogDoc("Failed"),
           OrderId:          failedId,
           UTRID:            failedId,
@@ -254,10 +292,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
     e.preventDefault();
   };
 
-  // ── Server-side coupon validation ──────────────────────────────────────────
-  // The browser never queries the couponcode Firestore collection directly.
-  // The pserver reads Firestore using Firebase Admin SDK and returns only the
-  // discount percentage — coupon data never leaks to the client.
   const handleApplyCoupon = async () => {
     if (!isCouponFilled || couponLoading) return;
     setCouponLoading(true);
@@ -271,7 +305,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
       });
 
       if (!res.ok) {
-        // Server-side rate-limit or error
         const errData = await res.json().catch(() => ({}));
         setPaymentError(errData.error || "Coupon check failed. Try again.");
         setCouponStatus(null);
@@ -313,7 +346,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
         <Modal.Container placement="center" className="px-4">
           <Modal.Dialog className="w-full max-w-md mx-auto rounded-2xl border border-border shadow-2xl bg-background overflow-hidden max-h-[92vh] flex flex-col">
             <Modal.Body className="space-y-3 pt-0 px-4 overflow-y-auto flex-1">
-              {/* Plan summary */}
               <div className="rounded-xl border border-accent/25 bg-accent/5 p-4 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -327,7 +359,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
                 <p className="text-lg font-extrabold text-accent shrink-0">₹{baseAmount}</p>
               </div>
 
-              {/* Validity strip */}
               <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 px-4 py-3 flex items-center justify-between gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Start</p>
@@ -347,7 +378,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
                 </div>
               </div>
 
-              {/* Coupon */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
@@ -391,7 +421,6 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
                 </div>
               </div>
 
-              {/* Price breakdown */}
               <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Plan Amount</span>

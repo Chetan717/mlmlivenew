@@ -21,8 +21,10 @@ import {
   where,
   doc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../collections";
 
 export function Signup() {
   const navigate = useNavigate();
@@ -92,7 +94,7 @@ export function Signup() {
       setReferMsg("");
 
       const q = query(
-        collection(db, "users"),
+        collection(db, COLLECTIONS.USERS),
         where("mobileNo", "==", data.mobile),
       );
       const snapshot = await getDocs(q);
@@ -102,28 +104,54 @@ export function Signup() {
       }
 
       let referredByDocId = null;
+      let referredByMteamId = null;
+      let mteamCouponCode = null;
       const trimmedRefer = referInput.trim().toUpperCase();
+
       if (trimmedRefer !== "") {
-        if (!/^[A-Z]{4}[0-9]{4}$/.test(trimmedRefer)) {
+        if (!/^[A-Za-z0-9]{6,8}$/.test(trimmedRefer)) {
           setFormError("Invalid refer code format");
           return;
         }
-        const referSnap = await getDocs(
+
+        const userReferSnap = await getDocs(
           query(
-            collection(db, "users"),
+            collection(db, COLLECTIONS.USERS),
             where("referCode", "==", trimmedRefer),
           ),
         );
-        if (referSnap.empty) {
-          setFormError("Refer code not found");
-          return;
+
+        if (!userReferSnap.empty) {
+          referredByDocId = userReferSnap.docs[0].id;
+        } else {
+          const mteamReferSnap = await getDocs(
+            query(
+              collection(db, COLLECTIONS.MTEAM),
+              where("referCode", "==", trimmedRefer),
+            ),
+          );
+
+          if (!mteamReferSnap.empty) {
+            const mteamDoc = mteamReferSnap.docs[0];
+            referredByMteamId = mteamDoc.id;
+
+            const assignCouponId = mteamDoc.data().assign_coupon_id;
+            if (assignCouponId) {
+              const couponSnap = await getDoc(doc(db, COLLECTIONS.COUPONCODE, assignCouponId));
+              if (couponSnap.exists() && couponSnap.data().active) {
+                mteamCouponCode = couponSnap.data().code || null;
+              }
+            }
+          } else {
+            setFormError("Refer code not found");
+            return;
+          }
         }
-        referredByDocId = referSnap.docs[0].id;
       }
 
       const referCode = generateReferCode(data.mobile);
       const otp = await sendOtp(data.mobile);
-      const docRef = await addDoc(collection(db, "users"), {
+      const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
         name: data.name,
         mobileNo: data.mobile,
         password: data.pin,
@@ -132,6 +160,8 @@ export function Signup() {
         otp: otp,
         referCode: referCode,
         referredBy: trimmedRefer || null,
+        referredByMteam: referredByMteamId || null,
+        mteamCouponCode: mteamCouponCode || null,
         referCredit: 0,
       });
 
@@ -163,7 +193,7 @@ export function Signup() {
     try {
       setLoading(true);
       setOtpError("");
-      await updateDoc(doc(db, "users", userId), {
+      await updateDoc(doc(db, COLLECTIONS.USERS, userId), {
         isverified: true,
         otp: "",
         referCredit: referInput.trim() !== "" ? 5 : 0,
@@ -173,13 +203,13 @@ export function Signup() {
       if (referredByDocId) {
         const referrerSnap = await getDocs(
           query(
-            collection(db, "users"),
+            collection(db, COLLECTIONS.USERS),
             where("__name__", "==", referredByDocId),
           ),
         );
         if (!referrerSnap.empty) {
           const currentCredits = referrerSnap.docs[0].data().referCredit || 0;
-          await updateDoc(doc(db, "users", referredByDocId), {
+          await updateDoc(doc(db, COLLECTIONS.USERS, referredByDocId), {
             referCredit: currentCredits + 10,
           });
         }
@@ -200,7 +230,7 @@ export function Signup() {
       setOtpError("");
       const otp = await sendOtp(userMobile);
       setSentOtp(otp);
-      await updateDoc(doc(db, "users", userId), { otp: otp });
+      await updateDoc(doc(db, COLLECTIONS.USERS, userId), { otp: otp });
       alert("OTP resent successfully!");
     } catch {
       setOtpError("Failed to resend OTP.");
@@ -319,7 +349,7 @@ export function Signup() {
                 </div>
                 <input
                   type="text"
-                  placeholder="e.g. ABCD1234"
+                  placeholder="User or Marketing refer code"
                   maxLength={8}
                   value={referInput}
                   onChange={(e) => {

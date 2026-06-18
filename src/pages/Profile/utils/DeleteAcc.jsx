@@ -10,6 +10,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../../../collections";
 
 function DeleteAcc({ show, setDeleteAcc }) {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ function DeleteAcc({ show, setDeleteAcc }) {
 
       // ── Find user in Firestore ──────────────────────────────
       const q = query(
-        collection(db, "users"),
+        collection(db, COLLECTIONS.USERS),
         where("mobileNo", "==", localUser.mobileNo)
       );
       const snapshot = await getDocs(q);

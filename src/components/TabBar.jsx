@@ -4,6 +4,7 @@ import { House, Gem, Person } from "@gravity-ui/icons";
 import { BarChart3 } from "lucide-react";
 import { db } from "../Firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { COLLECTIONS } from "../collections";
 
 const TABS = [
   {
@@ -47,7 +48,7 @@ function useReportingBadge() {
     const managerId = reportingProfile.managerId;
 
     const q = query(
-      collection(db, "reportingUser"),
+      collection(db, COLLECTIONS.REPORTINGUSER),
       where("managerId", "==", managerId),
       where("role", "==", "Team Member")
     );

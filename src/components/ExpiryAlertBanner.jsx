@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { db } from "@firebase-config";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { X, AlertTriangle } from "lucide-react";
+import { COLLECTIONS } from "../collections";
 
 const ALERT_KEY = "expiryAlertLastShown";
 
@@ -44,7 +45,7 @@ export default function ExpiryAlertBanner() {
       try {
         const snap = await getDocs(
           query(
-            collection(db, "subscription"),
+            collection(db, COLLECTIONS.SUBSCRIPTION),
             where("mobileNo", "==", mobileNo),
             where("Active", "==", true),
             where("Expire", "==", false),

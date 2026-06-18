@@ -15,6 +15,7 @@ import { collection, getDocs, query, where, doc, updateDoc } from "firebase/fire
 import { db } from "@firebase-config";
 import { toast } from "@heroui/react";
 import axios from "axios";
+import { COLLECTIONS } from "../collections";
 
 export function Login() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export function Login() {
       setFormError("");
 
       const q = query(
-        collection(db, "users"),
+        collection(db, COLLECTIONS.USERS),
         where("mobileNo", "==", data.mobile)
       );
       const snapshot = await getDocs(q);
@@ -79,7 +80,7 @@ export function Login() {
 
       if (!userData.isverified) {
         const otp = await sendOtp(data.mobile);
-        await updateDoc(doc(db, "users", userDoc.id), { otp });
+        await updateDoc(doc(db, COLLECTIONS.USERS, userDoc.id), { otp });
         toast.success("OTP भेजा गया! Verify करें।");
         navigate("/signup", {
           state: {
@@ -116,12 +117,14 @@ export function Login() {
         referCode: userData.referCode ?? "",
         referredBy: userData.referredBy ?? null,
         referCredit: userData.referCredit ?? 0,
+        referredByMteam: userData.referredByMteam ?? null,
+        mteamCouponCode: userData.mteamCouponCode ?? null,
       };
 
       localStorage.setItem("usermlm", JSON.stringify(userToStore));
 
       const profileQuery = query(
-        collection(db, "mlmprofiles"),
+        collection(db, COLLECTIONS.MLMPROFILES),
         where("mobile", "==", data.mobile)
       );
       const profileSnapshot = await getDocs(profileQuery);

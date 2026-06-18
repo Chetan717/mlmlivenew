@@ -10,6 +10,7 @@ import {
 } from "@gravity-ui/icons";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
 import referGraphic from "./refer.png";
+import { COLLECTIONS } from "../../collections";
 
 function ReferEarningsModal({ user, isOpen, onClose }) {
   const [referrals, setReferrals] = useState([]);
@@ -23,7 +24,7 @@ function ReferEarningsModal({ user, isOpen, onClose }) {
       try {
         const db = getFirestore();
         const q  = query(
-          collection(db, "users"),
+          collection(db, COLLECTIONS.USERS),
           where("referredBy", "==", user.referCode)
         );
         const snap = await getDocs(q);

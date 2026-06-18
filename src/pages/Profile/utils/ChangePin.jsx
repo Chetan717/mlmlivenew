@@ -5,6 +5,7 @@ import {
   collection, getDocs, query, where, doc, updateDoc,
 } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { COLLECTIONS } from "../../../collections";
 
 const STEPS = ["Current PIN", "New PIN", "Confirm PIN"];
 
@@ -120,7 +121,7 @@ function ChangePin({ show, setChngePin }) {
       if (!stored) { setError("Session expired. Please login again."); return; }
       const localUser = JSON.parse(stored);
 
-      const q = query(collection(db, "users"), where("mobileNo", "==", localUser.mobileNo));
+      const q = query(collection(db, COLLECTIONS.USERS), where("mobileNo", "==", localUser.mobileNo));
       const snapshot = await getDocs(q);
       if (snapshot.empty) { setError("User not found. Please login again."); return; }
 
