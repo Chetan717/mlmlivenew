@@ -1,10 +1,25 @@
 import { Navigate } from "react-router";
 
-export default function ProtectSelectComp({ children }) {
-  const mlmProfile = localStorage.getItem("mlmProfile");
+function isValidUserSession(raw) {
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    return (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      typeof parsed.mobileNo === "string" &&
+      /^[0-9]{10}$/.test(parsed.mobileNo)
+    );
+  } catch {
+    return false;
+  }
+}
 
-  // Already has a profile → no reason to be on /selectcomp
-  if (mlmProfile) return <Navigate to="/" replace />;
+export default function ProtectSelectComp({ children }) {
+  const validUser   = isValidUserSession(localStorage.getItem("usermlm"));
+  const mlmProfile  = localStorage.getItem("mlmProfile");
+
+  if (validUser && mlmProfile) return <Navigate to="/" replace />;
 
   return children;
 }

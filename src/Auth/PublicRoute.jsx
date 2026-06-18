@@ -1,10 +1,25 @@
 import { Navigate } from "react-router";
 
-export default function PublicRoute({ children }) {
-  const token = localStorage.getItem("usermlm");
+function isValidUserSession(raw) {
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    return (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      typeof parsed.mobileNo === "string" &&
+      /^[0-9]{10}$/.test(parsed.mobileNo)
+    );
+  } catch {
+    return false;
+  }
+}
 
-  // If logged in, block access to login/signup → redirect home
-  if (token) {
+export default function PublicRoute({ children }) {
+  const raw = localStorage.getItem("usermlm");
+  const valid = isValidUserSession(raw);
+
+  if (valid) {
     return <Navigate to="/" replace />;
   }
 
