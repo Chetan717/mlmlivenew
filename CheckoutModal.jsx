@@ -1,13 +1,13 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Modal } from "@heroui/react";
 import { db } from "@firebase-config";
-import { addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from "firebase/firestore";
 import { collection } from "firebase/firestore";
 import { COLLECTIONS } from "../../collections";
 
 const RAZORPAY_KEY_ID  = import.meta.env.VITE_RAZORPAY_KEY_ID  || "";
 const PSERVER_API_KEY  = import.meta.env.VITE_PSERVER_API_KEY  || "";
-const PSERVER_BASE_URL = import.meta.env.VITE_PSERVER_URL       || "";
+const PSERVER_BASE_URL = import.meta.env.VITE_PSERVER_URL || ""
 
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
@@ -15,7 +15,7 @@ const loadRazorpayScript = () =>
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
-    script.onload  = () => resolve(true);
+    script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
@@ -30,6 +30,9 @@ const getCompanyFromStorage = () => {
   catch { return {}; }
 };
 
+const formatDateForDB = (date) =>
+  date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
 const fmtDisplay = (date) =>
   date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -38,44 +41,46 @@ const pserverHeaders = () => ({
   "X-Api-Key": PSERVER_API_KEY,
 });
 
-// planIndex — the array index of this plan inside the mlmcomp company document's
-// Plans array. The server uses companyId + planIndex to look up the real price,
-// so it cannot be tampered with by the browser.
-// The parent renders plans like: plans.map((plan, i) => <CheckoutModal planIndex={i} ... />)
-export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPaymentSuccess }) {
-  const [coupon,          setCoupon]          = useState(["", "", "", "", "", ""]);
-  const [couponStatus,    setCouponStatus]    = useState(null);
-  const [couponLoading,   setCouponLoading]   = useState(false);
+export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSuccess }) {
+  const [coupon, setCoupon] = useState(["", "", "", "", "", ""]);
+  const [couponStatus, setCouponStatus] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
   const [discountPercent, setDiscountPercent] = useState(0);
-  const [paymentLoading,  setPaymentLoading]  = useState(false);
-  const [paymentError,    setPaymentError]    = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
   const inputRefs = useRef([]);
 
-  // Fetch mteam coupon directly from Firestore (not from stale localStorage)
   useEffect(() => {
     if (!isOpen) return;
 
+    // Reset coupon state on each open
     setCoupon(["", "", "", "", "", ""]);
     setCouponStatus(null);
     setDiscountPercent(0);
-    setPaymentError(null);
 
     const fetchMteamCoupon = async () => {
-      const user   = getUserFromStorage();
+      const user = getUserFromStorage();
       const mobile = user?.mobileNo;
       if (!mobile) return;
 
       setCouponLoading(true);
       try {
-        const q    = query(collection(db, COLLECTIONS.USERS), where("mobileNo", "==", mobile));
+        // Fetch the latest user document directly from Firestore
+        const q = query(
+          collection(db, COLLECTIONS.USERS),
+          where("mobileNo", "==", mobile)
+        );
         const snap = await getDocs(q);
         if (snap.empty) return;
 
-        const mteamCouponCode = snap.docs[0].data()?.mteamCouponCode;
+        const userData = snap.docs[0].data();
+        const mteamCouponCode = userData?.mteamCouponCode;
         if (!mteamCouponCode || mteamCouponCode.length !== 6) return;
 
+        // Fill in the coupon boxes
         setCoupon(mteamCouponCode.toUpperCase().split(""));
 
+        // Validate it against the server
         const res = await fetch(`${PSERVER_BASE_URL}/validate-coupon`, {
           method: "POST",
           headers: pserverHeaders(),
@@ -88,10 +93,14 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
             setDiscountPercent(Number(data.discountPercent ?? 0));
           } else {
             setCouponStatus(data.reason === "inactive" ? "inactive" : "invalid");
+            setDiscountPercent(0);
           }
         }
-      } catch { /* silent — user can enter coupon manually */ }
-      finally  { setCouponLoading(false); }
+      } catch {
+        /* silent — user can still enter coupon manually */
+      } finally {
+        setCouponLoading(false);
+      }
     };
 
     fetchMteamCoupon();
@@ -102,8 +111,15 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
     setPaymentError(null);
     setPaymentLoading(true);
 
-    const user    = getUserFromStorage();
-    const company = getCompanyFromStorage();
+    const baseAmt = plan.PlanAmount ?? 0;
+    const discount = Math.floor((baseAmt * discountPercent) / 100);
+    const amountAfterDiscount = baseAmt - discount;
+    const gst = Math.round(amountAfterDiscount * 0.18);
+    const payableAmount = amountAfterDiscount + gst;
+
+    const today = new Date();
+    const expiryDate = new Date(today);
+    expiryDate.setDate(expiryDate.getDate() + (plan.Day_value ?? 0));
 
     try {
       const sdkLoaded = await loadRazorpayScript();
@@ -113,44 +129,20 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         return;
       }
 
-      // ── SECURE: send companyId + planIndex — server fetches the real price ──
-      // Plans live inside the mlmcomp document as an array:
-      //   mlmcomp/{companyId} → { Plans: [ … ] }
-      // The server reads Plans[planIndex].PlanAmount from Firestore directly —
-      // the browser never sends an amount, so nobody can tamper with it.
-      const companyDocId = company?.id || company?.companyId;
-      if (!companyDocId) {
-        setPaymentError("Company ID missing. Please re-select your company and try again.");
-        setPaymentLoading(false);
-        return;
-      }
-      if (planIndex === undefined || planIndex === null || planIndex < 0) {
-        setPaymentError("Plan index missing. Please go back and try again.");
-        setPaymentLoading(false);
-        return;
-      }
-
-      const orderRes = await fetch(PSERVER_BASE_URL, {
+      const res = await fetch(PSERVER_BASE_URL, {
         method: "POST",
         headers: pserverHeaders(),
-        body: JSON.stringify({
-          companyId:  companyDocId,
-          planIndex:  Number(planIndex),
-          couponCode: couponStatus === "valid" ? coupon.join("") : null,
-          userMobile: user?.mobileNo || "",
-          userName:   user?.name     || "",
-        }),
+        body: JSON.stringify({ amount: payableAmount }),
       });
 
-      if (!orderRes.ok) {
-        const errData = await orderRes.json().catch(() => ({}));
-        setPaymentError(errData.error || "Order creation failed. Please try again.");
+      if (!res.ok) {
+        setPaymentError("Order creation failed. Please try again.");
         setPaymentLoading(false);
         return;
       }
 
-      const orderData = await orderRes.json();
-      const orderId = orderData?.order_id;
+      const orderData = await res.json();
+      const orderId = orderData?.order_id ?? orderData?.data?.order_id ?? orderData?.id;
 
       if (!orderId) {
         setPaymentError("Invalid order response. Please try again.");
@@ -158,27 +150,26 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         return;
       }
 
-      // Use server-confirmed amounts (these are what Razorpay will actually charge)
-      const confirmedAmount      = orderData.payableAmount;
-      const confirmedDiscount    = orderData.discountPercent ?? 0;
-      const confirmedDiscountAmt = orderData.discountAmount  ?? 0;
-      const confirmedGst         = orderData.gstAmount       ?? 0;
+      const user    = getUserFromStorage();
+      const company = getCompanyFromStorage();
 
-      // Log for dismissed / failed payments — low-risk (doesn't grant access)
-      const buildFailLog = (status, extra = {}) => ({
+      const buildLogDoc = (status) => ({
         OrderId:       orderId,
         payment:       status,
         plan:          plan.PlanName || "",
-        planType:      plan.Type     || "",
+        planType:      plan.Type || "",
         company:       company?.name || company?.id || "",
-        PaymentAmount: confirmedAmount,
-        mobileNo:      user?.mobileNo || "",
-        UserName:      user?.name     || "",
+        startdate:     formatDateForDB(today),
+        expirydate:    formatDateForDB(expiryDate),
+        download:      plan.downloads ?? 0,
         PurchaseAt:    serverTimestamp(),
-        Active:        false,
-        Expire:        true,
+        PaymentAmount: payableAmount,
+        duration:      plan.Day_value ?? 0,
+        mobileNo:      user?.mobileNo || "",
+        UserName:      user?.name || "",
+        Active:        status === "Success",
+        Expire:        status !== "Success",
         UTRID:         orderId,
-        ...extra,
       });
 
       setIsOpen(false);
@@ -186,30 +177,25 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
 
       const options = {
         key:         RAZORPAY_KEY_ID,
-        // ── amount comes from the server's order, not the browser's calculation ──
-        amount:      Number(confirmedAmount),
+        amount:      Number(payableAmount),
         currency:    "INR",
         name:        company?.name || "Subscription",
         description: plan.PlanName || "Plan Purchase",
         order_id:    orderId,
         prefill: {
-          name:    user?.name     || "",
+          name:    user?.name || "",
           contact: user?.mobileNo || "",
-          email:   user?.email    || "",
+          email:   user?.email || "",
         },
         notes: {
-          plan:     plan.PlanName  || "",
-          planType: plan.Type      || "",
-          company:  company?.name  || "",
+          plan:     plan.PlanName || "",
+          planType: plan.Type || "",
+          company:  company?.name || "",
         },
         theme: { color: "#0e245c" },
 
         handler: async (response) => {
           try {
-            // ── SECURE: signature verified server-side ───────────────────────
-            // Server checks the HMAC, then writes the subscription to Firestore
-            // using Firebase Admin SDK. The browser never writes to the
-            // subscription collection directly.
             const verifyRes = await fetch(`${PSERVER_BASE_URL}/verify-payment`, {
               method: "POST",
               headers: pserverHeaders(),
@@ -223,16 +209,22 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
             if (!verifyRes.ok) {
               const errData = await verifyRes.json().catch(() => ({}));
               console.error("Payment verification failed:", errData.error);
-              setPaymentError(
-                "Payment verified but record save failed. Contact support with order ID: " + orderId
-              );
+              setPaymentError("Payment verification failed. Please contact support with your order ID: " + orderId);
               setIsOpen(true);
               return;
             }
 
-            // Subscription is now written by the server — nothing to do here.
+            await addDoc(collection(db, COLLECTIONS.SUBSCRIPTION), {
+              ...buildLogDoc("Success"),
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_signature:  response.razorpay_signature,
+              couponApplied:       couponStatus === "valid" ? coupon.join("") : null,
+              discountPercent,
+            });
+            await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), buildLogDoc("Success")).catch(() => {});
           } catch (e) {
-            console.error("Verification call error:", e);
+            console.error("Firestore save error:", e);
           } finally {
             setPaymentLoading(false);
             if (onPaymentSuccess) onPaymentSuccess();
@@ -241,11 +233,7 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
 
         modal: {
           ondismiss: async () => {
-            // Log the dismissal (no subscription — just an audit entry)
-            await addDoc(
-              collection(db, COLLECTIONS.PAYMENTLOG),
-              buildFailLog("Dismissed")
-            ).catch(() => {});
+            await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), { ...buildLogDoc("Dismissed") }).catch(() => {});
             setPaymentLoading(false);
             setIsOpen(true);
             setPaymentError("Payment cancelled. You can try again anytime.");
@@ -257,19 +245,17 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
 
       rzp.on("payment.failed", async (failRes) => {
         const failedId =
-          failRes?.error?.metadata?.order_id  ||
+          failRes?.error?.metadata?.order_id ||
           failRes?.error?.metadata?.payment_id ||
           orderId;
-        await addDoc(
-          collection(db, COLLECTIONS.PAYMENTLOG),
-          buildFailLog("Failed", {
-            OrderId:          failedId,
-            UTRID:            failedId,
-            errorCode:        failRes?.error?.code        || "",
-            errorDescription: failRes?.error?.description || "",
-            errorReason:      failRes?.error?.reason      || "",
-          })
-        ).catch(() => {});
+        await addDoc(collection(db, COLLECTIONS.PAYMENTLOG), {
+          ...buildLogDoc("Failed"),
+          OrderId:          failedId,
+          UTRID:            failedId,
+          errorCode:        failRes?.error?.code || "",
+          errorDescription: failRes?.error?.description || "",
+          errorReason:      failRes?.error?.reason || "",
+        }).catch(() => {});
       });
 
       rzp.open();
@@ -283,18 +269,17 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
 
   if (!plan) return null;
 
-  // Display-only amounts (server will recalculate; these are for UI preview only)
-  const baseAmount        = plan.PlanAmount ?? 0;
-  const discountAmount    = Math.floor((baseAmount * discountPercent) / 100);
+  const baseAmount = plan.PlanAmount ?? 0;
+  const discountAmount = Math.floor((baseAmount * discountPercent) / 100);
   const amountAfterDiscount = baseAmount - discountAmount;
-  const gstAmount         = Math.round(amountAfterDiscount * 0.18);
-  const finalAmount       = amountAfterDiscount + gstAmount;
+  const gstAmount = Math.round(amountAfterDiscount * 0.18);
+  const finalAmount = amountAfterDiscount + gstAmount;
 
-  const today      = new Date();
+  const today = new Date();
   const expiryDate = new Date(today);
   expiryDate.setDate(expiryDate.getDate() + (plan.Day_value ?? 0));
 
-  const couponString   = coupon.join("");
+  const couponString = coupon.join("");
   const isCouponFilled = couponString.length === 6;
 
   const handleCouponChange = (val, idx) => {
@@ -314,8 +299,8 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
   };
 
   const handleCouponPaste = (e) => {
-    const text = e.clipboardData.getData("text")
-      .replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
+    const text = e.clipboardData
+      .getData("text").replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 6);
     if (text.length === 6) {
       setCoupon(text.split(""));
       setCouponStatus(null);
@@ -329,12 +314,14 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
     if (!isCouponFilled || couponLoading) return;
     setCouponLoading(true);
     setPaymentError(null);
+
     try {
       const res = await fetch(`${PSERVER_BASE_URL}/validate-coupon`, {
         method: "POST",
         headers: pserverHeaders(),
         body: JSON.stringify({ code: couponString }),
       });
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         setPaymentError(errData.error || "Coupon check failed. Try again.");
@@ -342,12 +329,15 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         setDiscountPercent(0);
         return;
       }
+
       const data = await res.json();
+
       if (!data.valid) {
         setCouponStatus(data.reason === "inactive" ? "inactive" : "invalid");
         setDiscountPercent(0);
         return;
       }
+
       setCouponStatus("valid");
       setDiscountPercent(Number(data.discountPercent ?? 0));
     } catch (err) {
@@ -374,8 +364,6 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         <Modal.Container placement="center" className="px-4">
           <Modal.Dialog className="w-full max-w-md mx-auto rounded-2xl border border-border shadow-2xl bg-background overflow-hidden max-h-[92vh] flex flex-col">
             <Modal.Body className="space-y-3 pt-0 px-4 overflow-y-auto flex-1">
-
-              {/* Plan summary */}
               <div className="rounded-xl border border-accent/25 bg-accent/5 p-4 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -389,7 +377,6 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
                 <p className="text-lg font-extrabold text-accent shrink-0">₹{baseAmount}</p>
               </div>
 
-              {/* Date timeline */}
               <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 px-4 py-3 flex items-center justify-between gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Start</p>
@@ -409,14 +396,12 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
                 </div>
               </div>
 
-              {/* Coupon */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
                   <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Coupon Code</p>
                   <div className="flex-1 h-px dark:bg-white/10 bg-black/10" />
                 </div>
-
                 <div className="flex items-center justify-center gap-2" onPaste={handleCouponPaste}>
                   {coupon.map((char, idx) => (
                     <input key={idx} ref={(el) => (inputRefs.current[idx] = el)}
@@ -433,11 +418,9 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
                           : couponStatus === "invalid" || couponStatus === "inactive"
                           ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-500"
                           : "border-border/30 border-black/15",
-                      ].join(" ")}
-                    />
+                      ].join(" ")} />
                   ))}
                 </div>
-
                 <div className="flex items-center justify-between px-1 min-h-[20px]">
                   <span className="text-xs font-medium">
                     {couponStatus === "valid"    && <span className="text-green-500">{discountPercent}% discount applied!</span>}
@@ -447,22 +430,15 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
                   <div className="flex items-center gap-3">
                     {couponLoading && <span className="text-xs text-muted-foreground animate-pulse">Checking…</span>}
                     {!couponLoading && isCouponFilled && couponStatus !== "valid" && (
-                      <button onClick={handleApplyCoupon}
-                        className="text-xs font-bold text-accent underline underline-offset-2">
-                        Apply
-                      </button>
+                      <button onClick={handleApplyCoupon} className="text-xs font-bold text-accent underline underline-offset-2">Apply</button>
                     )}
                     {couponString && (
-                      <button onClick={handleClearCoupon}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                        Clear
-                      </button>
+                      <button onClick={handleClearCoupon} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clear</button>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Price breakdown (preview — server confirms the actual charge) */}
               <div className="rounded-xl bg-black/5 bg-muted/5 border border-border/30 border-black/10 p-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Plan Amount</span>
@@ -498,9 +474,7 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
                   "w-full py-3.5 rounded-xl font-bold text-sm text-white",
                   "flex items-center justify-center gap-2 shadow-lg shadow-accent/25",
                   "transition-all duration-150",
-                  paymentLoading
-                    ? "bg-accent/60 cursor-not-allowed"
-                    : "bg-accent hover:opacity-90 active:scale-[0.98]",
+                  paymentLoading ? "bg-accent/60 cursor-not-allowed" : "bg-accent hover:opacity-90 active:scale-[0.98]",
                 ].join(" ")}>
                 {paymentLoading ? (
                   <>

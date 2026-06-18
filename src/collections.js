@@ -10,6 +10,7 @@ const COLLECTIONS = {
   LEADMANAGEMENT:  import.meta.env.VITE_COL_LEADMANAGEMENT,
   MLMGRAPHICS:     import.meta.env.VITE_COL_MLMGRAPHICS,
   REMOVEBG:        import.meta.env.VITE_COL_REMOVEBG,
+  PAYMENTLOG:      import.meta.env.VITE_COL_PAYMENTLOG,
   REPORTINGUSER:   import.meta.env.VITE_COL_REPORTINGUSER,
   REPORTPLAN:      import.meta.env.VITE_COL_REPORTPLAN,
   REPORTSP:        import.meta.env.VITE_COL_REPORTSP,
