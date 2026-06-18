@@ -23,6 +23,7 @@ import { CheckoutModal } from "./CheckoutModal";
 import { PlanModal } from "./PlanModal";
 import "swiper/css";
 import "swiper/css/pagination";
+import { COLLECTIONS } from "../../collections";
 import { CreditCard, History, Clock, Download, IndianRupee } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -405,20 +406,47 @@ export default function MainSubscription() {
   return (
     <div className="w-full min-h-full bg-background p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-
         {/* Premium Hero Header */}
-        <div className="relative mb-8 rounded-[28px] overflow-hidden p-6" style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 60%, #0e245c 100%)" }}>
-          <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(ellipse at 80% 20%, #6366f1 0%, transparent 60%)" }} />
+        <div
+          className="relative mb-8 rounded-[28px] overflow-hidden p-6"
+          style={{
+            background:
+              "linear-gradient(135deg, #0e245c 0%, #1a3a8a 60%, #0e245c 100%)",
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background:
+                "radial-gradient(ellipse at 80% 20%, #6366f1 0%, transparent 60%)",
+            }}
+          />
           <div className="absolute top-0 left-8 right-8 h-px bg-white/15 rounded-full" />
           <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 flex-shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-yellow-300">
-                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" fill="currentColor"/>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.12)" }}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-yellow-300"
+              >
+                <path
+                  d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                  fill="currentColor"
+                />
               </svg>
             </div>
             <div>
-              <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-0.5">Premium Access</p>
-              <h1 className="text-[22px] font-display font-bold text-white leading-tight">My Subscriptions</h1>
+              <p className="text-[11px] font-bold text-white/50 uppercase tracking-widest mb-0.5">
+                Premium Access
+              </p>
+              <h1 className="text-[22px] font-display font-bold text-white leading-tight">
+                My Subscriptions
+              </h1>
             </div>
           </div>
         </div>
@@ -445,7 +473,8 @@ export default function MainSubscription() {
                       No Active Plans
                     </h3>
                     <p className="text-muted-foreground text-center max-w-sm">
-                      You don't have any active subscriptions. Choose a plan below to unlock premium features.
+                      You don't have any active subscriptions. Choose a plan
+                      below to unlock premium features.
                     </p>
                   </div>
                 ) : (
@@ -485,15 +514,21 @@ export default function MainSubscription() {
         {!hasActiveSub && (
           <div className="mt-12">
             <div className="mb-7">
-              <p className="text-[11px] font-bold text-accent/80 uppercase tracking-widest mb-1">Unlock More</p>
-              <h2 className="text-[22px] font-display font-bold text-foreground">Upgrade Your Plan</h2>
-              <p className="text-[13px] text-muted-foreground mt-1">Choose a plan that fits your workflow</p>
+              <p className="text-[11px] font-bold text-accent/80 uppercase tracking-widest mb-1">
+                Unlock More
+              </p>
+              <h2 className="text-[22px] font-display font-bold text-foreground">
+                Upgrade Your Plan
+              </h2>
+              <p className="text-[13px] text-muted-foreground mt-1">
+                Choose a plan that fits your workflow
+              </p>
             </div>
 
             {loading ? (
               <div className="grid gap-4 md:grid-cols-2">
-                 <Skeleton className="h-64 rounded-3xl" />
-                 <Skeleton className="h-64 rounded-3xl" />
+                <Skeleton className="h-64 rounded-3xl" />
+                <Skeleton className="h-64 rounded-3xl" />
               </div>
             ) : error ? (
               <div className="p-6 rounded-2xl bg-danger/10 border border-danger/20 text-center">
@@ -501,7 +536,9 @@ export default function MainSubscription() {
               </div>
             ) : plans.length === 0 ? (
               <div className="p-8 rounded-2xl border border-border bg-white dark:bg-black/20 text-center">
-                <p className="text-muted-foreground">No plans currently available.</p>
+                <p className="text-muted-foreground">
+                  No plans currently available.
+                </p>
               </div>
             ) : (
               <div className="grid gap-5 md:grid-cols-2">
@@ -512,7 +549,12 @@ export default function MainSubscription() {
                     className="group cursor-pointer rounded-[24px] overflow-hidden border border-border/60 hover:border-accent/40 shadow-md hover:shadow-xl transition-all duration-300 relative bg-white dark:bg-[#0f1525]"
                   >
                     {/* Accent top bar */}
-                    <div className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(90deg, #0e245c, #4f6fd0)" }} />
+                    <div
+                      className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{
+                        background: "linear-gradient(90deg, #0e245c, #4f6fd0)",
+                      }}
+                    />
 
                     {plan.image_url ? (
                       <div className="aspect-[16/9] w-full overflow-hidden relative">
@@ -525,12 +567,20 @@ export default function MainSubscription() {
                         <div className="absolute bottom-0 left-0 right-0 p-4">
                           <div className="flex items-end justify-between">
                             <div>
-                              <h3 className="text-white font-display font-bold text-[18px] mb-0.5">{plan.PlanName}</h3>
-                              <p className="text-white/70 text-[12px]">Tap to view details</p>
+                              <h3 className="text-white font-display font-bold text-[18px] mb-0.5">
+                                {plan.PlanName}
+                              </h3>
+                              <p className="text-white/70 text-[12px]">
+                                Tap to view details
+                              </p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] text-white/60 mb-0.5">Price</p>
-                              <p className="text-[20px] font-bold text-white">₹{plan.PlanAmount ?? 0}</p>
+                              <p className="text-[10px] text-white/60 mb-0.5">
+                                Price
+                              </p>
+                              <p className="text-[20px] font-bold text-white">
+                                ₹{plan.PlanAmount ?? 0}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -538,24 +588,54 @@ export default function MainSubscription() {
                     ) : (
                       <div className="p-5">
                         <div className="flex items-start justify-between gap-3 mb-4">
-                          <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border border-accent/20" style={{ background: "linear-gradient(135deg, rgba(14,36,92,0.12), rgba(79,111,208,0.08))" }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-accent">
-                              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" fill="currentColor"/>
+                          <div
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border border-accent/20"
+                            style={{
+                              background:
+                                "linear-gradient(135deg, rgba(14,36,92,0.12), rgba(79,111,208,0.08))",
+                            }}
+                          >
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="text-accent"
+                            >
+                              <path
+                                d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"
+                                fill="currentColor"
+                              />
                             </svg>
                           </div>
                           <div className="px-2.5 py-1 rounded-full text-[10px] font-bold text-accent bg-accent/8 border border-accent/15">
                             Premium
                           </div>
                         </div>
-                        <h3 className="font-display font-bold text-[18px] text-foreground mb-3 group-hover:text-accent transition-colors">{plan.PlanName || "Premium Plan"}</h3>
+                        <h3 className="font-display font-bold text-[18px] text-foreground mb-3 group-hover:text-accent transition-colors">
+                          {plan.PlanName || "Premium Plan"}
+                        </h3>
                         <div className="flex items-end justify-between pt-3 border-t border-border/40">
                           <div>
-                            <p className="text-[9px] text-muted-foreground/70 uppercase font-bold tracking-widest mb-0.5">One-time payment</p>
-                            <p className="text-[26px] font-bold text-accent leading-none">₹{plan.PlanAmount ?? 0}</p>
+                            <p className="text-[9px] text-muted-foreground/70 uppercase font-bold tracking-widest mb-0.5">
+                              One-time payment
+                            </p>
+                            <p className="text-[26px] font-bold text-accent leading-none">
+                              ₹{plan.PlanAmount ?? 0}
+                            </p>
                           </div>
                           <div className="w-9 h-9 rounded-full flex items-center justify-center bg-accent text-white opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-lg shadow-accent/25">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M5 12h14M12 5l7 7-7 7"/>
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
                           </div>
                         </div>

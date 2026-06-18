@@ -38,11 +38,9 @@ const pserverHeaders = () => ({
   "X-Api-Key": PSERVER_API_KEY,
 });
 
-// planIndex — the array index of this plan inside the mlmcomp company document's
-// Plans array. The server uses companyId + planIndex to look up the real price,
-// so it cannot be tampered with by the browser.
-// The parent renders plans like: plans.map((plan, i) => <CheckoutModal planIndex={i} ... />)
-export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPaymentSuccess }) {
+export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSuccess }) {
+
+
   const [coupon,          setCoupon]          = useState(["", "", "", "", "", ""]);
   const [couponStatus,    setCouponStatus]    = useState(null);
   const [couponLoading,   setCouponLoading]   = useState(false);
@@ -113,19 +111,9 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         return;
       }
 
-      // ── SECURE: send companyId + planIndex — server fetches the real price ──
-      // Plans live inside the mlmcomp document as an array:
-      //   mlmcomp/{companyId} → { Plans: [ … ] }
-      // The server reads Plans[planIndex].PlanAmount from Firestore directly —
-      // the browser never sends an amount, so nobody can tamper with it.
       const companyDocId = company?.id || company?.companyId;
       if (!companyDocId) {
         setPaymentError("Company ID missing. Please re-select your company and try again.");
-        setPaymentLoading(false);
-        return;
-      }
-      if (planIndex === undefined || planIndex === null || planIndex < 0) {
-        setPaymentError("Plan index missing. Please go back and try again.");
         setPaymentLoading(false);
         return;
       }
@@ -135,7 +123,7 @@ export function CheckoutModal({ plan, planIndex, isOpen, setIsOpen, onBack, onPa
         headers: pserverHeaders(),
         body: JSON.stringify({
           companyId:  companyDocId,
-          planIndex:  Number(planIndex),
+          planName:  plan.PlanName || "",
           couponCode: couponStatus === "valid" ? coupon.join("") : null,
           userMobile: user?.mobileNo || "",
           userName:   user?.name     || "",
