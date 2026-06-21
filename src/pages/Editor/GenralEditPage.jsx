@@ -32,8 +32,12 @@ import {
   getDocs,
   doc,
   updateDoc,
+  orderBy,
+  limit,
+  startAfter,
 } from "firebase/firestore";
 import { db } from "@firebase-config";
+import { validateUploadFile } from "../../lib/fileValidation";
 import num0 from "./amount_numberImage/number_0.png";
 import num1 from "./amount_numberImage/number_1.png";
 import num2 from "./amount_numberImage/number_2.png";
@@ -60,7 +64,14 @@ const MAX_MUSIC_SECONDS = 20;
 const IMAGE_CREDIT_COST = 1;
 const VIDEO_CREDIT_COST = 2;
 
-const PRESET_AUDIOS = [];
+const MUSIC_PAGE_SIZE = 15;
+
+const sortMusicTracks = (tracks) =>
+  [...tracks].sort((a, b) =>
+    String(a.Name_Music || "").localeCompare(String(b.Name_Music || ""), undefined, {
+      sensitivity: "base",
+    }),
+  );
 
 const VideoCanvas = React.memo(function VideoCanvas({
   src,
@@ -77,7 +88,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
     const el = document.createElement("video");
     el.crossOrigin = "anonymous";
     el.loop = true;
-    el.muted = false;
+    el.muted = true;
     el.playsInline = true;
     el.preload = "auto";
     el.src = src;
@@ -99,15 +110,21 @@ const VideoCanvas = React.memo(function VideoCanvas({
   }, [videoEl, onError]);
 
   useEffect(() => {
-    if (!videoEl || !imageRef.current) return;
-    const layer = imageRef.current.getLayer();
-    let anim;
+    if (!videoEl) return;
+    let rafId = null;
     let cancelled = false;
 
-    const startAnim = () => {
+    // Use rAF loop so we always get the live layer reference each frame,
+    // avoiding the null-layer bug from capturing it at effect start.
+    let lastDraw = 0;
+    const tick = (time) => {
       if (cancelled) return;
-      anim = new Konva.Animation(() => {}, layer);
-      anim.start();
+      if (time - lastDraw >= 33) {
+        lastDraw = time;
+        const lyr = imageRef.current?.getLayer?.();
+        if (lyr) lyr.batchDraw();
+      }
+      rafId = requestAnimationFrame(tick);
     };
 
     if (playing) {
@@ -119,7 +136,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
             videoEl.play().catch(() => {});
           });
         }
-        startAnim();
+        rafId = requestAnimationFrame(tick);
       };
       if (videoEl.readyState >= 2) {
         tryPlay();
@@ -129,15 +146,17 @@ const VideoCanvas = React.memo(function VideoCanvas({
       return () => {
         cancelled = true;
         videoEl.removeEventListener("canplay", tryPlay);
-        if (anim) anim.stop();
+        if (rafId) cancelAnimationFrame(rafId);
       };
     }
 
+    // paused state — stop video and do one final draw
     videoEl.pause();
-    layer && layer.batchDraw();
+    const lyr = imageRef.current?.getLayer?.();
+    if (lyr) lyr.batchDraw();
     return () => {
       cancelled = true;
-      if (anim) anim.stop();
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [playing, videoEl]);
 
@@ -347,6 +366,15 @@ const btnStyle = (bg) => ({
   boxShadow: `0 4px 12px ${bg}55`,
 });
 
+function LoadingDots() {
+  const [dots, setDots] = React.useState("");
+  React.useEffect(() => {
+    const id = setInterval(() => setDots((d) => (d.length >= 3 ? "" : d + ".")), 450);
+    return () => clearInterval(id);
+  }, []);
+  return <span style={{ display: "inline-block", width: 18, textAlign: "left" }}>{dots}</span>;
+}
+
 function Toast({ message, type }) {
   const colors = { error: "#ef4444", success: "#22c55e", info: "#6366f1" };
   return (
@@ -456,10 +484,22 @@ function GeneralEditPage({
 
   const [selectedMusic, setSelectedMusic] = useState(null);
   const [musicExporting, setMusicExporting] = useState(false);
+  const [videoExporting, setVideoExporting] = useState(false);
   const [musicModalOpen, setMusicModalOpen] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [presetLoadingUrl, setPresetLoadingUrl] = useState(null);
   const [deviceLoading, setDeviceLoading] = useState(false);
+  const [audioUploadProgress, setAudioUploadProgress] = useState(0);
+  const [firestoreAudios, setFirestoreAudios] = useState([]);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [audioHasMore, setAudioHasMore] = useState(true);
+  const [audioLastDoc, setAudioLastDoc] = useState(null);
+  const [audioSearch, setAudioSearch] = useState("");
+  const [playingAudioUrl, setPlayingAudioUrl] = useState(null);
+  const [playingAudioId, setPlayingAudioId] = useState(null);
+  const audioPlayerRef = useRef(null);
+  const audioListRef = useRef(null);
+  const [activeTabFromList, setActiveTabFromList] = useState("image");
   const [progressTarget, setProgressTarget] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
   const [progressLogs, setProgressLogs] = useState([]);
@@ -572,9 +612,13 @@ function GeneralEditPage({
                   ? isRight
                     ? 190
                     : 18
-                  : isRight
-                    ? 200
-                    : 10,
+                  : isBonanza
+                    ? isRight
+                      ? 205
+                      : 5
+                    : isRight
+                      ? 200
+                      : 10,
       y: isMeeting
         ? 81.8
         : isCapping
@@ -645,8 +689,8 @@ function GeneralEditPage({
                   : 2
                 : isBonanza
                   ? isRight
-                    ? 179
-                    : 2
+                    ? 180
+                    : 0
                   : isRight
                     ? 190
                     : 2,
@@ -1076,7 +1120,8 @@ function GeneralEditPage({
   const incomeType = incomeFormData?.typeOfIncome || "";
 
   const [bgImage, bgStatus] = useImage(`${selected?.url || ""}`, "anonymous");
-  const selectedVideoUrl = selected?.videoUrl || selected?.VideoUrl || null;
+  const selectedVideoUrl = selected?.backgroundVideoUrl || selected?.videoUrl || null;
+
   useEffect(() => {
     setVideoPlaying(!!selectedVideoUrl);
   }, [selectedVideoUrl]);
@@ -1295,71 +1340,71 @@ function GeneralEditPage({
   const referCredits = userData?.referCredit ?? 0;
   const totalDownloadsAvailable = planDownloads + referCredits;
 
-  const checkCredits = (cost) => {
-    if (!activeSub) {
-      showToast(
-        "No active subscription found. Please subscribe to export.",
-        "error",
-      );
-      return false;
-    }
-    const expiry = parseExpiryDate(activeSub.expirydate);
-    if (expiry && new Date() > expiry) {
-      showToast(
-        "Your subscription has expired. Please renew to continue.",
-        "error",
-      );
-      return false;
-    }
-    if (totalDownloadsAvailable < cost) {
-      showToast(
-        `This export needs ${cost} credit${cost > 1 ? "s" : ""}, but you have ${totalDownloadsAvailable}. Please renew your plan.`,
-        "error",
-        4000,
-      );
-      return false;
-    }
-    return true;
-  };
+  // const checkCredits = (cost) => {
+    // if (!activeSub) {
+    //   showToast(
+    //     "No active subscription found. Please subscribe to export.", {change for free}
+    //     "error",
+    //   );
+    //   return false;
+    // }
+    // const expiry = parseExpiryDate(activeSub.expirydate);
+    // if (expiry && new Date() > expiry) {
+    //   showToast(
+    //     "Your subscription has expired. Please renew to continue.", {change for free}
+    //     "error",
+    //   );
+    //   return false;
+    // }
+  //   if (totalDownloadsAvailable < cost) {
+  //     showToast(
+  //       `This export needs ${cost} credit${cost > 1 ? "s" : ""}, but you have ${totalDownloadsAvailable}. Please renew your plan.`,
+  //       "error",
+  //       4000,
+  //     );
+  //     return false; {change for free}
+  //   }
+  //   return true;
+  // };
 
-  const deductCredits = async (cost, prefix = "Downloaded!") => {
-    let remaining = cost;
-    const fromPlan = Math.min(planDownloads, remaining);
-    const newPlan = planDownloads - fromPlan;
-    remaining -= fromPlan;
-    const fromRefer = Math.min(referCredits, remaining);
-    const newCredits = referCredits - fromRefer;
-    const totalAfter = newPlan + newCredits;
-    const planExhausted = newPlan === 0 && newCredits === 0;
-    if (fromPlan > 0) {
-      const subRef = doc(db, "subscription", activeSub.id);
-      await updateDoc(subRef, {
-        download: newPlan,
-        ...(planExhausted ? { Active: false, Expire: true } : {}),
-      });
-      setActiveSub((prev) => ({
-        ...prev,
-        download: newPlan,
-        ...(planExhausted ? { Active: false, Expire: true } : {}),
-      }));
-    }
-    if (fromRefer > 0) {
-      const userRef = doc(db, "users", userData.id);
-      await updateDoc(userRef, { referCredit: newCredits });
-      setUserData((prev) => ({ ...prev, referCredit: newCredits }));
-    }
-    if (totalAfter === 0)
-      showToast(`${prefix} No download credits remaining.`, "error", 4000);
-    else
-      showToast(
-        `${prefix} ${totalAfter} credit${totalAfter > 1 ? "s" : ""} remaining.`,
-        "success",
-      );
-  };
+  // const deductCredits = async (cost, prefix = "Downloaded!") => {
+  //   let remaining = cost;
+  //   const fromPlan = Math.min(planDownloads, remaining);
+  //   const newPlan = planDownloads - fromPlan;
+  //   remaining -= fromPlan;
+  //   const fromRefer = Math.min(referCredits, remaining);
+  //   const newCredits = referCredits - fromRefer;
+  //   const totalAfter = newPlan + newCredits;
+  //   const planExhausted = newPlan === 0 && newCredits === 0;
+  //   if (fromPlan > 0) {
+  //     const subRef = doc(db, "subscription", activeSub.id);
+  //     await updateDoc(subRef, {
+  //       download: newPlan,
+  //       ...(planExhausted ? { Active: false, Expire: true } : {}),
+  //     });
+  //     setActiveSub((prev) => ({
+  //       ...prev,
+  //       download: newPlan,
+  //       ...(planExhausted ? { Active: false, Expire: true } : {}),
+  //     }));
+  //   }
+  //   if (fromRefer > 0) {
+  //     const userRef = doc(db, "users", userData.id);
+  //     await updateDoc(userRef, { referCredit: newCredits });
+  //     setUserData((prev) => ({ ...prev, referCredit: newCredits }));
+  //   }
+  //   if (totalAfter === 0)
+  //     showToast(`${prefix} No download credits remaining.`, "error", 4000);
+  //   else
+  //     showToast(
+  //       `${prefix} ${totalAfter} credit${totalAfter > 1 ? "s" : ""} remaining.`,
+  //       "success",
+  //     );
+  // }; {change for free}
 
   const handleExport = async () => {
     if (exportInProgressRef.current) return;
-    if (!checkCredits(IMAGE_CREDIT_COST)) return;
+    // if (!checkCredits(IMAGE_CREDIT_COST)) return; {change for free}
     exportInProgressRef.current = true;
     setExportLoading(true);
     setIsImageSelected(false);
@@ -1387,7 +1432,7 @@ function GeneralEditPage({
         link.click();
         document.body.removeChild(link);
       }
-      await deductCredits(IMAGE_CREDIT_COST, "Downloaded!");
+      // await deductCredits(IMAGE_CREDIT_COST, "Downloaded!"); {change for free}
       setExportedUri(uri);
     } catch (err) {
       console.error("Export error:", err);
@@ -1406,74 +1451,63 @@ function GeneralEditPage({
       showToast("Select a video first.", "error");
       return;
     }
-    const canCapture =
-      typeof videoEl.captureStream === "function" ||
-      typeof videoEl.mozCaptureStream === "function";
     if (
       typeof MediaRecorder === "undefined" ||
-      typeof stage.toCanvas !== "function" ||
-      !canCapture
+      typeof stage.toCanvas !== "function"
     ) {
       showToast("Video download isn't supported on this device.", "error");
       return;
     }
-    videoEl.muted = false;
+    // Ensure video is playing (muted so autoplay works)
+    videoEl.muted = true;
     const startPlay = videoEl.play();
     if (startPlay && typeof startPlay.catch === "function")
       startPlay.catch(() => {});
     setVideoPlaying(true);
-    if (!checkCredits(VIDEO_CREDIT_COST)) return;
+    // if (!checkCredits(VIDEO_CREDIT_COST)) return; {change for free}
     exportInProgressRef.current = true;
     setExportLoading(true);
+    setVideoExporting(true);
+    setProgressTarget(5);
+    setProgressLabel("Preparing canvas...");
+    setProgressLogs([]);
     setIsImageSelected(false);
     setSelectedImageType(null);
-    await new Promise((res) => setTimeout(res, 80));
+    // Wait for video to start rendering on canvas
+    await new Promise((res) => setTimeout(res, 300));
     let rafId = null;
     let recorder = null;
     let stream = null;
-    let audioCap = null;
+    let progressTicker = null;
     try {
-      audioCap = videoEl.captureStream
-        ? videoEl.captureStream()
-        : videoEl.mozCaptureStream();
-      const audioTrack =
-        audioCap && audioCap.getAudioTracks
-          ? audioCap.getAudioTracks()[0]
-          : null;
-      if (!audioTrack) {
-        showToast(
-          "Couldn't capture the video's sound on this device.",
-          "error",
-        );
-        return;
-      }
       if (videoEl.paused) {
-        try {
-          await videoEl.play();
-        } catch (_) {}
+        try { await videoEl.play(); } catch (_) {}
       }
-      const ratio = 2;
+      const ratio = 3;
       const rec = document.createElement("canvas");
       rec.width = STAGE_WIDTH * ratio;
       rec.height = STAGE_HEIGHT * ratio;
       const ctx = rec.getContext("2d");
       const drawFrame = () => {
         try {
+          // Force Konva to redraw ALL layers (video frame + text + image animations)
+          // before capturing — ensures every frame is current, not stale.
+          stage.getLayers().forEach((l) => l.batchDraw());
           const c = stage.toCanvas({ pixelRatio: ratio });
           ctx.drawImage(c, 0, 0, rec.width, rec.height);
         } catch (_) {}
         rafId = requestAnimationFrame(drawFrame);
       };
       drawFrame();
+      // Canvas captureStream has NO audio tracks — pure visual only, no audio attached.
       stream = rec.captureStream(30);
-      stream.addTrack(audioTrack);
       const mime =
         [
-          "video/webm;codecs=vp9,opus",
-          "video/webm;codecs=vp8,opus",
+          "video/webm;codecs=vp9",
+          "video/webm;codecs=vp8",
           "video/webm",
         ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
-      recorder = new MediaRecorder(stream, { mimeType: mime });
+      recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
       const chunks = [];
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size) chunks.push(e.data);
@@ -1481,13 +1515,34 @@ function GeneralEditPage({
       const stopped = new Promise((resolve) => {
         recorder.onstop = resolve;
       });
-      recorder.start();
       const clip =
         isFinite(videoEl.duration) && videoEl.duration > 0
           ? videoEl.duration
           : 8;
-      const recordMs = Math.min(clip, 15) * 1000;
+      const recordMs = clip * 1000;
+
+      // Tick progress from 10% → 90% over the recording duration
+      setProgressTarget(10);
+      setProgressLabel("Recording video...");
+      const recordStart = Date.now();
+      progressTicker = setInterval(() => {
+        const elapsed = Date.now() - recordStart;
+        const pct = Math.min(Math.round((elapsed / recordMs) * 80) + 10, 90);
+        const remaining = Math.max(0, Math.ceil((recordMs - elapsed) / 1000));
+        setProgressTarget(pct);
+        setProgressLabel(
+          remaining > 0 ? `Recording… ${remaining}s left` : "Finishing up..."
+        );
+      }, 250);
+
+      recorder.start(100);
       await new Promise((res) => setTimeout(res, recordMs));
+
+      clearInterval(progressTicker);
+      progressTicker = null;
+      setProgressTarget(93);
+      setProgressLabel("Saving video...");
+
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -1496,6 +1551,10 @@ function GeneralEditPage({
       await stopped;
       const blob = new Blob(chunks, { type: "video/webm" });
       if (!blob.size) throw new Error("Empty recording");
+
+      setProgressTarget(97);
+      setProgressLabel("Sending to device...");
+
       const fileName = `mlmbooster_${Date.now()}.webm`;
       if (window.ReactNativeWebView) {
         const base64 = await new Promise((res, rej) => {
@@ -1522,11 +1581,14 @@ function GeneralEditPage({
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 8000);
       }
-      await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
+      setProgressTarget(100);
+      setProgressLabel("Done!");
+      // await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!"); {change for free}
     } catch (err) {
       console.error("Video export error:", err);
       showToast("Video download failed. Please try again.", "error");
     } finally {
+      if (progressTicker) clearInterval(progressTicker);
       if (rafId) cancelAnimationFrame(rafId);
       try {
         if (recorder && recorder.state !== "inactive") recorder.stop();
@@ -1534,11 +1596,13 @@ function GeneralEditPage({
       try {
         if (stream) stream.getTracks().forEach((t) => t.stop());
       } catch (_) {}
-      try {
-        if (audioCap) audioCap.getTracks().forEach((t) => t.stop());
-      } catch (_) {}
       setExportLoading(false);
       exportInProgressRef.current = false;
+      setTimeout(() => {
+        setVideoExporting(false);
+        setProgressTarget(0);
+        setProgressLabel("");
+      }, 800);
     }
   };
 
@@ -1546,14 +1610,28 @@ function GeneralEditPage({
     if (!file) return;
     try {
       setDeviceLoading(true);
+      setAudioUploadProgress(0);
       if (!file.type?.startsWith("audio/")) {
         showToast("Please choose an audio file.", "error");
         return;
       }
+      await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setAudioUploadProgress(Math.round((e.loaded / e.total) * 80));
+          }
+        };
+        reader.onload = () => resolve();
+        reader.onerror = () => reject(new Error("File read failed"));
+        reader.readAsArrayBuffer(file);
+      });
+      setAudioUploadProgress(85);
       let duration = null;
       try {
         duration = await getAudioDuration(file);
       } catch (_) {}
+      setAudioUploadProgress(100);
       if (!duration || duration <= 0) {
         showToast("Could not read this audio file. Try another one.", "error");
         return;
@@ -1563,6 +1641,7 @@ function GeneralEditPage({
       showToast(`Music added: ${file.name}`, "success");
     } finally {
       setDeviceLoading(false);
+      setAudioUploadProgress(0);
     }
   };
 
@@ -1598,13 +1677,152 @@ function GeneralEditPage({
     showToast("Music removed", "info");
   };
 
+  const loadFirestoreAudios = useCallback(async (reset = false, searchTerm = "") => {
+    if (audioLoading) return;
+    setAudioLoading(true);
+    try {
+      let q;
+      if (searchTerm.trim()) {
+        const snap = await getDocs(query(collection(db, "music"), where("Active", "==", true)));
+        const lower = searchTerm.trim().toLowerCase();
+        const results = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((d) => (d.Name_Music || "").toLowerCase().includes(lower));
+        setFirestoreAudios(results);
+        setAudioHasMore(false);
+        setAudioLastDoc(null);
+      } else {
+        const constraints = [where("Active", "==", true), orderBy("Name_Music"), limit(MUSIC_PAGE_SIZE)];
+        if (!reset && audioLastDoc) constraints.push(startAfter(audioLastDoc));
+        q = query(collection(db, "music"), ...constraints);
+        const snap = await getDocs(q);
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setFirestoreAudios((prev) => reset ? docs : [...prev, ...docs]);
+        setAudioLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setAudioHasMore(snap.docs.length === MUSIC_PAGE_SIZE);
+      }
+    } catch (err) {
+      const isMissingIndex =
+        err?.message?.includes("requires an index") ||
+        err?.code === "failed-precondition";
+      if (isMissingIndex) {
+        console.warn(
+          "Firestore music query requires a composite index. Loading fallback results without index ordering.",
+          err,
+        );
+        const snap = await getDocs(
+          query(collection(db, "music"), where("Active", "==", true), limit(MUSIC_PAGE_SIZE)),
+        );
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setFirestoreAudios(reset ? sortMusicTracks(docs) : [...firestoreAudios, ...sortMusicTracks(docs)]);
+        setAudioLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setAudioHasMore(snap.docs.length === MUSIC_PAGE_SIZE);
+        showToast(
+          "Firestore index missing for music ordering. Showing fallback results.",
+          "warning",
+        );
+      } else {
+        console.error("Failed to load music:", err);
+      }
+    } finally {
+      setAudioLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioLoading, audioLastDoc]);
+
+  useEffect(() => {
+    if (musicModalOpen && firestoreAudios.length === 0) {
+      loadFirestoreAudios(true, "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [musicModalOpen]);
+
+  useEffect(() => {
+    if (!musicModalOpen) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current.src = "";
+      }
+      setPlayingAudioId(null);
+      setPlayingAudioUrl(null);
+    }
+  }, [musicModalOpen]);
+
+  const handleAudioSearchChange = useCallback((val) => {
+    setAudioSearch(val);
+    setAudioLastDoc(null);
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadFirestoreAudios(true, audioSearch);
+    }, 400);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioSearch]);
+
+  const handleAudioListScroll = useCallback(() => {
+    const el = audioListRef.current;
+    if (!el || audioLoading || !audioHasMore || audioSearch.trim()) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) {
+      loadFirestoreAudios(false, "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioLoading, audioHasMore, audioSearch]);
+
+  const handlePlayAudio = useCallback((track) => {
+    const url = track.Url || "";
+    if (!url) return;
+    if (playingAudioId === track.id) {
+      if (audioPlayerRef.current) {
+        if (audioPlayerRef.current.paused) {
+          audioPlayerRef.current.play();
+        } else {
+          audioPlayerRef.current.pause();
+        }
+      }
+      return;
+    }
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.src = url;
+      audioPlayerRef.current.play().catch(() => {});
+    }
+    setPlayingAudioId(track.id);
+    setPlayingAudioUrl(url);
+  }, [playingAudioId]);
+
+  const handleSelectFirestoreTrack = useCallback(async (track) => {
+    const url = track.Url || "";
+    const name = track.Name_Music || "Track";
+    if (!url) return;
+    try {
+      setPresetLoadingUrl(track.id);
+      if (audioPlayerRef.current) { audioPlayerRef.current.pause(); audioPlayerRef.current.src = ""; }
+      setPlayingAudioId(null);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("Network error");
+      const blob = await resp.blob();
+      const ext = (url.split("?")[0].split(".").pop() || "mp3").toLowerCase();
+      const file = new File([blob], `${name}.${ext}`, { type: blob.type || "audio/mpeg" });
+      setSelectedMusic({ file, name });
+      setMusicModalOpen(false);
+      showToast(`Music added: ${name}`, "success");
+    } catch (_) {
+      showToast("Could not load this track. Try another or upload from device.", "error");
+    } finally {
+      setPresetLoadingUrl(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleExportWithMusic = async () => {
     if (!selectedMusic?.file) {
       handleExport();
       return;
     }
     if (exportInProgressRef.current) return;
-    if (!checkCredits(VIDEO_CREDIT_COST)) return;
+    // if (!checkCredits(VIDEO_CREDIT_COST)) return; {change for free}
     exportInProgressRef.current = true;
     const withTimeout = (promise, ms, label) =>
       Promise.race([
@@ -1708,7 +1926,7 @@ function GeneralEditPage({
       setProgressTarget(25);
       setProgressLabel("Capturing design...");
       const uri = stageRef.current.toDataURL({
-        pixelRatio: VIDEO_PIXEL_RATIO,
+        pixelRatio: 3,
         mimeType: "image/png",
         quality: 1,
       });
@@ -1726,45 +1944,52 @@ function GeneralEditPage({
       const audName = `input.${ext}`;
       await ffmpeg.writeFile(audName, await fetchFile(selectedMusic.file));
       setProgressTarget(50);
-      setProgressLabel("Encoding video (this may take a while)...");
-      await ffmpeg.exec([
-        "-loop",
-        "1",
-        "-framerate",
-        "25",
-        "-i",
-        "input.png",
-        "-i",
-        audName,
-        "-t",
-        String(duration),
-        "-vf",
-        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "ultrafast",
-        "-tune",
-        "stillimage",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "96k",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        "-pix_fmt",
-        "yuv420p",
-        "-r",
-        "25",
-        "-shortest",
-        "-avoid_negative_ts",
-        "make_zero",
-        "-movflags",
-        "+faststart",
-        "output.mp4",
-      ]);
+      setProgressLabel("Encoding video...");
+      let progressTicker = setInterval(() => {
+        setProgressTarget((prev) => (prev < 90 ? prev + 2 : prev));
+      }, 600);
+      try {
+        await ffmpeg.exec([
+          "-loop",
+          "1",
+          "-framerate",
+          "1",
+          "-i",
+          "input.png",
+          "-i",
+          audName,
+          "-t",
+          String(duration),
+          "-vf",
+          "scale=640:640",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "ultrafast",
+          "-tune",
+          "stillimage",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "128k",
+          "-ar",
+          "44100",
+          "-ac",
+          "2",
+          "-pix_fmt",
+          "yuv420p",
+          "-r",
+          "1",
+          "-shortest",
+          "-avoid_negative_ts",
+          "make_zero",
+          "-movflags",
+          "+faststart",
+          "output.mp4",
+        ]);
+      } finally {
+        clearInterval(progressTicker);
+      }
       setProgressTarget(95);
       setProgressLabel("Saving video...");
       const data = await ffmpeg.readFile("output.mp4");
@@ -1812,7 +2037,7 @@ function GeneralEditPage({
       }
       setProgressTarget(100);
       setProgressLabel("Done!");
-      await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!");
+      // await deductCredits(VIDEO_CREDIT_COST, "Video downloaded!"); {change for free}
     } catch (err) {
       console.error("Music export error:", err);
       showToast(err?.message || "Video export failed", "error", 5000);
@@ -1869,7 +2094,12 @@ function GeneralEditPage({
   };
 
   const ActualProfilename = profileName?.toUpperCase() || "PROFILENAME";
-  const ActualDesignation = designation?.toUpperCase() || "DESIGNATION";
+  const ActualDesignation = [
+    designation?.toUpperCase(),
+    mlmProfile?.companyName?.toUpperCase(),
+  ]
+    .filter(Boolean)
+    .join(", ") || "DESIGNATION";
 
   let ProfilefontSize = 10;
   if (ActualProfilename?.length > 10 && ActualProfilename?.length <= 19)
@@ -1879,7 +2109,9 @@ function GeneralEditPage({
   let DesignationfontSize = 8;
   if (ActualDesignation?.length > 10 && ActualDesignation?.length <= 19)
     DesignationfontSize = 6;
-  else if (ActualDesignation?.length > 19) DesignationfontSize = 5;
+  else if (ActualDesignation?.length > 19 && ActualDesignation?.length <= 30)
+    DesignationfontSize = 5;
+  else if (ActualDesignation?.length > 30) DesignationfontSize = 4;
 
   const TOOLBAR_HEIGHT = 28;
   const TOOLBAR_WIDTH = 36;
@@ -1896,19 +2128,20 @@ function GeneralEditPage({
       : IMAGE_CREDIT_COST;
 
   const downloadBtnLabel = () => {
-    // if (subLoading) return "Loading...";
-    // if (exportLoading) return "Exporting...";
+    if (subLoading) return "Loading...";
+    if (exportLoading) return "Exporting...";
     // if (!activeSub) return "No Plan";
     // if (totalDownloadsAvailable < exportCost) return "Not enough credits";
-    // return `Download (${totalDownloadsAvailable})`;
+    // return `Download (${totalDownloadsAvailable})`; {change for free}
     return `Download`;
+    // return `Download`;
   };
 
   const canExport =
     !subLoading &&
-    !exportLoading &&
-    activeSub &&
-    totalDownloadsAvailable >= exportCost;
+    !exportLoading 
+    // activeSub &&
+    // totalDownloadsAvailable >= exportCost; {change for free}
 
   return (
     <div className="flex flex-col justify-start items-center w-full h-[calc(100dvh-60px)] overflow-hidden">
@@ -1921,16 +2154,43 @@ function GeneralEditPage({
       >
         {bgStatus === "loading" && (
           <div
-            className="absolute inset-0 z-1 bg-white overflow-hidden pointer-events-none"
+            className="absolute inset-0 z-10 overflow-hidden pointer-events-none"
             style={{
               background:
-                "linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)",
-              backgroundSize: "400% 100%",
-              animation: "canvasShimmer 1.4s ease infinite",
+                "linear-gradient(135deg,#0088DA 0%,#1a3a7a 50%,#0088DA 100%)",
             }}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <Spinner />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    border: "3px solid rgba(255,255,255,0.15)",
+                    borderTop: "3px solid #ffffff",
+                    animation: "spin 0.9s linear infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Preparing design
+                  <LoadingDots />
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -1950,6 +2210,16 @@ function GeneralEditPage({
               width={STAGE_WIDTH}
               height={STAGE_HEIGHT}
             />
+            {selectedVideoUrl ? (
+              <VideoCanvas
+                src={selectedVideoUrl}
+                playing={videoPlaying}
+                width={STAGE_WIDTH}
+                height={STAGE_HEIGHT}
+                onError={() => showToast("Video failed to load.", "error")}
+                videoElRef={videoElRef}
+              />
+            ) : null}
             <Image image={Imagel2} x={3} y={2} width={25} height={25} />
             <Image image={Imagel3} x={260} y={2} width={25} height={25} />
             <Image image={Imagel4} x={290} y={2} width={25} height={25} />
@@ -2562,7 +2832,37 @@ function GeneralEditPage({
                 />
               )
             ) : null}
-
+            {isSubGeneralType || meetingData?.hostMode === "none"
+              ? null
+              : (() => {
+                  const fW = isMeeting ? 60 : 80;
+                  const fH = isMeeting ? 70 : 110;
+                  const fY = isMeeting ? 250 : 210;
+                  const baseX = isRight
+                    ? isMeeting
+                      ? 60
+                      : 76
+                    : isMeeting
+                      ? 260
+                      : 244;
+                  const baseScaleX = isRight ? -1 : 1;
+                  const leftEdge = baseScaleX === -1 ? baseX - fW : baseX;
+                  const curScaleX = footerImgFlip ? -baseScaleX : baseScaleX;
+                  const curOffsetX = curScaleX === -1 ? fW : 0;
+                  return (
+                    <Image
+                      image={ImageProfile}
+                      x={leftEdge}
+                      y={fY}
+                      scaleX={curScaleX}
+                      offsetX={curOffsetX}
+                      width={fW}
+                      height={fH}
+                      onClick={() => setFooterImgFlip((f) => !f)}
+                      onTap={() => setFooterImgFlip((f) => !f)}
+                    />
+                  );
+                })()}
             {isMeeting ? (
               isRight ? (
                 <Text
@@ -3247,37 +3547,18 @@ function GeneralEditPage({
               )
             ) : null}
 
-            {isSubGeneralType || meetingData?.hostMode === "none"
-              ? null
-              : (() => {
-                  const fW = isMeeting ? 60 : 80;
-                  const fH = isMeeting ? 70 : 110;
-                  const fY = isMeeting ? 250 : 210;
-                  const baseX = isRight
-                    ? isMeeting
-                      ? 60
-                      : 76
-                    : isMeeting
-                      ? 260
-                      : 244;
-                  const baseScaleX = isRight ? -1 : 1;
-                  const leftEdge = baseScaleX === -1 ? baseX - fW : baseX;
-                  const curScaleX = footerImgFlip ? -baseScaleX : baseScaleX;
-                  const curOffsetX = curScaleX === -1 ? fW : 0;
-                  return (
-                    <Image
-                      image={ImageProfile}
-                      x={leftEdge}
-                      y={fY}
-                      scaleX={curScaleX}
-                      offsetX={curOffsetX}
-                      width={fW}
-                      height={fH}
-                      onClick={() => setFooterImgFlip((f) => !f)}
-                      onTap={() => setFooterImgFlip((f) => !f)}
-                    />
-                  );
-                })()}
+            {/* Watermark */}
+            <Text
+              text="MLMLIVE : +919229885383"
+              x={isRight ? 2 : 313}
+              y={190}
+              fontSize={5}
+              fontStyle="500"
+              fontFamily="Arial"
+              fill="#fff"
+              rotation={-90}
+              listening={false}
+            />
 
             <Transformer
               ref={transformerRef}
@@ -3295,7 +3576,6 @@ function GeneralEditPage({
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <button
               onClick={() => {
-                if (videoElRef.current) videoElRef.current.muted = false;
                 setVideoPlaying((p) => !p);
               }}
               title={videoPlaying ? "Pause" : "Play"}
@@ -3478,19 +3758,26 @@ function GeneralEditPage({
               </span>
             )}
           </button>
-          <Button
+           <Button
             size="sm"
-            // onClick={
-            //   selectedVideoUrl
-            //     ? handleExportVideo
-            //     : selectedMusic
-            //       ? handleExportWithMusic
-            //       : handleExport
-            // }
-            onClick={() => setMusicModalOpen(true)}
-            // disabled={!canExport || musicExporting}
+            onClick={
+              activeTabFromList === "video" && selectedVideoUrl
+                ? handleExportVideo
+                : selectedMusic
+                  ? handleExportWithMusic
+                  : handleExport
+            }
+            onTap={
+              activeTabFromList === "video" && selectedVideoUrl
+                ? handleExportVideo
+                : selectedMusic
+                  ? handleExportWithMusic
+                  : handleExport
+            }
+            // onClick={() => setMusicModalOpen(true)}
+            disabled={!canExport || musicExporting}
             style={{
-              // opacity: canExport ? 1 : 0.5,
+              opacity: canExport ? 1 : 0.5,
               minWidth: 110,
               position: "relative",
             }}
@@ -3515,104 +3802,396 @@ function GeneralEditPage({
             ) : (
               downloadBtnLabel()
             )}
-          </Button>
+          </Button> 
         </div>
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
+      {/* ── Music selection modal ──────────────────────────────────────────── */}
       {musicModalOpen && (
         <div
           className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           onClick={() => setMusicModalOpen(false)}
         >
           <div
-            className="bg-background dark:bg-[#141824] w-full sm:w-[92vw] sm:max-w-[420px] rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl max-h-[85vh] overflow-y-auto p-5"
+            className="bg-background dark:bg-[#141824] w-full sm:w-[92vw] sm:max-w-[440px] rounded-t-3xl sm:rounded-3xl border border-border shadow-2xl flex flex-col"
+            style={{ maxHeight: "88vh" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {PRESET_AUDIOS.length === 0 ? (
-              <div className="text-sm text-muted-foreground text-center py-6 px-3 rounded-2xl border border-dashed border-border">
-                <img src={featurec} className="w-screen h-[160px]" />
+            {/* Hidden audio player */}
+            <audio
+              ref={audioPlayerRef}
+              onEnded={() => setPlayingAudioId(null)}
+            />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-2 flex-shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Add Music
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Tracks trimmed to 20s for lightweight video
+                </p>
               </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {PRESET_AUDIOS.map((preset) => {
-                  const isActive = selectedMusic?.name === preset.name;
-                  const isLoading = presetLoadingUrl === preset.url;
-                  return (
-                    <button
-                      key={preset.url}
-                      onClick={() => handlePresetMusic(preset)}
-                      disabled={isLoading}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors text-left ${isActive ? "border-accent bg-accent/10" : "border-border hover:border-accent hover:bg-accent/5"} ${isLoading ? "opacity-60" : ""}`}
+              <button
+                onClick={() => setMusicModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
+                aria-label="Close"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Currently selected banner */}
+            {selectedMusic && (
+              <div className="mx-5 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-green-500/10 border border-green-500/30 flex-shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500 text-white flex-shrink-0">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
-                        {isLoading ? (
-                          <svg
-                            className="animate-spin"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M9 18V5l12-2v13" />
-                            <circle cx="6" cy="18" r="3" />
-                            <circle cx="18" cy="16" r="3" />
-                          </svg>
-                        )}
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
+                  </span>
+                  <span className="text-sm font-medium text-foreground truncate">
+                    {selectedMusic.name}
+                  </span>
+                </div>
+                <button
+                  onClick={handleRemoveMusic}
+                  className="text-xs font-semibold text-danger hover:underline flex-shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {/* Upload from device */}
+            <div className="px-5 pb-2 flex-shrink-0">
+              <button
+                onClick={() => musicInputRef.current?.click()}
+                disabled={deviceLoading}
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
+                  deviceLoading
+                    ? "border-accent bg-accent/5 opacity-80 cursor-wait"
+                    : "border-border hover:border-accent hover:bg-accent/5"
+                }`}
+              >
+                <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
+                  {deviceLoading ? (
+                    <svg
+                      className="animate-spin"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-left flex-1 min-w-0">
+                  <span className="block text-sm font-semibold text-foreground">
+                    {deviceLoading
+                      ? "Uploading audio..."
+                      : "Upload from device"}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {deviceLoading
+                      ? "Reading your track, please wait"
+                      : "Pick an audio file from your phone"}
+                  </span>
+                  {deviceLoading && (
+                    <span className="block mt-1.5">
+                      <span className="relative block w-full h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                        <span
+                          className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${audioUploadProgress}%`,
+                            background:
+                              "linear-gradient(90deg,#0088DA,#0088DA)",
+                          }}
+                        />
                       </span>
-                      <span className="text-sm font-medium text-foreground truncate flex-1">
-                        {preset.name}
+                      <span className="text-[10px] text-accent font-bold mt-0.5 block tabular-nums">
+                        {audioUploadProgress}%
                       </span>
-                      {isActive && (
+                    </span>
+                  )}
+                </span>
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div className="px-5 pb-2 flex-shrink-0">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-muted/30 border border-border">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-muted-foreground flex-shrink-0"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  value={audioSearch}
+                  onChange={(e) => handleAudioSearchChange(e.target.value)}
+                  placeholder="Search tracks..."
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                />
+                {audioSearch && (
+                  <button
+                    onClick={() => handleAudioSearchChange("")}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    >
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Track list header */}
+            <div className="px-5 pb-1 flex-shrink-0">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
+                Choose a track
+              </p>
+            </div>
+
+            {/* Scrollable track list */}
+            <div
+              ref={audioListRef}
+              onScroll={handleAudioListScroll}
+              className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-1.5"
+              style={{ minHeight: 0 }}
+            >
+              {audioLoading && firestoreAudios.length === 0 && (
+                <div className="flex items-center justify-center py-10 gap-3">
+                  <div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" />
+                  <span className="text-sm text-muted-foreground">
+                    Loading tracks...
+                  </span>
+                </div>
+              )}
+
+              {!audioLoading && firestoreAudios.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-10 rounded-2xl border border-dashed border-border">
+                  {audioSearch
+                    ? "No tracks found for your search."
+                    : "No tracks available yet."}
+                </div>
+              )}
+
+              {firestoreAudios.map((track) => {
+                const isActive = selectedMusic?.name === track.Name_Music;
+                const isLoadingT = presetLoadingUrl === track.id;
+                const isPlaying =
+                  playingAudioId === track.id &&
+                  audioPlayerRef.current &&
+                  !audioPlayerRef.current.paused;
+                const trackName = track.Name_Music || "Unknown Track";
+
+                return (
+                  <div
+                    key={track.id}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer group ${
+                      isActive
+                        ? "border-accent bg-accent/10"
+                        : "border-border hover:border-accent/50 hover:bg-muted/30"
+                    }`}
+                  >
+                    {/* Play/Pause button */}
+                    <button
+                      onClick={() => handlePlayAudio(track)}
+                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                        isPlaying
+                          ? "bg-accent text-white shadow-md"
+                          : "bg-muted/50 text-foreground hover:bg-accent/20 hover:text-accent"
+                      }`}
+                    >
+                      {isPlaying ? (
                         <svg
-                          width="16"
-                          height="16"
+                          width="14"
+                          height="14"
                           viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-accent flex-shrink-0"
+                          fill="currentColor"
                         >
-                          <polyline points="20 6 9 17 4 12" />
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <polygon points="5 3 19 12 5 21 5 3" />
                         </svg>
                       )}
                     </button>
-                  );
-                })}
-              </div>
-            )}
+
+                    {/* Track info */}
+                    <div
+                      className="flex-1 min-w-0"
+                      onClick={() => handleSelectFirestoreTrack(track)}
+                    >
+                      <p
+                        className={`text-sm font-semibold truncate ${isActive ? "text-accent" : "text-foreground"}`}
+                      >
+                        {trackName}
+                      </p>
+                      {track.duration && (
+                        <p className="text-[10px] text-muted-foreground">
+                          {track.duration}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Select button */}
+                    <button
+                      onClick={() => handleSelectFirestoreTrack(track)}
+                      disabled={isLoadingT}
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                        isActive
+                          ? "bg-accent text-white"
+                          : "bg-muted/40 text-muted-foreground hover:bg-accent hover:text-white"
+                      } ${isLoadingT ? "opacity-50" : ""}`}
+                    >
+                      {isLoadingT ? (
+                        <svg
+                          className="animate-spin"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          />
+                        </svg>
+                      ) : isActive ? (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Load more spinner */}
+              {audioLoading && firestoreAudios.length > 0 && (
+                <div className="flex justify-center py-3">
+                  <div className="w-5 h-5 border-2 border-muted border-t-accent rounded-full animate-spin" />
+                </div>
+              )}
+
+              {!audioLoading && !audioHasMore && firestoreAudios.length > 0 && (
+                <p className="text-center text-[11px] text-muted-foreground py-2">
+                  All tracks loaded
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
 
+      {/* Hidden music file input — triggered by the compact music toggle near the download button */}
       <input
         ref={musicInputRef}
         type="file"
@@ -3620,11 +4199,91 @@ function GeneralEditPage({
         style={{ display: "none" }}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) handleDeviceMusic(file);
+          if (file) {
+            const result = validateUploadFile(file, "audio");
+            if (!result.valid) {
+              showToast(result.error || "Invalid audio file.", "error");
+            } else {
+              handleDeviceMusic(file);
+            }
+          }
           e.target.value = "";
         }}
       />
 
+      {/* ── Video recording progress overlay ─────────────────────────────── */}
+      {videoExporting && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/75 backdrop-blur-sm">
+          <div className="relative bg-background dark:bg-[#141824] rounded-3xl p-7 w-[88vw] max-w-[380px] shadow-2xl border border-border">
+            <div className="flex items-center justify-center mb-5">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                {/* Video camera icon */}
+                <svg
+                  className="w-7 h-7 text-accent"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M4 8h9a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-[16px] font-bold text-foreground text-center mb-1">
+              Recording Video
+            </h3>
+            <p className="text-[12px] text-muted-foreground text-center mb-5">
+              {progressLabel || "Preparing..."}
+            </p>
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] text-muted-foreground">
+                  Progress
+                </span>
+                <span className="text-[13px] font-bold text-accent tabular-nums">
+                  {displayProgress}%
+                </span>
+              </div>
+              <div className="w-full h-3 bg-muted/40 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${displayProgress}%`,
+                    background:
+                      "linear-gradient(90deg, #0088DA, #0088DA, #0088DA)",
+                  }}
+                />
+              </div>
+              {/* Segment markers for each second */}
+              <div className="flex justify-between px-0.5">
+                {[0, 25, 50, 75, 100].map((m) => (
+                  <span
+                    key={m}
+                    className="text-[9px] text-muted-foreground/50 tabular-nums"
+                  >
+                    {m}%
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-accent/5 border border-accent/15 rounded-2xl px-4 py-2.5 mb-1">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+              <span className="text-[11px] text-foreground/80 font-medium">
+                Recording canvas with animations
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 text-center mt-3">
+              Do not close this screen
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Music + photo export progress overlay ────────────────────────── */}
       {musicExporting && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/75 backdrop-blur-sm">
           <div className="relative bg-background dark:bg-[#141824] rounded-3xl p-7 w-[88vw] max-w-[380px] shadow-2xl border border-border">
@@ -3671,7 +4330,7 @@ function GeneralEditPage({
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${displayProgress}%`,
-                    background: "linear-gradient(90deg, #0e245c, #4f6fd0)",
+                    background: "linear-gradient(90deg, #0088DA, #4f6fd0)",
                   }}
                 />
               </div>
@@ -3696,7 +4355,11 @@ function GeneralEditPage({
       )}
 
       <div className="w-full lg:w-1/3 flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ListOfTemplates selected={selected} setSelected={setSelected} />
+        <ListOfTemplates
+          selected={selected}
+          setSelected={setSelected}
+          onTabChange={setActiveTabFromList}
+        />
       </div>
     </div>
   );

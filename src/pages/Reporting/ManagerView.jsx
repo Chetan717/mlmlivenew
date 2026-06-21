@@ -96,7 +96,7 @@ export default function ManagerView({ profile, activeTab }) {
         <div className="rounded-2xl border border-border bg-card shadow-sm p-4">
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+              style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
               <PlusCircle className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -161,10 +161,10 @@ export default function ManagerView({ profile, activeTab }) {
       return (
         <div className="px-4 py-5 max-w-2xl mx-auto">
           <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#0e245c,#1a3a8a,#4f6fcf)" }} />
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#0088DA,#0088DA,#4f6fcf)" }} />
             <div className="p-6 flex flex-col items-center text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                 <Eye className="w-7 h-7 text-white" />
               </div>
               <p className="text-[16px] font-bold text-foreground mb-1">View Work Reporting</p>
@@ -175,7 +175,7 @@ export default function ManagerView({ profile, activeTab }) {
                   className="flex-1 flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent transition-all"
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                    style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                     <UserCheck className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[13px] font-bold text-foreground">Self</p>
@@ -186,7 +186,7 @@ export default function ManagerView({ profile, activeTab }) {
                   className="flex-1 flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent transition-all"
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                    style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                     <Users className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[13px] font-bold text-foreground">Team</p>

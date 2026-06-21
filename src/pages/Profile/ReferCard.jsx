@@ -180,7 +180,7 @@ export default function ReferCard() {
           className="relative overflow-hidden rounded-2xl p-5 w-full"
           style={{
             background:
-              "linear-gradient(135deg, #0e245c 0%, #122d73 60%, #1a3f99 100%)",
+              "linear-gradient(135deg, #0088DA 0%, #0088DA 60%, #0088DA 100%)",
           }}
         >
           {/* Decorative circles */}

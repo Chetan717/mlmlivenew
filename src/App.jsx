@@ -8,6 +8,7 @@ import ProtectSelectComp from "./pages/SelectCompany/ProtectSelectComp";
 import Home from "./pages/Home";
 import AllTemplates from "./pages/Homepage/Component/AllTemplates";
 import Onboarding from "./Onboarding";
+import SplashScreen from "./SplashScreen";
 
 const Login = lazy(() =>
   import("./Auth/Login").then((m) => ({ default: m.Login })),
@@ -49,7 +50,7 @@ const progressStyle = `
   }
   .route-bar-fill {
     position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
-    background: linear-gradient(90deg, #1a3a8a 0%, #4f6fcf 50%, #1a3a8a 100%);
+    background: linear-gradient(90deg, #0088DA 0%, #4f6fcf 50%, #0088DA 100%);
     background-size: 200% 100%;
     transform-origin: left center;
     transform: scaleX(0);
@@ -188,6 +189,7 @@ function PersistentPages({ pathname }) {
 function App() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [splashDone, setSplashDone] = useState(false);
 
   const showOnboarding =
     !localStorage.getItem("onboardingDone") &&
@@ -199,6 +201,8 @@ function App() {
     return () =>
       window.removeEventListener("webviewBackPressed", handleBackPressed);
   }, [navigate]);
+
+  if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
 
   if (showOnboarding) return <Onboarding />;
 

@@ -118,7 +118,7 @@ export default function Header({
             >
               <Gear className="size-5 text-accent dark:text-white" />
 
-              {/* <div className="w-7 h-7 rounded-lg bg-[#0e245c] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+              {/* <div className="w-7 h-7 rounded-lg bg-[#0088DA] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
               {userName?.[0]?.toUpperCase() || "A"}
             </div> */}
             </button>
@@ -127,7 +127,7 @@ export default function Header({
           //   onClick={() => navigate("/profile")}
           //   className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
           // >
-          //   <div className="w-7 h-7 rounded-lg bg-[#0e245c] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+          //   <div className="w-7 h-7 rounded-lg bg-[#0088DA] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
           //     {userName?.[0]?.toUpperCase() || "A"}
           //   </div>
           // </button>

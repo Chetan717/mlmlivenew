@@ -152,16 +152,16 @@ export function Login() {
   return (
     <div
       className="flex flex-col min-h-screen relative overflow-hidden"
-      style={{ background: "linear-gradient(170deg, #040c22 0%, #0e245c 40%, #f4f6fb 40%)" }}
+      style={{ background: "linear-gradient(170deg, #040c22 0%, #0088DA 40%, #f4f6fb 40%)" }}
     >
       <div className="absolute top-0 left-0 right-0 h-[50vh] overflow-hidden pointer-events-none">
         <div
           className="absolute -top-20 -right-20 w-56 h-56 rounded-full opacity-15"
-          style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }}
+          style={{ background: "radial-gradient(circle, #0088DA, transparent)" }}
         />
         <div
           className="absolute top-28 -left-16 w-44 h-44 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #4f6cc4, transparent)" }}
+          style={{ background: "radial-gradient(circle, #0088DA, transparent)" }}
         />
         <div className="absolute top-6 right-8 w-12 h-12 rounded-2xl border border-white/10 rotate-12" />
         <div className="absolute top-20 right-20 w-5 h-5 rounded-full bg-white/10" />
@@ -246,7 +246,7 @@ export function Login() {
             <Button
               className="w-full h-[54px] text-white font-bold text-[15px] rounded-2xl mt-1"
               style={{
-                background: "linear-gradient(135deg, #0e245c 0%, #1a3a8f 60%, #2a4faa 100%)",
+                background: "linear-gradient(135deg, #0088DA 0%, #1a3a8f 60%, #2a4faa 100%)",
                 boxShadow: "0 8px 24px rgba(14,36,92,0.35), 0 2px 6px rgba(0,0,0,0.12)",
               }}
               type="submit"

@@ -6,7 +6,6 @@ import { COLLECTIONS } from "../../../collections";
 const BATCH_SIZE = 20;
 
 const PRESET_VIDEO_ITEMS = [];
-
 const _editorTemplateCache = new Map();
 
 function getSelType() {
@@ -138,37 +137,77 @@ function Tile({ item, isSelected, onSelect, isVideo }) {
           : "border-border hover:border-accent/50 hover:scale-95"
       }`}
     >
-      {isVideo && (item.videoUrl || item.VideoUrl) ? (
-        <LazyVideo src={item.videoUrl || item.VideoUrl} />
+      {isVideo && (item.backgroundVideoUrl || item.backgroundVideoUrl) ? (
+        <LazyVideo src={item.backgroundVideoUrl || item.backgroundVideoUrl} />
       ) : item.suggestionImage ? (
         <LazyImage src={item.suggestionImage} alt="template" />
       ) : (
         <div className="w-full h-full bg-muted/30 flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="text-muted-foreground">
-            <rect x="2" y="2" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="1.2"/>
-            <path d="M2 13l4-4 3 3 3-4 6 6" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 20 20"
+            fill="none"
+            className="text-muted-foreground"
+          >
+            <rect
+              x="2"
+              y="2"
+              width="16"
+              height="16"
+              rx="4"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            />
+            <path
+              d="M2 13l4-4 3 3 3-4 6 6"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
       )}
 
       {isVideo && (
         <div className="absolute bottom-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1 py-0.5">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="white">
+            <path d="M5 3l14 9-14 9V3z" />
+          </svg>
         </div>
       )}
 
       {isSelected && (
         <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-accent flex items-center justify-center shadow">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <polyline points="1.5,5 4,7.5 8.5,2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <polyline
+              points="1.5,5 4,7.5 8.5,2.5"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
       )}
       {item.pass && item.pass !== "" && (
         <div className="absolute top-1.5 left-1.5">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <rect x="1.5" y="5" width="9" height="6.5" rx="1.5" fill="white" fillOpacity="0.85"/>
-            <path d="M3.5 5V3.5a2.5 2.5 0 015 0V5" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
+            <rect
+              x="1.5"
+              y="5"
+              width="9"
+              height="6.5"
+              rx="1.5"
+              fill="white"
+              fillOpacity="0.85"
+            />
+            <path
+              d="M3.5 5V3.5a2.5 2.5 0 015 0V5"
+              stroke="white"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            />
           </svg>
         </div>
       )}
@@ -197,10 +236,12 @@ function TabBtn({ active, onClick, icon, label, count }) {
   );
 }
 
-export default function ListOfTemplates({ selected, setSelected }) {
+export default function ListOfTemplates({ selected, setSelected, onTabChange }) {
   const selType       = getSelType();
   const filterType    = selType?.type || "";
   const filterSubType = selType?.Subtype || "";
+
+
 
   const [allItems, setAllItems]         = useState([]);
   const [visibleItems, setVisibleItems] = useState([]);
@@ -224,8 +265,8 @@ export default function ListOfTemplates({ selected, setSelected }) {
         renderedCount.current = 0;
         setSelected((prev) => {
           if (prev) return prev;
-          const imgs = filteredItems.filter((i) => !i.videoUrl && !i.VideoUrl);
-          const vids = filteredItems.filter((i) => !!(i.videoUrl || i.VideoUrl));
+          const imgs = filteredItems.filter((i) => !i.backgroundVideoUrl && !i.backgroundVideoUrl);
+          const vids = filteredItems.filter((i) => !!(i.backgroundVideoUrl || i.backgroundVideoUrl));
           const pool = activeTab === "video" ? (vids.length > 0 ? vids : PRESET_VIDEO_ITEMS) : imgs;
           return pool.length > 0 ? cleanItem(pool[0]) : null;
         });
@@ -244,7 +285,6 @@ export default function ListOfTemplates({ selected, setSelected }) {
         const constraints = [
           where("SelectType", "==", filterType),
           where("Active", "==", true),
-          orderBy("serial"),
         ];
 
         if (filterSubType && filterSubType !== "") {
@@ -260,6 +300,12 @@ export default function ListOfTemplates({ selected, setSelected }) {
           (t.GraphicsLink || []).forEach((g) => {
             items.push({ ...g, _template: t });
           });
+        });
+
+        items.sort((a, b) => {
+          const aSerial = Number(a._template?.serial ?? a.serial ?? 0);
+          const bSerial = Number(b._template?.serial ?? b.serial ?? 0);
+          return aSerial - bSerial;
         });
 
         let filteredItems = items;
@@ -297,8 +343,8 @@ export default function ListOfTemplates({ selected, setSelected }) {
 
         setSelected((prev) => {
           if (prev) return prev;
-          const imgs = filteredItems.filter((i) => !i.videoUrl && !i.VideoUrl);
-          const vids = filteredItems.filter((i) => !!(i.videoUrl || i.VideoUrl));
+          const imgs = filteredItems.filter((i) => !i.backgroundVideoUrl && !i.backgroundVideoUrl);
+          const vids = filteredItems.filter((i) => !!(i.backgroundVideoUrl || i.backgroundVideoUrl));
           const pool =
             activeTab === "video"
               ? (vids.length > 0 ? vids : PRESET_VIDEO_ITEMS)
@@ -320,8 +366,8 @@ export default function ListOfTemplates({ selected, setSelected }) {
     fetchTemplates();
   }, [filterType, filterSubType]);
 
-  const imageItems   = allItems.filter((item) => !item.videoUrl && !item.VideoUrl);
-  const fbVideoItems = allItems.filter((item) => !!(item.videoUrl || item.VideoUrl));
+  const imageItems   = allItems.filter((item) => !item.backgroundVideoUrl && !item.backgroundVideoUrl);
+  const fbVideoItems = allItems.filter((item) => !!(item.backgroundVideoUrl || item.backgroundVideoUrl));
   const videoItems   = fbVideoItems.length > 0 ? fbVideoItems : PRESET_VIDEO_ITEMS;
   const tabItems     = activeTab === "video" ? videoItems : imageItems;
 
@@ -360,6 +406,7 @@ export default function ListOfTemplates({ selected, setSelected }) {
   const handleTab = (tab) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
+    if (onTabChange) onTabChange(tab);
     const items = tab === "video" ? videoItems : imageItems;
     setSelected(items.length > 0 ? cleanItem(items[0]) : null);
   };

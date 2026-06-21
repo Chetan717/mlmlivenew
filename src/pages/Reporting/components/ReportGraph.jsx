@@ -5,7 +5,7 @@ import { BarChart3 } from "lucide-react";
 
 const FILTERS = ["Daily", "Weekly", "Monthly", "Yearly"];
 const METRICS = [
-  { key: "plan",   label: "Plan",   color: "#0e245c" },
+  { key: "plan",   label: "Plan",   color: "#0088DA" },
   { key: "follow", label: "Follow", color: "#1a6fbf" },
   { key: "kit",    label: "Kit",    color: "#2196f3" },
   { key: "sp",     label: "SP",     color: "#43a047" },

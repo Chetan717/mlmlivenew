@@ -5,10 +5,11 @@ import { FileText, Eye, Download, Search, X } from "lucide-react";
 
 import {toast} from "@heroui/react"
 import { viewPDF, downloadPDF } from "../utils/pdfGenerator";
+import { COLLECTIONS as GLOBAL_COLLECTIONS } from "../../../collections";
 
 const DAYS = ["THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY"];
 const DAY_JS = [4, 5, 6, 0, 1, 2, 3];
-const COLLECTIONS = { plan: "reportplan", follow: "reportfollowup", kit: "reportkitbook", sp: "reportsp", nac: "reportnac" };
+const WORK_COLS = { plan: GLOBAL_COLLECTIONS.REPORTPLAN, follow: GLOBAL_COLLECTIONS.REPORTFOLLOWUP, kit: GLOBAL_COLLECTIONS.REPORTKITBOOK, sp: GLOBAL_COLLECTIONS.REPORTSP, nac: GLOBAL_COLLECTIONS.REPORTNAC };
 
 function parseDate(str) {
   if (!str) return null;
@@ -47,7 +48,7 @@ export default function MemberReportView({ memberProfile }) {
         planItems: [], followItems: [], kitItems: [], spItems: [], nacItems: [],
       }));
 
-      await Promise.all(Object.entries(COLLECTIONS).map(async ([key, col]) => {
+      await Promise.all(Object.entries(WORK_COLS).map(async ([key, col]) => {
         // Single-field query — no composite index needed
         const snap = await getDocs(
           query(collection(db, col), where("memberId", "==", memberProfile.memberId))
@@ -65,7 +66,7 @@ export default function MemberReportView({ memberProfile }) {
       }));
 
       const nextSnap = await getDocs(
-        query(collection(db, COLLECTIONS.REPORTNEXTDAY), where("memberId", "==", memberProfile.memberId))
+        query(collection(db, GLOBAL_COLLECTIONS.REPORTNEXTDAY), where("memberId", "==", memberProfile.memberId))
       );
       nextSnap.docs.forEach((d) => {
         const raw = d.data().date;
@@ -113,7 +114,7 @@ export default function MemberReportView({ memberProfile }) {
             onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
               <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                 <FileText className="w-7 h-7 text-white" />
               </div>
               <p className="font-bold text-foreground text-[16px]">My Weekly Report PDF</p>
@@ -128,7 +129,7 @@ export default function MemberReportView({ memberProfile }) {
               </button>
               <button onClick={handleDownload}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-bold text-[14px]"
-                style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                 <Download className="w-4 h-4" /> Download PDF
               </button>
             </div>
@@ -167,7 +168,7 @@ export default function MemberReportView({ memberProfile }) {
           </div>
           <button onClick={handleGenerate} disabled={loading}
             className="w-full py-2.5 rounded-xl text-white text-[13px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 transition-opacity"
-            style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+            style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
             {loading
               ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               : <><Search className="w-4 h-4" /> Generate My Report</>}
@@ -184,7 +185,7 @@ export default function MemberReportView({ memberProfile }) {
               <div className="flex items-center gap-2">
                 <button onClick={() => setPdfModal(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-[11px] font-bold"
-                  style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+                  style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
                   <FileText className="w-3.5 h-3.5" /> PDF
                 </button>
                 <button onClick={() => setShowReport(false)}
@@ -204,7 +205,7 @@ export default function MemberReportView({ memberProfile }) {
             {/* Stat chips */}
             <div className="grid grid-cols-5 gap-2 px-4 pt-2 pb-3">
               {[
-                { label: "Plans",  value: totals?.plan   ?? 0, color: "#0e245c" },
+                { label: "Plans",  value: totals?.plan   ?? 0, color: "#0088DA" },
                 { label: "Follow", value: totals?.follow ?? 0, color: "#1a6fbf" },
                 { label: "Kit",    value: totals?.kit    ?? 0, color: "#2196f3" },
                 { label: "SP",     value: totals?.sp     ?? 0, color: "#43a047" },
@@ -221,7 +222,7 @@ export default function MemberReportView({ memberProfile }) {
             <div className="overflow-x-auto pb-4 px-2">
               <table className="w-full text-[10px] border-collapse min-w-[680px]">
                 <thead>
-                  <tr style={{ background: "#0e245c", color: "white" }}>
+                  <tr style={{ background: "#0088DA", color: "white" }}>
                     <th className="px-2 py-1.5 border border-blue-800 w-7" rowSpan={2}>S.NO</th>
                     <th className="px-2 py-1.5 text-left border border-blue-800 w-22" rowSpan={2}>DAYS</th>
                     <th className="px-2 py-1.5 border border-blue-800" rowSpan={2}>PLAN</th>
@@ -232,7 +233,7 @@ export default function MemberReportView({ memberProfile }) {
                     <th className="px-2 py-1.5 border border-blue-800 text-center" colSpan={2}>BONANZA</th>
                     <th className="px-2 py-1.5 border border-blue-800 text-center" colSpan={4}>NEXT DAY PLANNING</th>
                   </tr>
-                  <tr style={{ background: "#1a3a8a", color: "white" }}>
+                  <tr style={{ background: "#0088DA", color: "white" }}>
                     <th className="px-1 py-1 border border-blue-700 text-[9px]">LEFT</th>
                     <th className="px-1 py-1 border border-blue-700 text-[9px]">RIGHT</th>
                     <th className="px-1 py-1 border border-blue-700 text-[9px]">FIRST</th>

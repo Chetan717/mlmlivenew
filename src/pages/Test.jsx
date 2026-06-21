@@ -6,6 +6,7 @@
 //    'Cross-Origin-Embedder-Policy': 'require-corp'
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import { validateUploadFile } from "../lib/fileValidation";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
@@ -177,6 +178,12 @@ export default function ImageAudioToVideo() {
 
   // ── Image handler ──────────────────────────────────────────────────────────
   const handleImage = (file) => {
+    const result = validateUploadFile(file, "image");
+    if (!result.valid) {
+      alert(result.error || "Invalid image file.");
+      return;
+    }
+
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setOutputUrl(null);
@@ -184,6 +191,12 @@ export default function ImageAudioToVideo() {
 
   // ── Audio handler — reliably await duration ────────────────────────────────
   const handleAudio = async (file) => {
+    const result = validateUploadFile(file, "audio");
+    if (!result.valid) {
+      alert(result.error || "Invalid audio file.");
+      return;
+    }
+
     setAudioFile(file);
     setAudioDuration(null);
     setDurationLoading(true);

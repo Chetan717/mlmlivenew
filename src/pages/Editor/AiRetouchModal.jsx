@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const ACCENT = "#0e245c";
+const ACCENT = "#0088DA";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -251,7 +251,7 @@ export default function AiRetouchModal({ imageUri, onClose, onToast }) {
                   maxLength={300}
                   autoFocus
                   placeholder="e.g. add a soft golden festive glow in the background"
-                  className="w-full rounded-2xl border border-border bg-background dark:bg-[#0f131d] p-3 text-sm text-foreground outline-none focus:border-[#0e245c] resize-none"
+                  className="w-full rounded-2xl border border-border bg-background dark:bg-[#0f131d] p-3 text-sm text-foreground outline-none focus:border-[#0088DA] resize-none"
                 />
                 <div className="text-[11px] text-muted-foreground -mt-1">
                   {prompt.length}/300

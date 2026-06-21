@@ -14,7 +14,7 @@ html {
 .light,
 [data-theme="light"],
 [data-theme="default"] {
-  --accent: #0e245c;
+  --accent: #0088DA;
   --accent-foreground: #ffffff;
   --background: #f4f6fb;
   --border: #e2e8f0;
@@ -27,7 +27,7 @@ html {
   --field-background: #ffffff;
   --field-foreground: #0f1117;
   --field-placeholder: #94a3b8;
-  --focus: #0e245c;
+  --focus: #0088DA;
   --foreground: #0f1117;
   --muted: #64748b;
   --muted-foreground: #64748b;
@@ -77,7 +77,7 @@ html {
 .default,
 [data-theme="dark"] {
   color-scheme: dark;
-  --accent: #0e245c;
+  --accent: #0088DA;
   --accent-foreground: #ffffff;
   --background: #0b0f19;
   --border: #1e2736;
@@ -90,7 +90,7 @@ html {
   --field-background: #1a2236;
   --field-foreground: #f8fafc;
   --field-placeholder: #64748b;
-  --focus: #0e245c;
+  --focus: #0088DA;
   --foreground: #f8fafc;
   --muted: #8899aa;
   --muted-foreground: #8899aa;
@@ -372,7 +372,7 @@ html {
 
 /* ── Utilities ──────────────────────────────────────── */
 .text-gradient {
-  background: linear-gradient(135deg, #0e245c, #4f6cc4);
+  background: linear-gradient(135deg, #0088DA, #0088DA);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -437,7 +437,7 @@ html {
 }
 
 .toast-info {
-  background: #0e245c;
+  background: #0088DA;
   color: #fff;
 }
 

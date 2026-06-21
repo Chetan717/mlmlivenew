@@ -91,7 +91,7 @@ export function SectionCard({ icon, title, subtitle, count, open, setOpen, child
         <div className="flex items-center gap-2">
           {count > 0 && (
             <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full"
-              style={{ background: "#0e245c" }}>{count}</span>
+              style={{ background: "#0088DA" }}>{count}</span>
           )}
           {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </div>
@@ -153,7 +153,7 @@ export function ActionRow({ onAdd, onSubmit, count, submitting, label }) {
       {count > 0 && (
         <button onClick={onSubmit} disabled={submitting}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-[12px] font-bold disabled:opacity-60 transition-opacity"
-          style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+          style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
           {submitting
             ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             : <><Send className="w-3.5 h-3.5" /> Submit {count}</>}

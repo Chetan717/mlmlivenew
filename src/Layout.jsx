@@ -4,8 +4,6 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import TabBar from "./components/TabBar";
 import ExpiryAlertBanner from "./components/ExpiryAlertBanner";
-import { ToastRoot } from "./utils/toast";
-
 export default function Layout({ children }) {
   const [collapsed, setCollapsed]     = useState(false);
   const [mobileOpen, setMobileOpen]   = useState(false);
@@ -46,7 +44,6 @@ export default function Layout({ children }) {
         {!hideTabBar && <ExpiryAlertBanner />}
       </div>
 
-      <ToastRoot />
     </div>
   );
 }

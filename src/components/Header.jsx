@@ -248,7 +248,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
           >
             {/* Menu Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border"
-              style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+              style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
               <span className="text-white font-bold text-[14px]">Reporting Menu</span>
               <button
                 onClick={() => { setShowReportingMenu(false); setExpandedSection(null); }}

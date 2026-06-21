@@ -292,7 +292,7 @@ export default function Sidebar({
 
           {/* User strip */}
           {/* <div className="flex items-center gap-3 px-3 py-2 mt-1">
-            <div className="min-w-[36px] w-9 h-9 rounded-xl bg-[#0e245c] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <div className="min-w-[36px] w-9 h-9 rounded-xl bg-[#0088DA] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               A
             </div>
             <div className={["overflow-hidden transition-all duration-300", collapsed ? "md:opacity-0 md:w-0" : "opacity-100"].join(" ")}>

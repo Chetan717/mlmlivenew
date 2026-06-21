@@ -634,7 +634,9 @@ export default function MLMProfilePage() {
   const processProfileFile = async (file, shouldRemoveBg) => {
     setRemovingBg(true);
     try {
-      const blob = shouldRemoveBg ? (await removeBackground(file)) || file : file;
+      const blob = shouldRemoveBg
+        ? (await removeBackground(file)) || file
+        : file;
       setEditorSrc(URL.createObjectURL(blob));
       setEditingProfileIndex("new");
       setForm((f) => ({ ...f, _pendingProfileBlobs: [] }));
@@ -1167,7 +1169,6 @@ export default function MLMProfilePage() {
                       <img
                         src={url}
                         alt={`Profile ${idx + 1}`}
-                        
                         className="w-14 h-14 rounded-full object-contain bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 font-bold text-transparent"
                       />
                       {/* {isExisting && (

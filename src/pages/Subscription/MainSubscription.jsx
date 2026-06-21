@@ -7,6 +7,7 @@ import {
   ExternalLinkIcon,
   Skeleton,
 } from "@heroui/react";
+import subcric from "./plan.png";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { db } from "@firebase-config";
@@ -24,7 +25,13 @@ import { PlanModal } from "./PlanModal";
 import "swiper/css";
 import "swiper/css/pagination";
 import { COLLECTIONS } from "../../collections";
-import { CreditCard, History, Clock, Download, IndianRupee } from "lucide-react";
+import {
+  CreditCard,
+  History,
+  Clock,
+  Download,
+  IndianRupee,
+} from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (ts) => {
@@ -52,9 +59,21 @@ function ActiveSubscriptionCard({ sub }) {
   const progress = Math.min(100, Math.max(0, (usedDays / totalDays) * 100));
 
   return (
-    <div className="relative rounded-[28px] overflow-hidden shadow-2xl" style={{ background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 50%, #0e245c 100%)" }}>
+    <div
+      className="relative rounded-[28px] overflow-hidden shadow-2xl"
+      style={{
+        background:
+          "linear-gradient(135deg, #0088DA 0%, #0088DA 50%, #0088DA 100%)",
+      }}
+    >
       {/* Shimmer overlay */}
-      <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(ellipse at 30% 0%, #6366f1 0%, transparent 70%), radial-gradient(ellipse at 80% 100%, #3b82f6 0%, transparent 60%)" }} />
+      <div
+        className="absolute inset-0 opacity-20"
+        style={{
+          background:
+            "radial-gradient(ellipse at 30% 0%, #6366f1 0%, transparent 70%), radial-gradient(ellipse at 80% 100%, #3b82f6 0%, transparent 60%)",
+        }}
+      />
       {/* Top highlight */}
       <div className="absolute top-0 left-6 right-6 h-px bg-white/20 rounded-full" />
 
@@ -62,7 +81,13 @@ function ActiveSubscriptionCard({ sub }) {
         {/* Plan name + badge */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}>
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                backdropFilter: "blur(8px)",
+              }}
+            >
               <CreditCard className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -74,28 +99,56 @@ function ActiveSubscriptionCard({ sub }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shrink-0" style={{ background: "rgba(34,197,94,0.18)", border: "1px solid rgba(34,197,94,0.3)" }}>
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full shrink-0"
+            style={{
+              background: "rgba(34,197,94,0.18)",
+              border: "1px solid rgba(34,197,94,0.3)",
+            }}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Active</p>
+            <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider">
+              Active
+            </p>
           </div>
         </div>
 
         {/* Progress timeline */}
-        <div className="mb-5 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(4px)" }}>
+        <div
+          className="mb-5 rounded-2xl p-4"
+          style={{
+            background: "rgba(255,255,255,0.07)",
+            backdropFilter: "blur(4px)",
+          }}
+        >
           <div className="flex items-end justify-between mb-3">
             <div>
-              <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider mb-1">Started</p>
-              <p className="text-[13px] font-bold text-white/90">{formatDate(sub.startdate)}</p>
+              <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider mb-1">
+                Started
+              </p>
+              <p className="text-[13px] font-bold text-white/90">
+                {formatDate(sub.startdate)}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider mb-1">Expires</p>
-              <p className="text-[13px] font-bold text-red-300">{formatDate(sub.expirydate)}</p>
+              <p className="text-[9px] text-white/40 uppercase font-bold tracking-wider mb-1">
+                Expires
+              </p>
+              <p className="text-[13px] font-bold text-red-300">
+                {formatDate(sub.expirydate)}
+              </p>
             </div>
           </div>
-          <div className="relative w-full h-2 rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.1)" }}>
+          <div
+            className="relative w-full h-2 rounded-full overflow-hidden mb-2"
+            style={{ background: "rgba(255,255,255,0.1)" }}
+          >
             <div
               className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #60a5fa, #a78bfa)" }}
+              style={{
+                width: `${progress}%`,
+                background: "linear-gradient(90deg, #60a5fa, #a78bfa)",
+              }}
             />
           </div>
           <p className="text-[11px] font-bold text-center text-blue-200">
@@ -106,14 +159,36 @@ function ActiveSubscriptionCard({ sub }) {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Downloads", value: sub.download ?? 0, icon: <Download className="w-3.5 h-3.5" /> },
-            { label: "Duration", value: `${sub.duration ?? 0}d`, icon: <Clock className="w-3.5 h-3.5" /> },
-            { label: "Paid", value: `₹${sub.PaymentAmount ?? 0}`, icon: <IndianRupee className="w-3.5 h-3.5" /> },
+            {
+              label: "Downloads",
+              value: sub.download ?? 0,
+              icon: <Download className="w-3.5 h-3.5" />,
+            },
+            {
+              label: "Duration",
+              value: `${sub.duration ?? 0}d`,
+              icon: <Clock className="w-3.5 h-3.5" />,
+            },
+            {
+              label: "Paid",
+              value: `₹${sub.PaymentAmount ?? 0}`,
+              icon: <IndianRupee className="w-3.5 h-3.5" />,
+            },
           ].map((s, i) => (
-            <div key={i} className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <div className="flex justify-center text-blue-200 mb-1.5">{s.icon}</div>
-              <p className="text-[14px] font-bold text-white leading-none">{s.value}</p>
-              <p className="text-[9px] font-semibold text-white/40 uppercase tracking-wide mt-1">{s.label}</p>
+            <div
+              key={i}
+              className="rounded-xl p-3 text-center"
+              style={{ background: "rgba(255,255,255,0.08)" }}
+            >
+              <div className="flex justify-center text-blue-200 mb-1.5">
+                {s.icon}
+              </div>
+              <p className="text-[14px] font-bold text-white leading-none">
+                {s.value}
+              </p>
+              <p className="text-[9px] font-semibold text-white/40 uppercase tracking-wide mt-1">
+                {s.label}
+              </p>
             </div>
           ))}
         </div>
@@ -135,25 +210,39 @@ function ExpiredSubscriptionCard({ sub }) {
               <History className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[16px] font-display font-bold text-foreground/80">{sub.plan || "Subscription"}</p>
-              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 tracking-wider uppercase">{sub.planType || "Plan"}</p>
+              <p className="text-[16px] font-display font-bold text-foreground/80">
+                {sub.plan || "Subscription"}
+              </p>
+              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 tracking-wider uppercase">
+                {sub.planType || "Plan"}
+              </p>
             </div>
           </div>
           <div className="bg-danger/8 border border-danger/15 rounded-full px-2.5 py-1 shrink-0">
-            <p className="text-[10px] font-bold text-danger/80 uppercase tracking-wider">Expired</p>
+            <p className="text-[10px] font-bold text-danger/80 uppercase tracking-wider">
+              Expired
+            </p>
           </div>
         </div>
 
         <div className="rounded-xl border border-border/60 bg-background/40 p-3 mb-4">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider mb-1">Started</p>
-              <p className="text-[13px] font-bold text-foreground/70">{formatDate(sub.startdate)}</p>
+              <p className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider mb-1">
+                Started
+              </p>
+              <p className="text-[13px] font-bold text-foreground/70">
+                {formatDate(sub.startdate)}
+              </p>
             </div>
             <div className="h-6 w-px bg-border mx-3" />
             <div className="text-right">
-              <p className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider mb-1">Expired On</p>
-              <p className="text-[13px] font-bold text-danger/70">{formatDate(sub.expirydate)}</p>
+              <p className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider mb-1">
+                Expired On
+              </p>
+              <p className="text-[13px] font-bold text-danger/70">
+                {formatDate(sub.expirydate)}
+              </p>
             </div>
           </div>
         </div>
@@ -164,9 +253,16 @@ function ExpiredSubscriptionCard({ sub }) {
             { label: "Duration", value: `${sub.duration ?? 0}d` },
             { label: "Paid", value: `₹${sub.PaymentAmount ?? 0}` },
           ].map((s, i) => (
-            <div key={i} className="rounded-xl border border-border/50 bg-muted/20 p-2.5 text-center">
-              <p className="text-[14px] font-bold text-foreground/60">{s.value}</p>
-              <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-wide mt-1">{s.label}</p>
+            <div
+              key={i}
+              className="rounded-xl border border-border/50 bg-muted/20 p-2.5 text-center"
+            >
+              <p className="text-[14px] font-bold text-foreground/60">
+                {s.value}
+              </p>
+              <p className="text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-wide mt-1">
+                {s.label}
+              </p>
             </div>
           ))}
         </div>
@@ -224,18 +320,41 @@ function SubscriptionTabs({
           }`}
         >
           {tab.key === "active" ? (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
             </svg>
           ) : (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
             </svg>
           )}
           {tab.label}
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
-            activeTab === tab.key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-          }`}>
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${
+              activeTab === tab.key
+                ? "bg-white/20 text-white"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
             {tab.count}
           </span>
         </button>
@@ -303,7 +422,9 @@ export default function MainSubscription() {
       ]);
 
       const sortByDate = (arr) =>
-        arr.sort((a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0));
+        arr.sort(
+          (a, b) => (b.PurchaseAt?.seconds ?? 0) - (a.PurchaseAt?.seconds ?? 0),
+        );
 
       // ── Auto-expire: if expirydate < today, update Firestore and move to expired ──
       const nowActive = [];
@@ -314,9 +435,10 @@ export default function MainSubscription() {
         if (isExpiredByDate(data.expirydate)) {
           autoExpired.push(data);
           // Fire-and-forget Firestore update — don't block UI
-          updateDoc(doc(db, "subscription", d.id), { Active: false, Expire: true }).catch(
-            (e) => console.error("Failed to mark expired:", e),
-          );
+          updateDoc(doc(db, "subscription", d.id), {
+            Active: false,
+            Expire: true,
+          }).catch((e) => console.error("Failed to mark expired:", e));
         } else {
           nowActive.push(data);
         }
@@ -335,7 +457,6 @@ export default function MainSubscription() {
       if (activeList.length === 0 && expiredList.length > 0) {
         setActiveTab("expired");
       }
-
     } catch (err) {
       console.error("Error fetching subscriptions:", err);
     } finally {
@@ -354,7 +475,8 @@ export default function MainSubscription() {
       if (!company?.id) throw new Error("Company ID not found.");
       const docRef = doc(db, "mlmcomp", company.id);
       const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) throw new Error("Company Doesnot Launch Any Plan Yet!.");
+      if (!docSnap.exists())
+        throw new Error("Company Doesnot Launch Any Plan Yet!.");
       const data = docSnap.data();
       const fetchedPlans = (data?.Plans ?? []).filter(
         (p) => p.PlanName || p.image_url,
@@ -390,7 +512,8 @@ export default function MainSubscription() {
     fetchSubscriptions();
   }, [fetchSubscriptions]);
 
-  const hasAnySub = activeSubscriptions.length > 0 || expiredSubscriptions.length > 0;
+  const hasAnySub =
+    activeSubscriptions.length > 0 || expiredSubscriptions.length > 0;
   const hasActiveSub = activeSubscriptions.length > 0;
 
   if (subLoading) {
@@ -411,14 +534,14 @@ export default function MainSubscription() {
           className="relative mb-8 rounded-[28px] overflow-hidden p-6"
           style={{
             background:
-              "linear-gradient(135deg, #0e245c 0%, #1a3a8a 60%, #0e245c 100%)",
+              "linear-gradient(135deg, #0088da 0%, #0088DA 60%, #0088da 100%)",
           }}
         >
           <div
             className="absolute inset-0 opacity-30"
             style={{
               background:
-                "radial-gradient(ellipse at 80% 20%, #6366f1 0%, transparent 60%)",
+                "radial-gradient(ellipse at 80% 20%, #0088da 0%, transparent 60%)",
             }}
           />
           <div className="absolute top-0 left-8 right-8 h-px bg-white/15 rounded-full" />
@@ -513,7 +636,7 @@ export default function MainSubscription() {
         {/* ── Available Plans Section (hidden when user has an active subscription) ── */}
         {!hasActiveSub && (
           <div className="mt-12">
-            <div className="mb-7">
+            {/* <div className="mb-7">
               <p className="text-[11px] font-bold text-accent/80 uppercase tracking-widest mb-1">
                 Unlock More
               </p>
@@ -523,7 +646,7 @@ export default function MainSubscription() {
               <p className="text-[13px] text-muted-foreground mt-1">
                 Choose a plan that fits your workflow
               </p>
-            </div>
+            </div> */}
 
             {loading ? (
               <div className="grid gap-4 md:grid-cols-2">
@@ -535,10 +658,13 @@ export default function MainSubscription() {
                 <p className="text-danger font-medium">{error}</p>
               </div>
             ) : plans.length === 0 ? (
-              <div className="p-8 rounded-2xl border border-border bg-white dark:bg-black/20 text-center">
-                <p className="text-muted-foreground">
+              <div className=" rounded-2xl w-full flex justify-center items-center h-full text-center">
+                {/* <p className="text-muted-foreground">
                   No plans currently available.
-                </p>
+                </p> */}
+                {/* <div className="p-1 rounded-2xl text-center"> */}
+                  <img src={subcric} className=" p-2 border border-border/60 rounded-xl  h-full object-contain" alt="Plans Coming Soon" />
+                {/* </div> */}
               </div>
             ) : (
               <div className="grid gap-5 md:grid-cols-2">
@@ -552,7 +678,7 @@ export default function MainSubscription() {
                     <div
                       className="absolute top-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       style={{
-                        background: "linear-gradient(90deg, #0e245c, #4f6fd0)",
+                        background: "linear-gradient(90deg, #0088DA, #4f6fd0)",
                       }}
                     />
 
@@ -673,10 +799,6 @@ export default function MainSubscription() {
   );
 }
 
-
-
-
-
 // import React, { useEffect, useState, useCallback } from "react";
 // import { Swiper, SwiperSlide } from "swiper/react";
 // import { Pagination, Autoplay } from "swiper/modules";
@@ -742,7 +864,7 @@ export default function MainSubscription() {
 //       className="relative rounded-[28px] overflow-hidden shadow-2xl"
 //       style={{
 //         background:
-//           "linear-gradient(135deg, #0e245c 0%, #1a3a8a 50%, #0e245c 100%)",
+//           "linear-gradient(135deg, #0088DA 0%, #0088DA 50%, #0088DA 100%)",
 //       }}
 //     >
 //       {/* Shimmer overlay */}

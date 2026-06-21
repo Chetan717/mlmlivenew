@@ -82,7 +82,7 @@ function CreateProfileModal({ onConfirm, onDismiss }) {
           onClick={onConfirm}
           className="w-full py-3.5 mt-5 rounded-2xl text-white font-bold text-[14px] shadow-lg shadow-accent/20 "
           style={{
-            background: "linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)",
+            background: "linear-gradient(135deg, #0088DA 0%, #0088DA 100%)",
           }}
         >
           Create Profile →
@@ -233,7 +233,7 @@ function ListOfGenaraltemp({ templates, loading }) {
     [navigate, setSelType],
   );
 
-  if (loading && (!templates || templates.length === 0)) {
+   if (loading && (!templates || templates.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="w-10 h-10 border-4 border-muted border-t-accent rounded-full animate-spin" />

@@ -98,7 +98,7 @@ export default function CreateProfile({ userMobile, userName, onProfileCreated }
     <div className="px-4 py-6 max-w-lg mx-auto">
       <div className="text-center mb-6">
         <div className="w-16 h-16 rounded-[22px] flex items-center justify-center mx-auto mb-3 shadow-lg"
-          style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+          style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
           <UserPlus className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-[22px] font-bold text-foreground">Create Reporting Profile</h1>
@@ -165,7 +165,7 @@ export default function CreateProfile({ userMobile, userName, onProfileCreated }
           type="submit"
           disabled={submitting}
           className="w-full py-3.5 rounded-xl text-white text-[14px] font-bold disabled:opacity-60 mt-2"
-          style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}>
+          style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
           {submitting ? "Creating..." : "Create Profile"}
         </button>
       </form>

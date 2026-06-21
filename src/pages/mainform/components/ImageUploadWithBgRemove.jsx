@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
+import { toast } from "@heroui/react";
 import { removeBg } from "../utils/removeBg";
+import { validateUploadFile } from "../../../lib/fileValidation";
 
 export default function ImageUploadWithBgRemove({
   onImageReady,
@@ -43,6 +45,13 @@ export default function ImageUploadWithBgRemove({
   };
 
   const handleFile = (file) => {
+    if (!file) return;
+    const result = validateUploadFile(file, "image");
+    if (!result.valid) {
+      toast.danger(result.error || "Invalid image file.");
+      return;
+    }
+
     setPendingFile(file);
   };
 

@@ -392,7 +392,6 @@ export default function SalesExecutiveForm() {
             alt=""
             className="w-full h-[130px] object-contain"
             autoSave={true}
-            
           />
         </div>
       ) : null}
@@ -465,7 +464,6 @@ export default function SalesExecutiveForm() {
 
         {/* ── Meeting / Income sub-forms ── */}
         {isMeeting ? <MeetingForm /> : null}
-        {isIncome ? <IncomeForm onSaved={() => setIncomeSaved(true)} /> : null}
 
         {/* ── Achiever Details ── */}
         {isMeeting ? null : (
@@ -592,8 +590,7 @@ export default function SalesExecutiveForm() {
                 maxLength={7}
                 inputMode="numeric"
               />
-  
-  )}
+            )}
 
             {isAchievment ? null : (
               <div>
@@ -625,7 +622,7 @@ export default function SalesExecutiveForm() {
             )}
           </div>
         )}
-
+        {isIncome ? <IncomeForm onSaved={() => setIncomeSaved(true)} /> : null}
         {/* ── Bonanza: Days + For Whom ── */}
         {isBonanza && (
           <div className="rounded-2xl border border-border bg-background p-4 space-y-4">
@@ -804,14 +801,23 @@ export default function SalesExecutiveForm() {
       {isMeeting ? null : (
         <div className="fixed bottom-0 left-0 right-0 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border z-30 space-y-2">
           {(() => {
-            const isLocked = (isIncome && !incomeSaved) || (isAchievment && !achievementSaved);
+            const isLocked =
+              (isIncome && !incomeSaved) || (isAchievment && !achievementSaved);
             return (
               <button
                 type="button"
                 onClick={isLocked ? undefined : handleSubmit}
                 disabled={isLocked}
-                className={'w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all shadow-xl shadow-accent/20' + (isLocked ? ' opacity-40 blur-[1px] cursor-not-allowed' : ' active:scale-[0.98]')}
-                style={{ background: 'linear-gradient(135deg, #0e245c 0%, #1a3a8a 100%)' }}
+                className={
+                  "w-full py-4 rounded-2xl text-white font-bold text-[15px] transition-all shadow-xl shadow-accent/20" +
+                  (isLocked
+                    ? " opacity-40 blur-[1px] cursor-not-allowed"
+                    : " active:scale-[0.98]")
+                }
+                style={{
+                  background:
+                    "linear-gradient(135deg, #0088DA 0%, #0088DA 100%)",
+                }}
               >
                 Save &amp; Create Design
               </button>

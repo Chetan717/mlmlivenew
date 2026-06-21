@@ -16,15 +16,16 @@ export default function MultiImagePicker({
   maxImages = 7,
   inlineStrip = false,
 }) {
-  const [tab, setTab]   = useState("company");
+  const [tab, setTab] = useState("company");
   const [open, setOpen] = useState(false);
 
   const handleClose = () => setOpen(false);
 
-  const colClass = { 3: "grid-cols-3", 4: "grid-cols-3" }[companyGridCols] || "grid-cols-3";
+  const colClass =
+    { 3: "grid-cols-3", 4: "grid-cols-3" }[companyGridCols] || "grid-cols-3";
 
   const totalSelected = selectedLinks.length + customFiles.length;
-  const allowed       = type === "Logo" ? 3 : maxImages;
+  const allowed = type === "Logo" ? 3 : maxImages;
   const isLimitReached = totalSelected >= allowed;
 
   useEffect(() => {

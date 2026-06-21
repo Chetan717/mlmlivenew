@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { Modal } from "@heroui/react";
+import { Modal, toast } from "@heroui/react";
+import { validateUploadFile } from "../../../lib/fileValidation";
 import photoupload from "./photoupload.png";
+import TOPUPLINE_BG from "../../../../public/topupline_bg.webp";
+
 export default function MultiImagePicker({
   companyImages,
   selectedLinks,
@@ -11,7 +14,7 @@ export default function MultiImagePicker({
   inputRef,
   companyGridCols = 4,
   thumbHeight = "h-10",
-  maxImages = 7, // ✅ max limit
+  maxImages = 7,
   inlineStrip = false,
 }) {
   const [tab, setTab] = useState("company");
@@ -27,11 +30,9 @@ export default function MultiImagePicker({
       4: "grid-cols-4",
     }[companyGridCols] || "grid-cols-4";
 
-  // ✅ total count
   const totalSelected = selectedLinks.length + customFiles.length;
   const isLimitReached = totalSelected >= maxImages;
 
-  // ✅ auto close modal when limit reached (nice UX)
   useEffect(() => {
     if (isLimitReached) {
       setTimeout(() => setOpen(false), 400);
@@ -41,9 +42,7 @@ export default function MultiImagePicker({
   return (
     <>
       {inlineStrip ? (
-        /* ── Inline layout: scrollable thumbnails + pinned upload, one combined border ── */
         <div className="w-full flex items-center gap-2 rounded-2xl border border-border p-2">
-          {/* Horizontally scrollable thumbnails area */}
           <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {totalSelected === 0 && (
               <span className="text-[11px] text-muted-foreground px-2 py-3">
@@ -52,11 +51,20 @@ export default function MultiImagePicker({
             )}
             {selectedLinks.map((link, i) => (
               <div key={link || `sel-${i}`} className="relative flex-shrink-0">
-                <img
-                  src={link}
-                  alt=""
-                  className="w-14 h-14 rounded-full object-cover bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-600 font-bold text-transparent"
-                />
+                <div
+                  className="w-14 h-14 rounded-full flex justify-center items-center overflow-hidden"
+                  style={{
+                    backgroundImage: `url(${TOPUPLINE_BG})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <img
+                    src={link}
+                    alt=""
+                    className="w-[100%] h-[80%] rounded-b-full object-contain"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => onToggleLink(link)}
@@ -72,11 +80,20 @@ export default function MultiImagePicker({
                 key={item.previewURL || `cus-${i}`}
                 className="relative flex-shrink-0"
               >
-                <img
-                  src={item.previewURL}
-                  alt=""
-                  className="w-14 h-14 rounded-full object-cover border-2 border-accent/50 bg-muted/30"
-                />
+                <div
+                  className="w-14 h-14 rounded-full overflow-hidden border-2 border-accent/50"
+                  style={{
+                    backgroundImage: `url(${TOPUPLINE_BG})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <img
+                    src={item.previewURL}
+                    alt=""
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => onRemoveCustomFile(i)}
@@ -88,7 +105,6 @@ export default function MultiImagePicker({
               </div>
             ))}
           </div>
-          {/* Circular upload icon pinned at the end (does not scroll) */}
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -104,17 +120,14 @@ export default function MultiImagePicker({
           </button>
         </div>
       ) : (
-        /* Open Picker Button */
         <div
           onClick={() => setOpen(true)}
           className="text-white h-[40px] w-[40px] flex gap-1 border border-border justify-center items-center font-semibold bg-muted/40 p-2 rounded-full transition hover:bg-muted/60"
         >
           <img src={photoupload} alt="Upload" className="w-4 h-4 text-accent" />
-          {/* <p className="text-[10px] text-muted-foreground">Upload Image</p> */}
         </div>
       )}
 
-      {/* Modal */}
       <Modal isOpen={open} onOpenChange={handleClose}>
         <Modal.Backdrop>
           <Modal.Container className="w-full">
@@ -128,7 +141,6 @@ export default function MultiImagePicker({
               </Modal.Header>
 
               <div className="flex flex-col gap-2 justify-center items-center">
-                {/* Tabs */}
                 <div className="flex justify-center items-center gap-3 mb-3">
                   {[
                     { key: "company", label: "From company" },
@@ -149,7 +161,6 @@ export default function MultiImagePicker({
                   ))}
                 </div>
 
-                {/* ── Company Images ── */}
                 {tab === "company" && (
                   <>
                     {companyImages.length === 0 ? (
@@ -189,7 +200,6 @@ export default function MultiImagePicker({
                                 </div>
                               )}
 
-                              {/* Selected Tick */}
                               {selected && (
                                 <span className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center shadow">
                                   <svg
@@ -215,7 +225,6 @@ export default function MultiImagePicker({
                   </>
                 )}
 
-                {/* ── Upload Tab ── */}
                 {tab === "upload" && (
                   <>
                     <button
@@ -239,7 +248,7 @@ export default function MultiImagePicker({
                     </button>
 
                     <input
-                      ref={inputRef}
+                      ref={effectiveInputRef}
                       type="file"
                       accept="image/*"
                       multiple
@@ -250,13 +259,26 @@ export default function MultiImagePicker({
 
                         const remaining = maxImages - totalSelected;
                         const allowedFiles = files.slice(0, remaining);
+                        const validFiles = [];
 
-                        onAddCustomFiles(
-                          allowedFiles.map((file) => ({
-                            file,
-                            previewURL: URL.createObjectURL(file),
-                          })),
-                        );
+                        allowedFiles.forEach((file) => {
+                          const result = validateUploadFile(file, "image");
+                          if (result.valid) {
+                            validFiles.push(file);
+                          } else {
+                            toast.danger(result.error || "Invalid image file.");
+                          }
+                        });
+
+                        if (validFiles.length > 0) {
+                          onAddCustomFiles(
+                            validFiles.map((file) => ({
+                              file,
+                              previewURL: URL.createObjectURL(file),
+                            })),
+                          );
+                        }
+
                         e.target.value = "";
                       }}
                     />
@@ -299,7 +321,6 @@ export default function MultiImagePicker({
                   </>
                 )}
 
-                {/* Count Indicator */}
                 <p
                   className={`text-xs mt-2 font-medium ${
                     isLimitReached ? "text-red-500" : "text-accent"
@@ -308,6 +329,16 @@ export default function MultiImagePicker({
                   {totalSelected} / {maxImages} image(s) selected
                 </p>
               </div>
+
+              <Modal.Footer>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="w-full mt-3 py-3 rounded-2xl bg-accent text-white font-bold text-[14px] shadow-md"
+                >
+                  Continue
+                </button>
+              </Modal.Footer>
             </Modal.Dialog>
           </Modal.Container>
         </Modal.Backdrop>

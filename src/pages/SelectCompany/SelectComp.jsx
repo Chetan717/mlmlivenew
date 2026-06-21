@@ -188,7 +188,7 @@ export default function SelectComp() {
               rel="noopener noreferrer"
               className="mt-1 inline-flex items-center gap-2 h-10 px-5 rounded-xl font-bold text-sm text-white"
               style={{
-                background: "linear-gradient(135deg, #0e245c 0%, #1a3a8f 100%)",
+                background: "linear-gradient(135deg, #0088DA 0%, #1a3a8f 100%)",
                 touchAction: "manipulation",
               }}
             >

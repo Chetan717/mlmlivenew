@@ -16,7 +16,7 @@ function GeneralContext({ children }) {
   const toggleTheme = () =>
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
 
-  const theame_color = "#0e245c";
+  const theame_color = "#0088DA";
   const [cachedTemplates, setCachedTemplates] = useState([]);
   const [cachedGroupIndex, setCachedGroupIndex] = useState(0);
   const [cachedFestivalData, setCachedFestivalData] = useState({});

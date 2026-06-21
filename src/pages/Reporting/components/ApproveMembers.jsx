@@ -395,7 +395,7 @@ function MemberRow({ member, onApprove, approving }) {
         onClick={() => onApprove(member)}
         disabled={approving}
         className="shrink-0 ml-2 px-3 py-1.5 rounded-xl text-[11px] font-bold text-white transition-opacity disabled:opacity-60 flex items-center gap-1"
-        style={{ background: "linear-gradient(135deg,#0e245c,#1a3a8a)" }}
+        style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}
       >
         {approving
           ? <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />

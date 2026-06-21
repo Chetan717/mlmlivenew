@@ -190,7 +190,7 @@ export function CheckoutModal({ plan, isOpen, setIsOpen, onBack, onPaymentSucces
           planType: plan.Type      || "",
           company:  company?.name  || "",
         },
-        theme: { color: "#0e245c" },
+        theme: { color: "#0088DA" },
 
         handler: async (response) => {
           try {

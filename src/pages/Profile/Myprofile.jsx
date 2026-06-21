@@ -8,11 +8,10 @@ import {
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { Modal } from "@heroui/react";
+import { Modal, toast } from "@heroui/react";
 import ReferCard from "./ReferCard";
 import SettingsMenu from "./Settingsmenu";
 import { PencilLine, ArrowLeft, LogOut, Check } from "lucide-react";
-import { toast } from "../../utils/toast";
 import { COLLECTIONS } from "../../collections";
 
 function Myprofile() {

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Modal } from "@heroui/react";
+import { validateUploadFile } from "../../../lib/fileValidation";
 import ImageEditorCanvas from './ImageEditorCanvas';
 
 const ImageUploadSquare = ({ onImageSelect, previewImage, label = "Upload Proof Image" }) => {
@@ -20,8 +21,14 @@ const ImageUploadSquare = ({ onImageSelect, previewImage, label = "Upload Proof 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Please select an image file'); return; }
-    if (file.size > 5 * 1024 * 1024) { setError('File size must be less than 5MB'); return; }
+
+    const result = validateUploadFile(file, "image");
+    if (!result.valid) {
+      setError(result.error || "Invalid image file.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setError('');
     setEditingImage(file);
     setOpenEditor(true);

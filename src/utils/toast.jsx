@@ -42,7 +42,7 @@ const ICONS = {
 const BG = {
   success: "bg-[#16a34a] text-white",
   error:   "bg-[#dc2626] text-white",
-  info:    "bg-[#0e245c] text-white",
+  info:    "bg-[#0088DA] text-white",
   warning: "bg-[#d97706] text-white",
 };
 
