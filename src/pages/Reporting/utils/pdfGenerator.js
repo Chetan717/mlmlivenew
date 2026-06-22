@@ -180,15 +180,49 @@ export function viewPDF(opts) {
 }
 
 /** Trigger file download of PDF */
+// export function downloadPDF(opts) {
+//   try {
+//     const pdf      = buildPDF(opts);
+//     const blob     = pdf.output("blob");
+//     const url      = URL.createObjectURL(blob);
+//     const filename = `Weekly-Report-${opts.memberProfile?.name || "report"}-${opts.dateFrom || ""}.pdf`;
+//     const a        = document.createElement("a");
+//     a.href         = url;
+//     a.download     = filename;
+//     a.style.display = "none";
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//     setTimeout(() => URL.revokeObjectURL(url), 10000);
+//   } catch (e) {
+//     console.error("downloadPDF error:", e);
+//     throw e;
+//   }
+// }
 export function downloadPDF(opts) {
   try {
-    const pdf      = buildPDF(opts);
-    const blob     = pdf.output("blob");
-    const url      = URL.createObjectURL(blob);
+    const pdf = buildPDF(opts);
     const filename = `Weekly-Report-${opts.memberProfile?.name || "report"}-${opts.dateFrom || ""}.pdf`;
-    const a        = document.createElement("a");
-    a.href         = url;
-    a.download     = filename;
+
+    // ── React Native WebView: hand off to the native app ──
+    if (typeof window !== "undefined" && window.ReactNativeWebView) {
+      const dataUri = pdf.output("datauristring"); // already base64 data URI
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: "DOWNLOAD_PDF",
+          base64: dataUri,
+          fileName: filename,
+        }),
+      );
+      return;
+    }
+
+    // ── Normal browser download (unchanged) ──────────────
+    const blob = pdf.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
@@ -199,7 +233,6 @@ export function downloadPDF(opts) {
     throw e;
   }
 }
-
 /** Legacy compat — kept so old call-sites don't break */
 export function generateWeeklyReportPDF(opts) {
   if (opts.mode === "view")     return viewPDF(opts);
