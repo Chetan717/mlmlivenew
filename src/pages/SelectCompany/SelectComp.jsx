@@ -183,7 +183,7 @@ export default function SelectComp() {
       Want to add your company? Contact Us
     </p>
     <a
-      href="https://wa.me/91XXXXXXXXXX"
+      href="https://wa.me/919229885383"
       target="_blank"
       rel="noopener noreferrer"
       className="mt-1 inline-flex items-center gap-2 h-10 px-5 rounded-xl font-bold text-sm text-white"
