@@ -79,7 +79,23 @@ function DeleteAcc({ show, setDeleteAcc }) {
       }
 
       // ── Delete user doc from Firestore ──────────────────────
+            // ── Delete user doc from Firestore ──────────────────────
       await deleteDoc(doc(db, "users", userDoc.id));
+
+      // ── Delete MLM profile for this mobile number ────────────
+      try {
+        const mlmQ = query(
+          collection(db, COLLECTIONS.MLMPROFILES),
+          where("mobile", "==", localUser.mobileNo)
+        );
+        const mlmSnap = await getDocs(mlmQ);
+        if (!mlmSnap.empty) {
+          await deleteDoc(doc(db, "mlmprofiles", mlmSnap.docs[0].id));
+        }
+      } catch (mlmErr) {
+        console.error("Failed to delete MLM profile:", mlmErr);
+        // non-fatal — continue with account deletion
+      }
 
       // ── Clear localStorage ──────────────────────────────────
       localStorage.removeItem("usermlm");
