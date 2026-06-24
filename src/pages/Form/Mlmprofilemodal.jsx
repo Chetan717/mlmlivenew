@@ -463,6 +463,11 @@ export default function MLMProfilePage() {
   const [editingProfileIndex, setEditingProfileIndex] = useState(null);
   const [removingBg, setRemovingBg] = useState(false);
   const [pendingProfileFile, setPendingProfileFile] = useState(null);
+  const [pendingLogoFile, setPendingLogoFile] = useState(null);
+  const [pendingTopupFile, setPendingTopupFile] = useState(null);
+  const [removingLogoBg, setRemovingLogoBg] = useState(false);
+  const [removingTopupBg, setRemovingTopupBg] = useState(false);
+  const [editorContext, setEditorContext] = useState("profile");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -578,17 +583,10 @@ export default function MLMProfilePage() {
         : [...f.logoSelectedLinks, link],
     }));
 
-  const handleLogoAddCustomFiles = (files) =>
-    setForm((f) => ({
-      ...f,
-      logoCustomFiles: [
-        ...f.logoCustomFiles,
-        ...files.map((file) => ({
-          file,
-          previewURL: URL.createObjectURL(file),
-        })),
-      ],
-    }));
+  const handleLogoAddCustomFiles = (files) => {
+    if (!files.length) return;
+    setPendingLogoFile(files[0]);
+  };
 
   const handleLogoRemoveCustomFile = (index) =>
     setForm((f) => ({
@@ -605,17 +603,72 @@ export default function MLMProfilePage() {
         : [...f.topupSelectedLinks, link],
     }));
 
-  const handleTopupAddCustomFiles = (files) =>
+  const handleTopupAddCustomFiles = (files) => {
+    if (!files.length) return;
+    setPendingTopupFile(files[0]);
+  };
+
+  const _addLogoBlob = (blob) => {
+    const file = new File([blob], 'logo.png', { type: 'image/png' });
+    setForm((f) => ({
+      ...f,
+      logoCustomFiles: [
+        ...f.logoCustomFiles,
+        { file, previewURL: URL.createObjectURL(blob) },
+      ],
+    }));
+  };
+
+  const _addTopupBlob = (blob) => {
+    const file = new File([blob], 'topup.png', { type: 'image/png' });
     setForm((f) => ({
       ...f,
       topupCustomFiles: [
         ...f.topupCustomFiles,
-        ...files.map((file) => ({
-          file,
-          previewURL: URL.createObjectURL(file),
-        })),
+        { file, previewURL: URL.createObjectURL(blob) },
       ],
     }));
+  };
+
+  const processLogoFile = async (file, shouldRemoveBg) => {
+    setRemovingLogoBg(true);
+    try {
+      const blob = shouldRemoveBg ? (await removeBackground(file)) || file : file;
+      setEditorSrc(URL.createObjectURL(blob));
+      setEditorContext('logo');
+      setStep('editor');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRemovingLogoBg(false);
+    }
+  };
+
+  const handleLogoChoice = (shouldRemoveBg) => {
+    const file = pendingLogoFile;
+    setPendingLogoFile(null);
+    if (file) processLogoFile(file, shouldRemoveBg);
+  };
+
+  const processTopupFile = async (file, shouldRemoveBg) => {
+    setRemovingTopupBg(true);
+    try {
+      const blob = shouldRemoveBg ? (await removeBackground(file)) || file : file;
+      setEditorSrc(URL.createObjectURL(blob));
+      setEditorContext('topup');
+      setStep('editor');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRemovingTopupBg(false);
+    }
+  };
+
+  const handleTopupChoice = (shouldRemoveBg) => {
+    const file = pendingTopupFile;
+    setPendingTopupFile(null);
+    if (file) processTopupFile(file, shouldRemoveBg);
+  };
 
   const handleTopupRemoveCustomFile = (index) =>
     setForm((f) => ({
@@ -640,6 +693,7 @@ export default function MLMProfilePage() {
       setEditorSrc(URL.createObjectURL(blob));
       setEditingProfileIndex("new");
       setForm((f) => ({ ...f, _pendingProfileBlobs: [] }));
+      setEditorContext("profile");
       setStep("editor");
     } catch (err) {
       console.error(err);
@@ -655,6 +709,18 @@ export default function MLMProfilePage() {
   };
 
   const handleEditorDone = (blob) => {
+    if (editorContext === "logo") {
+      _addLogoBlob(blob);
+      setStep("form");
+      setEditorSrc(null);
+      return;
+    }
+    if (editorContext === "topup") {
+      _addTopupBlob(blob);
+      setStep("form");
+      setEditorSrc(null);
+      return;
+    }
     setForm((f) => {
       if (editingProfileIndex === "new") {
         const pending = f._pendingProfileBlobs || [];
@@ -736,6 +802,7 @@ export default function MLMProfilePage() {
         const blobURL = URL.createObjectURL(blob);
         setEditingProfileIndex(combinedIdx);
         setEditorSrc(blobURL);
+        setEditorContext("profile");
         setStep("editor");
       } catch (err) {
         console.error("Failed to load image for editing:", err);
@@ -747,6 +814,7 @@ export default function MLMProfilePage() {
       const blobURL = form.profileImageBlobPreviews[blobIdx];
       setEditingProfileIndex(combinedIdx);
       setEditorSrc(blobURL);
+      setEditorContext("profile");
       setStep("editor");
     }
   };
@@ -914,9 +982,10 @@ export default function MLMProfilePage() {
     return (
       <div className="flex flex-col w-[100%] h-[100%] items-center justify-center bg-muted/20">
         <div className="w-full h-full bg-background rounded-2xl border border-border shadow-md ">
-          <ImageEditorCanvas
+                   <ImageEditorCanvas
             key={editorSrc}
             src={editorSrc}
+            ratio={editorContext === "logo" || editorContext === "topup" ? 1 : 2 / 2.5}
             onDone={handleEditorDone}
             onCancel={() => {
               setStep("form");
@@ -952,6 +1021,88 @@ export default function MLMProfilePage() {
           onCancel={() => setShowDeleteModal(false)}
           deleting={deleting}
         />
+      )}
+
+      {/* Logo background choice modal */}
+      {pendingLogoFile && !removingLogoBg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xs rounded-2xl bg-background dark:bg-zinc-900 border border-border shadow-2xl p-5">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-accent/10 flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                  <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+              </div>
+              <p className="text-[14px] font-bold text-foreground">Company Logo — Edit Photo</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Remove the background or keep the original, then crop.</p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button type="button" onClick={() => handleLogoChoice(true)} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-[13px] font-bold hover:opacity-90 transition-opacity">
+                Remove Background
+              </button>
+              <button type="button" onClick={() => handleLogoChoice(false)} className="w-full py-3 rounded-xl bg-muted/60 border border-border text-foreground text-[13px] font-bold hover:bg-muted transition-colors">
+                Keep Original
+              </button>
+              <button type="button" onClick={() => setPendingLogoFile(null)} className="w-full py-2 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logo BG removal spinner */}
+      {removingLogoBg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl border border-border">
+            <svg className="animate-spin w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            <p className="text-[13px] font-semibold text-foreground">Removing background…</p>
+          </div>
+        </div>
+      )}
+
+      {/* Topup background choice modal */}
+      {pendingTopupFile && !removingTopupBg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xs rounded-2xl bg-background dark:bg-zinc-900 border border-border shadow-2xl p-5">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-accent/10 flex items-center justify-center">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                  <path d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                </svg>
+              </div>
+              <p className="text-[14px] font-bold text-foreground">Topup Line — Edit Photo</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Remove the background or keep the original, then crop.</p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <button type="button" onClick={() => handleTopupChoice(true)} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-[13px] font-bold hover:opacity-90 transition-opacity">
+                Remove Background
+              </button>
+              <button type="button" onClick={() => handleTopupChoice(false)} className="w-full py-3 rounded-xl bg-muted/60 border border-border text-foreground text-[13px] font-bold hover:bg-muted transition-colors">
+                Keep Original
+              </button>
+              <button type="button" onClick={() => setPendingTopupFile(null)} className="w-full py-2 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Topup BG removal spinner */}
+      {removingTopupBg && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl border border-border">
+            <svg className="animate-spin w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            <p className="text-[13px] font-semibold text-foreground">Removing background…</p>
+          </div>
+        </div>
       )}
 
       {/* Background choice modal */}
@@ -1038,6 +1189,7 @@ export default function MLMProfilePage() {
                 thumbHeight="h-14"
                 type="Logo"
                 inlineStrip
+                processingBg={removingLogoBg}
               />
             </div>
           </div>
@@ -1143,6 +1295,7 @@ export default function MLMProfilePage() {
                 thumbHeight="h-16"
                 type="TopupLine"
                 inlineStrip
+                processingBg={removingTopupBg}
               />
             </div>
           </div>

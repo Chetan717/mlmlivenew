@@ -15,6 +15,7 @@ export default function MultiImagePicker({
   type,
   maxImages = 7,
   inlineStrip = false,
+  processingBg = false,
 }) {
   const [tab, setTab] = useState("company");
   const [open, setOpen] = useState(false);
@@ -86,15 +87,37 @@ export default function MultiImagePicker({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            disabled={isLimitReached}
+            disabled={isLimitReached || processingBg}
             className="flex-shrink-0 w-14 h-14 rounded-full border-2 border-dashed border-border hover:border-accent/60 hover:bg-accent/5 flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed"
-            title={isLimitReached ? "Limit reached" : "Add image"}
+            title={isLimitReached ? "Limit reached" : processingBg ? "Processing…" : "Add image"}
           >
-            <img
-              src={photoupload}
-              alt="Upload"
-              className="w-5 h-5 opacity-70"
-            />
+            {processingBg ? (
+              <svg
+                className="animate-spin w-5 h-5 text-accent"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+            ) : (
+              <img
+                src={photoupload}
+                alt="Upload"
+                className="w-5 h-5 opacity-70"
+              />
+            )}
           </button>
         </div>
       ) : (
@@ -272,25 +295,51 @@ export default function MultiImagePicker({
                   <div className="flex flex-col gap-3">
                     <button
                       type="button"
-                      disabled={isLimitReached}
-                      onClick={() => inputRef.current?.click()}
+                      disabled={isLimitReached || processingBg}
+                      onClick={() => {
+                        if (!isLimitReached && !processingBg) inputRef.current?.click();
+                      }}
                       className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-dashed transition-all duration-200 ${
-                        isLimitReached
+                        isLimitReached || processingBg
                           ? "border-border bg-muted/20 opacity-50 cursor-not-allowed"
                           : "border-border hover:border-accent/60 bg-muted/20 hover:bg-accent/5 cursor-pointer group"
                       }`}
                     >
                       <div className="w-9 h-9 rounded-xl bg-muted/40 border border-border group-hover:bg-accent/10 group-hover:border-accent/30 flex items-center justify-center flex-shrink-0 transition-all">
-                        <img src={photoupload} alt="" className="w-4 h-4" />
+                        {processingBg ? (
+                          <svg
+                            className="animate-spin w-4 h-4 text-accent"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8z"
+                            />
+                          </svg>
+                        ) : (
+                          <img src={photoupload} alt="" className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="text-left">
                         <p className="text-[13px] font-semibold text-foreground group-hover:text-accent transition-colors">
                           {isLimitReached
                             ? "Image limit reached"
+                            : processingBg
+                            ? "Processing image…"
                             : "Choose from gallery"}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          JPG, PNG, WEBP
+                          JPG, PNG, WEBP · Background removal + crop
                         </p>
                       </div>
                     </button>
@@ -306,6 +355,7 @@ export default function MultiImagePicker({
                         if (totalSelected >= allowed) return;
                         onAddCustomFiles([files[0]]);
                         e.target.value = "";
+                        handleClose();
                       }}
                     />
 
@@ -387,6 +437,15 @@ export default function MultiImagePicker({
                     {isLimitReached ? "— limit reached" : "images selected"}
                   </p>
                 </div>
+
+                {/* ── Done Button ── */}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="w-full py-3 rounded-2xl bg-accent text-white text-[14px] font-bold hover:opacity-90 active:scale-[0.98] transition-all shadow-md shadow-accent/20"
+                >
+                  Done
+                </button>
               </div>
             </Modal.Dialog>
           </Modal.Container>

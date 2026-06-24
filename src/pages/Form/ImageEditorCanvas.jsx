@@ -2,9 +2,9 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@heroui/react";
 
 // ── Constants ─────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────
 const CW = 300;
 const CH = 340;
-const RATIO = 2 / 2.5;
 
 // ── Helpers ───────────────────────────────────────────────────────
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
@@ -33,7 +33,7 @@ function getTouchDist(touches) {
 }
 
 // ── Component ─────────────────────────────────────────────────────
-export function ImageEditorCanvas({ src, onDone, onCancel }) {
+export function ImageEditorCanvas({ src, onDone, onCancel, ratio = 2 / 2.5 }) {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const dragRef = useRef(null);
@@ -110,7 +110,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, CW, CH);
 
-    const { fw, fh, fx, fy } = computeFrame(CW, CH, RATIO);
+    const { fw, fh, fx, fy } = computeFrame(CW, CH, ratio);
     const { dw, dh, panX, panY } = computeLayout(
       img,
       fw,
@@ -255,7 +255,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     if (!dragRef.current) return;
     const { nx, ny } = normPos(e);
     const { sx, sy, oc } = dragRef.current;
-    const { fw, fh } = computeFrame(CW, CH, RATIO);
+    const { fw, fh } = computeFrame(CW, CH, ratio);
     const dFracX = ((nx - sx) * CW) / fw;
     const dFracY = ((ny - sy) * CH) / fh;
     offsetRef.current = { x: oc.x + dFracX, y: oc.y + dFracY };
@@ -273,7 +273,7 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     if (canvasRef.current) canvasRef.current.style.cursor = "grab";
     const img = imgRef.current;
     if (img) {
-      const { fw, fh } = computeFrame(CW, CH, RATIO);
+      const { fw, fh } = computeFrame(CW, CH, ratio);
       const { panX, panY } = computeLayout(
         img,
         fw,
@@ -301,8 +301,8 @@ export function ImageEditorCanvas({ src, onDone, onCancel }) {
     const zoomVal = zoomRef.current;
 
     const TARGET = 800;
-    const outW = RATIO >= 1 ? TARGET : Math.round(TARGET * RATIO);
-    const outH = RATIO >= 1 ? Math.round(TARGET / RATIO) : TARGET;
+    const outW = ratio >= 1 ? TARGET : Math.round(TARGET * ratio);
+    const outH = ratio >= 1 ? Math.round(TARGET / ratio) : TARGET;
 
     const { dw, dh, panX, panY } = computeLayout(
       img,
