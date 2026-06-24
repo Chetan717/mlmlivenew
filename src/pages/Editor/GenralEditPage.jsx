@@ -133,7 +133,7 @@ const VideoCanvas = React.memo(function VideoCanvas({
         if (p && typeof p.catch === "function") {
           p.catch(() => {
             videoEl.muted = true;
-            videoEl.play().catch(() => {});
+            videoEl.play().catch(() => { });
           });
         }
         rafId = requestAnimationFrame(tick);
@@ -1341,21 +1341,21 @@ function GeneralEditPage({
   const totalDownloadsAvailable = planDownloads + referCredits;
 
   // const checkCredits = (cost) => {
-    // if (!activeSub) {
-    //   showToast(
-    //     "No active subscription found. Please subscribe to export.", {change for free}
-    //     "error",
-    //   );
-    //   return false;
-    // }
-    // const expiry = parseExpiryDate(activeSub.expirydate);
-    // if (expiry && new Date() > expiry) {
-    //   showToast(
-    //     "Your subscription has expired. Please renew to continue.", {change for free}
-    //     "error",
-    //   );
-    //   return false;
-    // }
+  // if (!activeSub) {
+  //   showToast(
+  //     "No active subscription found. Please subscribe to export.", {change for free}
+  //     "error",
+  //   );
+  //   return false;
+  // }
+  // const expiry = parseExpiryDate(activeSub.expirydate);
+  // if (expiry && new Date() > expiry) {
+  //   showToast(
+  //     "Your subscription has expired. Please renew to continue.", {change for free}
+  //     "error",
+  //   );
+  //   return false;
+  // }
   //   if (totalDownloadsAvailable < cost) {
   //     showToast(
   //       `This export needs ${cost} credit${cost > 1 ? "s" : ""}, but you have ${totalDownloadsAvailable}. Please renew your plan.`,
@@ -1462,7 +1462,7 @@ function GeneralEditPage({
     videoEl.muted = true;
     const startPlay = videoEl.play();
     if (startPlay && typeof startPlay.catch === "function")
-      startPlay.catch(() => {});
+      startPlay.catch(() => { });
     setVideoPlaying(true);
     // if (!checkCredits(VIDEO_CREDIT_COST)) return; {change for free}
     exportInProgressRef.current = true;
@@ -1481,7 +1481,7 @@ function GeneralEditPage({
     let progressTicker = null;
     try {
       if (videoEl.paused) {
-        try { await videoEl.play(); } catch (_) {}
+        try { await videoEl.play(); } catch (_) { }
       }
       const ratio = 3;
       const rec = document.createElement("canvas");
@@ -1495,7 +1495,7 @@ function GeneralEditPage({
           stage.getLayers().forEach((l) => l.batchDraw());
           const c = stage.toCanvas({ pixelRatio: ratio });
           ctx.drawImage(c, 0, 0, rec.width, rec.height);
-        } catch (_) {}
+        } catch (_) { }
         rafId = requestAnimationFrame(drawFrame);
       };
       drawFrame();
@@ -1592,10 +1592,10 @@ function GeneralEditPage({
       if (rafId) cancelAnimationFrame(rafId);
       try {
         if (recorder && recorder.state !== "inactive") recorder.stop();
-      } catch (_) {}
+      } catch (_) { }
       try {
         if (stream) stream.getTracks().forEach((t) => t.stop());
-      } catch (_) {}
+      } catch (_) { }
       setExportLoading(false);
       exportInProgressRef.current = false;
       setTimeout(() => {
@@ -1630,7 +1630,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(file);
-      } catch (_) {}
+      } catch (_) { }
       setAudioUploadProgress(100);
       if (!duration || duration <= 0) {
         showToast("Could not read this audio file. Try another one.", "error");
@@ -1727,14 +1727,14 @@ function GeneralEditPage({
     } finally {
       setAudioLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioLoading, audioLastDoc]);
 
   useEffect(() => {
     if (musicModalOpen && firestoreAudios.length === 0) {
       loadFirestoreAudios(true, "");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [musicModalOpen]);
 
   useEffect(() => {
@@ -1758,7 +1758,7 @@ function GeneralEditPage({
       loadFirestoreAudios(true, audioSearch);
     }, 400);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioSearch]);
 
   const handleAudioListScroll = useCallback(() => {
@@ -1767,7 +1767,7 @@ function GeneralEditPage({
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) {
       loadFirestoreAudios(false, "");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioLoading, audioHasMore, audioSearch]);
 
   const handlePlayAudio = useCallback((track) => {
@@ -1786,7 +1786,7 @@ function GeneralEditPage({
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current.src = url;
-      audioPlayerRef.current.play().catch(() => {});
+      audioPlayerRef.current.play().catch(() => { });
     }
     setPlayingAudioId(track.id);
     setPlayingAudioUrl(url);
@@ -1813,7 +1813,7 @@ function GeneralEditPage({
     } finally {
       setPresetLoadingUrl(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleExportWithMusic = async () => {
@@ -1908,7 +1908,7 @@ function GeneralEditPage({
         if (!loaded)
           throw new Error(
             "Could not load video engine. " +
-              (lastErr?.message || "Network error"),
+            (lastErr?.message || "Network error"),
           );
         ffmpegRef.current = ffmpeg;
       }
@@ -1917,7 +1917,7 @@ function GeneralEditPage({
       let duration = null;
       try {
         duration = await getAudioDuration(selectedMusic.file);
-      } catch (_) {}
+      } catch (_) { }
       if (!duration || duration <= 0)
         throw new Error(
           "Could not read audio duration. Try a different audio file.",
@@ -2000,13 +2000,13 @@ function GeneralEditPage({
         );
       try {
         await ffmpeg.deleteFile("input.png");
-      } catch (_) {}
+      } catch (_) { }
       try {
         await ffmpeg.deleteFile(audName);
-      } catch (_) {}
+      } catch (_) { }
       try {
         await ffmpeg.deleteFile("output.mp4");
-      } catch (_) {}
+      } catch (_) { }
       const fileName = `mlmbooster_${Date.now()}.mp4`;
       if (window.ReactNativeWebView) {
         setProgressLabel("Sending to device...");
@@ -2139,9 +2139,9 @@ function GeneralEditPage({
 
   const canExport =
     !subLoading &&
-    !exportLoading 
-    // activeSub &&
-    // totalDownloadsAvailable >= exportCost; {change for free}
+    !exportLoading
+  // activeSub &&
+  // totalDownloadsAvailable >= exportCost; {change for free}
 
   return (
     <div className="flex flex-col justify-start items-center w-full h-[calc(100dvh-60px)] overflow-hidden">
@@ -2150,7 +2150,11 @@ function GeneralEditPage({
       <div
         ref={stageContainerRef}
         className="relative mt-2 flex-shrink-0"
-        style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT }}
+        style={{
+          width: "min(320px, 96vw)",
+          height: "min(320px, 96vw)",
+          touchAction: "none"   
+        }}
       >
         {bgStatus === "loading" && (
           <div
@@ -2220,7 +2224,7 @@ function GeneralEditPage({
                 videoElRef={videoElRef}
               />
             ) : null}
-            <Image image={Imagel2} x={3} y={2} width={25}   height={15} />
+            <Image image={Imagel2} x={3} y={2} width={25} height={15} />
             <Image image={Imagel3} x={260} y={2} width={25} height={15} />
             <Image image={Imagel4} x={290} y={2} width={25} height={15} />
 
@@ -2545,12 +2549,12 @@ function GeneralEditPage({
             ) : null}
 
             {isSubGeneralType ||
-            isSubGeneralType2 ||
-            Template_Type === "Anniversary_Birthday" ||
-            Template_Type === "Bonanza" ||
-            Template_Type === "Capping" ||
-            isWelcome ||
-            isMeeting ? null : (
+              isSubGeneralType2 ||
+              Template_Type === "Anniversary_Birthday" ||
+              Template_Type === "Bonanza" ||
+              Template_Type === "Capping" ||
+              isWelcome ||
+              isMeeting ? null : (
               <GoldenAmountImages
                 amountText={amountText}
                 digitImageMap={digitImageMap}
@@ -2782,20 +2786,20 @@ function GeneralEditPage({
             ) : null}
 
             {isMeeting ||
-            isSubGeneralType ||
-            !showImageFooter ? null : isRight ? (
-              <Image
-                scaleX={-1}
-                scaleY={1}
-                image={Imagefooter}
-                x={320}
-                y={280}
-                width={350}
-                height={41}
-                onClick={() => setIsOpenFtr(true)}
-                onTap={() => setIsOpenFtr(true)}
-              />
-            ) : (
+              isSubGeneralType ||
+              !showImageFooter ? null : isRight ? (
+                <Image
+                  scaleX={-1}
+                  scaleY={1}
+                  image={Imagefooter}
+                  x={320}
+                  y={280}
+                  width={350}
+                  height={41}
+                  onClick={() => setIsOpenFtr(true)}
+                  onTap={() => setIsOpenFtr(true)}
+                />
+              ) : (
               <Image
                 image={Imagefooter}
                 x={0}
@@ -2835,34 +2839,34 @@ function GeneralEditPage({
             {isSubGeneralType || meetingData?.hostMode === "none"
               ? null
               : (() => {
-                  const fW = isMeeting ? 60 : 80;
-                  const fH = isMeeting ? 70 : 110;
-                  const fY = isMeeting ? 250 : 210;
-                  const baseX = isRight
-                    ? isMeeting
-                      ? 60
-                      : 76
-                    : isMeeting
-                      ? 260
-                      : 244;
-                  const baseScaleX = isRight ? -1 : 1;
-                  const leftEdge = baseScaleX === -1 ? baseX - fW : baseX;
-                  const curScaleX = footerImgFlip ? -baseScaleX : baseScaleX;
-                  const curOffsetX = curScaleX === -1 ? fW : 0;
-                  return (
-                    <Image
-                      image={ImageProfile}
-                      x={leftEdge}
-                      y={fY}
-                      scaleX={curScaleX}
-                      offsetX={curOffsetX}
-                      width={fW}
-                      height={fH}
-                      onClick={() => setFooterImgFlip((f) => !f)}
-                      onTap={() => setFooterImgFlip((f) => !f)}
-                    />
-                  );
-                })()}
+                const fW = isMeeting ? 60 : 80;
+                const fH = isMeeting ? 70 : 110;
+                const fY = isMeeting ? 250 : 210;
+                const baseX = isRight
+                  ? isMeeting
+                    ? 60
+                    : 76
+                  : isMeeting
+                    ? 260
+                    : 244;
+                const baseScaleX = isRight ? -1 : 1;
+                const leftEdge = baseScaleX === -1 ? baseX - fW : baseX;
+                const curScaleX = footerImgFlip ? -baseScaleX : baseScaleX;
+                const curOffsetX = curScaleX === -1 ? fW : 0;
+                return (
+                  <Image
+                    image={ImageProfile}
+                    x={leftEdge}
+                    y={fY}
+                    scaleX={curScaleX}
+                    offsetX={curOffsetX}
+                    width={fW}
+                    height={fH}
+                    onClick={() => setFooterImgFlip((f) => !f)}
+                    onTap={() => setFooterImgFlip((f) => !f)}
+                  />
+                );
+              })()}
             {isMeeting ? (
               isRight ? (
                 <Text
@@ -2900,8 +2904,8 @@ function GeneralEditPage({
             {isMeeting ? (
               meetingData?.meetingMode === "online" ? (
                 meetingData?.platformType === "instagram" ||
-                meetingData?.platformType === "youtube" ||
-                meetingData?.platformType === "facebook" ? (
+                  meetingData?.platformType === "youtube" ||
+                  meetingData?.platformType === "facebook" ? (
                   <Group x={isRight ? 135 : 0} y={285}>
                     <Image
                       image={
@@ -3006,8 +3010,8 @@ function GeneralEditPage({
             ) : null}
 
             {isMeeting &&
-            meetingData?.hostMode === "none" &&
-            showMobile === "yes" ? (
+              meetingData?.hostMode === "none" &&
+              showMobile === "yes" ? (
               <Group x={isRight ? 0 : 240} y={298}>
                 <Text
                   fontFamily="Roboto"
@@ -3233,60 +3237,60 @@ function GeneralEditPage({
                       />
                       {showSocial === "never"
                         ? socialText && (
-                            <Group x={(200 - socialGroupWidth) / 2} y={12}>
-                              {SocialURLs.Youtube && (
-                                <Image
-                                  image={yt}
-                                  x={iconPositions.youtube}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.Instagram && (
-                                <Image
-                                  image={insta}
-                                  x={iconPositions.instagram}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.Facebook && (
-                                <Image
-                                  image={fb}
-                                  x={iconPositions.facebook}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              {SocialURLs.X && (
-                                <Image
-                                  image={xlogo}
-                                  x={iconPositions.x}
-                                  y={0}
-                                  width={9}
-                                  height={9}
-                                />
-                              )}
-                              <Text
-                                fontFamily="Roboto"
-                                x={textStartX}
+                          <Group x={(200 - socialGroupWidth) / 2} y={12}>
+                            {SocialURLs.Youtube && (
+                              <Image
+                                image={yt}
+                                x={iconPositions.youtube}
                                 y={0}
-                                width={100 - textStartX}
+                                width={9}
                                 height={9}
-                                text={socialText}
-                                fontSize={fs(6)}
-                                fill="white"
-                                fontStyle="bold"
-                                align="left"
-                                verticalAlign="middle"
-                                onClick={() => setIsOpenFtr(true)}
-                                onTap={() => setIsOpenFtr(true)}
                               />
-                            </Group>
-                          )
+                            )}
+                            {SocialURLs.Instagram && (
+                              <Image
+                                image={insta}
+                                x={iconPositions.instagram}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            {SocialURLs.Facebook && (
+                              <Image
+                                image={fb}
+                                x={iconPositions.facebook}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            {SocialURLs.X && (
+                              <Image
+                                image={xlogo}
+                                x={iconPositions.x}
+                                y={0}
+                                width={9}
+                                height={9}
+                              />
+                            )}
+                            <Text
+                              fontFamily="Roboto"
+                              x={textStartX}
+                              y={0}
+                              width={100 - textStartX}
+                              height={9}
+                              text={socialText}
+                              fontSize={fs(6)}
+                              fill="white"
+                              fontStyle="bold"
+                              align="left"
+                              verticalAlign="middle"
+                              onClick={() => setIsOpenFtr(true)}
+                              onTap={() => setIsOpenFtr(true)}
+                            />
+                          </Group>
+                        )
                         : null}
                     </Group>
                   );
@@ -3485,60 +3489,60 @@ function GeneralEditPage({
                         />
                         {showSocial === "never"
                           ? socialText && (
-                              <Group x={(200 - socialGroupWidth) / 2} y={12}>
-                                {SocialURLs.Youtube && (
-                                  <Image
-                                    image={yt}
-                                    x={iconPositions.youtube}
-                                    y={0}
-                                    width={9}
-                                    height={9}
-                                  />
-                                )}
-                                {SocialURLs.Instagram && (
-                                  <Image
-                                    image={insta}
-                                    x={iconPositions.instagram}
-                                    y={0}
-                                    width={9}
-                                    height={9}
-                                  />
-                                )}
-                                {SocialURLs.Facebook && (
-                                  <Image
-                                    image={fb}
-                                    x={iconPositions.facebook}
-                                    y={0}
-                                    width={9}
-                                    height={9}
-                                  />
-                                )}
-                                {SocialURLs.X && (
-                                  <Image
-                                    image={xlogo}
-                                    x={iconPositions.x}
-                                    y={0}
-                                    width={9}
-                                    height={9}
-                                  />
-                                )}
-                                <Text
-                                  fontFamily="Roboto"
-                                  x={textStartX}
+                            <Group x={(200 - socialGroupWidth) / 2} y={12}>
+                              {SocialURLs.Youtube && (
+                                <Image
+                                  image={yt}
+                                  x={iconPositions.youtube}
                                   y={0}
-                                  width={100 - textStartX}
+                                  width={9}
                                   height={9}
-                                  text={socialText}
-                                  fontSize={fs(6)}
-                                  fill="white"
-                                  fontStyle="bold"
-                                  align="left"
-                                  verticalAlign="middle"
-                                  onClick={() => setIsOpenFtr(true)}
-                                  onTap={() => setIsOpenFtr(true)}
                                 />
-                              </Group>
-                            )
+                              )}
+                              {SocialURLs.Instagram && (
+                                <Image
+                                  image={insta}
+                                  x={iconPositions.instagram}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              {SocialURLs.Facebook && (
+                                <Image
+                                  image={fb}
+                                  x={iconPositions.facebook}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              {SocialURLs.X && (
+                                <Image
+                                  image={xlogo}
+                                  x={iconPositions.x}
+                                  y={0}
+                                  width={9}
+                                  height={9}
+                                />
+                              )}
+                              <Text
+                                fontFamily="Roboto"
+                                x={textStartX}
+                                y={0}
+                                width={100 - textStartX}
+                                height={9}
+                                text={socialText}
+                                fontSize={fs(6)}
+                                fill="white"
+                                fontStyle="bold"
+                                align="left"
+                                verticalAlign="middle"
+                                onClick={() => setIsOpenFtr(true)}
+                                onTap={() => setIsOpenFtr(true)}
+                              />
+                            </Group>
+                          )
                           : null}
                       </Group>
                     );
@@ -3758,7 +3762,7 @@ function GeneralEditPage({
               </span>
             )}
           </button>
-           <Button
+          <Button
             size="sm"
             onClick={
               activeTabFromList === "video" && selectedVideoUrl
@@ -3802,7 +3806,7 @@ function GeneralEditPage({
             ) : (
               downloadBtnLabel()
             )}
-          </Button> 
+          </Button>
         </div>
       </div>
 
@@ -3892,11 +3896,10 @@ function GeneralEditPage({
               <button
                 onClick={() => musicInputRef.current?.click()}
                 disabled={deviceLoading}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
-                  deviceLoading
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors ${deviceLoading
                     ? "border-accent bg-accent/5 opacity-80 cursor-wait"
                     : "border-border hover:border-accent hover:bg-accent/5"
-                }`}
+                  }`}
               >
                 <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
                   {deviceLoading ? (
@@ -4056,20 +4059,18 @@ function GeneralEditPage({
                 return (
                   <div
                     key={track.id}
-                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer group ${
-                      isActive
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer group ${isActive
                         ? "border-accent bg-accent/10"
                         : "border-border hover:border-accent/50 hover:bg-muted/30"
-                    }`}
+                      }`}
                   >
                     {/* Play/Pause button */}
                     <button
                       onClick={() => handlePlayAudio(track)}
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                        isPlaying
+                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPlaying
                           ? "bg-accent text-white shadow-md"
                           : "bg-muted/50 text-foreground hover:bg-accent/20 hover:text-accent"
-                      }`}
+                        }`}
                     >
                       {isPlaying ? (
                         <svg
@@ -4114,11 +4115,10 @@ function GeneralEditPage({
                     <button
                       onClick={() => handleSelectFirestoreTrack(track)}
                       disabled={isLoadingT}
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                        isActive
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isActive
                           ? "bg-accent text-white"
                           : "bg-muted/40 text-muted-foreground hover:bg-accent hover:text-white"
-                      } ${isLoadingT ? "opacity-50" : ""}`}
+                        } ${isLoadingT ? "opacity-50" : ""}`}
                     >
                       {isLoadingT ? (
                         <svg
