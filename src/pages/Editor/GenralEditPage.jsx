@@ -3549,7 +3549,7 @@ function GeneralEditPage({
 
             {/* Watermark */}
             <Text
-              text="MLMLIVE : +919229885383"
+              text="Design By : 9229885383"
               x={isRight ? 2 : 313}
               y={190}
               fontSize={5}
