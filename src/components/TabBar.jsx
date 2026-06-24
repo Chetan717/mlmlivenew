@@ -75,7 +75,7 @@ export default function TabBar() {
   const location  = useLocation();
   const badgeCount = useReportingBadge();
 
-  const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform"].includes(location.pathname);
+  const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform","/mlmprofile"].includes(location.pathname);
   if (hide) return null;
 
   return (

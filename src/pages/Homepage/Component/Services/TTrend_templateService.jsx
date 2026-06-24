@@ -2,61 +2,66 @@ import { db } from "@firebase-config";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { COLLECTIONS } from "../../../../collections";
 
-const SS_KEY = "trend_v1_";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-const _mem = new Map();
-
-function readCache(date) {
-  if (_mem.has(date)) return _mem.get(date);
-  try {
-    const raw = sessionStorage.getItem(SS_KEY + date);
-    if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL_MS) { sessionStorage.removeItem(SS_KEY + date); return null; }
-    _mem.set(date, data);
-    return data;
-  } catch { return null; }
+function mapDoc(doc) {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    image: data?.Showcase_url || "",
+    company: data?.Company || "",
+    type: data?.SelectType,
+    ShowCaseForm: data?.ShowCaseForm,
+    serial: data?.serial,
+    Subtype: data?.Subtype || "",
+  };
 }
 
-function writeCache(date, data) {
-  _mem.set(date, data);
-  try {
-    sessionStorage.setItem(SS_KEY + date, JSON.stringify({ ts: Date.now(), data }));
-  } catch {}
-}
-
-export const TTrend_templateService = async () => {
+export const TTrend_templateService = async (companyName) => {
   const today = new Date().toISOString().split("T")[0];
 
-  const hit = readCache(today);
-  if (hit) return hit;
-
   try {
-    const q = query(
+    // ── Query 1: General trending — shown to ALL users ──
+    const q1 = query(
       collection(db, COLLECTIONS.MLMTEMPLATE),
+      where("MainType", "==", "General"),
       where("SelectType", "==", "Trending"),
       where("Active", "==", true),
       where("Launched", "==", true),
       where("Date", "==", today),
-      limit(20),
+      limit(10),
     );
 
-    const snapshot = await getDocs(q);
+    const fetchList = [getDocs(q1)];
 
-    const templates = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        image: data?.Showcase_url || "",
-        company: data?.Company,
-        type: data?.SelectType,
-        ShowCaseForm: data?.ShowCaseForm,
-        serial: data?.serial,
-      };
-    });
+    // ── Query 2: MLM trending — only for user's company ──
+    if (companyName) {
+      const q2 = query(
+        collection(db, COLLECTIONS.MLMTEMPLATE),
+        where("MainType", "==", "MLM"),
+        where("SelectType", "==", "Today_Trending"),
+        where("Active", "==", true),
+        where("Launched", "==", true),
+        where("Date", "==", today),
+        where("Company", "==", companyName),
+        limit(10),
+      );
+      fetchList.push(getDocs(q2));
+    }
 
-    writeCache(today, templates);
+    const results = await Promise.all(fetchList);
+
+    const seen = new Set();
+    const templates = results
+      .flatMap((snapshot) => snapshot.docs.map(mapDoc))
+      .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+
+    // console.log(
+    //   `[Carousel] Fetched ${templates.length} templates (date: ${today}, company: "${companyName}")`
+    // );
+
     return templates;
   } catch (error) {
     console.error("Trending fetch error:", error);

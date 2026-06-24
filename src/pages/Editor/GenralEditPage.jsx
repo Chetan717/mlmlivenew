@@ -2220,9 +2220,9 @@ function GeneralEditPage({
                 videoElRef={videoElRef}
               />
             ) : null}
-            <Image image={Imagel2} x={3} y={2} width={25} height={25} />
-            <Image image={Imagel3} x={260} y={2} width={25} height={25} />
-            <Image image={Imagel4} x={290} y={2} width={25} height={25} />
+            <Image image={Imagel2} x={3} y={2} width={25}   height={15} />
+            <Image image={Imagel3} x={260} y={2} width={25} height={15} />
+            <Image image={Imagel4} x={290} y={2} width={25} height={15} />
 
             {(() => {
               const slots = [
@@ -2234,7 +2234,7 @@ function GeneralEditPage({
                 { img: Imagetop6 },
                 { img: Imagetop7 },
               ].filter((s) => s.img);
-              const SLOT_SIZE = 30;
+              const SLOT_SIZE = 20;
               const SLOT_PADDING = 4;
               const INNER_SIZE = SLOT_SIZE - SLOT_PADDING * 2;
               const totalWidth = slots.length * SLOT_SIZE;
