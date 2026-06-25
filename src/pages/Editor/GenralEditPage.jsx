@@ -1290,6 +1290,15 @@ function GeneralEditPage({
   const [Imagetop6] = useImage(topuplineURLs?.[5] || "", "anonymous");
   const [Imagetop7] = useImage(topuplineURLs?.[6] || "", "anonymous");
   const [Imagetop8] = useImage(topuplineURLs?.[7] || "", "anonymous");
+  const [Imagetop9] = useImage(topuplineURLs?.[8] || "", "anonymous");
+  const [Imagetop10] = useImage(topuplineURLs?.[9] || "", "anonymous");
+  const [Imagetop11] = useImage(topuplineURLs?.[10] || "", "anonymous");
+  const [Imagetop12] = useImage(topuplineURLs?.[11] || "", "anonymous");
+  const [Imagetop13] = useImage(topuplineURLs?.[12] || "", "anonymous");
+  const [Imagetop14] = useImage(topuplineURLs?.[13] || "", "anonymous");
+  const [Imagetop15] = useImage(topuplineURLs?.[14] || "", "anonymous");
+
+
   const [ImageChief] = useImage(meetingData?.chiefImage || "", "anonymous");
   const [ImageProfile] = useImage(
     mlmForm?.promoter?.name
@@ -2153,7 +2162,7 @@ function GeneralEditPage({
         style={{
           width: "min(320px, 96vw)",
           height: "min(320px, 96vw)",
-          touchAction: "none"   
+          touchAction: "none"
         }}
       >
         {bgStatus === "loading" && (
@@ -2237,9 +2246,18 @@ function GeneralEditPage({
                 { img: Imagetop5 },
                 { img: Imagetop6 },
                 { img: Imagetop7 },
+                { img: Imagetop8 },
+                { img: Imagetop9 },
+                { img: Imagetop10 },
+                { img: Imagetop11 },
+                { img: Imagetop12 },
+                { img: Imagetop13 },
+                { img: Imagetop14 },
+                { img: Imagetop15 },
               ].filter((s) => s.img);
-              const SLOT_SIZE = 20;
-              const SLOT_PADDING = 4;
+              const HowMuchTopupline = topuplineURLs.length;
+              const SLOT_SIZE = HowMuchTopupline <= 9 ? 25 : HowMuchTopupline >= 12 ? 17 : 20;
+              const SLOT_PADDING = 2;
               const INNER_SIZE = SLOT_SIZE - SLOT_PADDING * 2;
               const totalWidth = slots.length * SLOT_SIZE;
               const extraOffset = slots.length === 7 ? -10 : 0;
@@ -3897,8 +3915,8 @@ function GeneralEditPage({
                 onClick={() => musicInputRef.current?.click()}
                 disabled={deviceLoading}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-colors ${deviceLoading
-                    ? "border-accent bg-accent/5 opacity-80 cursor-wait"
-                    : "border-border hover:border-accent hover:bg-accent/5"
+                  ? "border-accent bg-accent/5 opacity-80 cursor-wait"
+                  : "border-border hover:border-accent hover:bg-accent/5"
                   }`}
               >
                 <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10 text-accent flex-shrink-0">
@@ -4060,16 +4078,16 @@ function GeneralEditPage({
                   <div
                     key={track.id}
                     className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer group ${isActive
-                        ? "border-accent bg-accent/10"
-                        : "border-border hover:border-accent/50 hover:bg-muted/30"
+                      ? "border-accent bg-accent/10"
+                      : "border-border hover:border-accent/50 hover:bg-muted/30"
                       }`}
                   >
                     {/* Play/Pause button */}
                     <button
                       onClick={() => handlePlayAudio(track)}
                       className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isPlaying
-                          ? "bg-accent text-white shadow-md"
-                          : "bg-muted/50 text-foreground hover:bg-accent/20 hover:text-accent"
+                        ? "bg-accent text-white shadow-md"
+                        : "bg-muted/50 text-foreground hover:bg-accent/20 hover:text-accent"
                         }`}
                     >
                       {isPlaying ? (
@@ -4116,8 +4134,8 @@ function GeneralEditPage({
                       onClick={() => handleSelectFirestoreTrack(track)}
                       disabled={isLoadingT}
                       className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${isActive
-                          ? "bg-accent text-white"
-                          : "bg-muted/40 text-muted-foreground hover:bg-accent hover:text-white"
+                        ? "bg-accent text-white"
+                        : "bg-muted/40 text-muted-foreground hover:bg-accent hover:text-white"
                         } ${isLoadingT ? "opacity-50" : ""}`}
                     >
                       {isLoadingT ? (

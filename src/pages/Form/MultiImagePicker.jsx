@@ -90,7 +90,7 @@ export default function MultiImagePicker({
   companyGridCols = 3,
   thumbHeight     = "h-10",
   type,
-  maxImages       = 7,
+  maxImages       = 15,
   inlineStrip     = false,
   processingBg    = false,
 }) {
