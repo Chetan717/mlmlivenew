@@ -2,13 +2,11 @@ import { useState } from "react";
 import { db } from "../../../Firebase";
 import { collection, writeBatch, doc, Timestamp } from "firebase/firestore";
 import { CalendarPlus } from "lucide-react";
-
-import {toast} from "@heroui/react"
-import { SectionCard, BatchList, FormFields, ActionRow } from "./AddPlan";
+import { toast } from "@heroui/react";
+import { BatchList, FormFields, ModalActions } from "./AddPlan";
 import { COLLECTIONS } from "../../../collections";
 
-export default function AddNextDayPlan({ memberProfile }) {
-  const [open, setOpen] = useState(false);
+export default function AddNextDayPlan({ memberProfile, onClose }) {
   const [batch, setBatch] = useState([]);
   const [form, setForm] = useState({ name: "", mobile: "", address: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -27,23 +25,44 @@ export default function AddNextDayPlan({ memberProfile }) {
       const now = Timestamp.now();
       batch.forEach((item) => {
         const ref = doc(collection(db, COLLECTIONS.REPORTNEXTDAY));
-        wb.set(ref, { memberId: memberProfile.memberId, managerId: memberProfile.managerId, name: item.name, mobile: item.mobile, address: item.address, createdAt: now, date: now });
+        wb.set(ref, {
+          memberId: memberProfile.memberId,
+          managerId: memberProfile.managerId,
+          name: item.name,
+          mobile: item.mobile,
+          address: item.address,
+          createdAt: now,
+          date: now,
+        });
       });
       await wb.commit();
-      toast.success(`${batch.length} next-day plan(s) submitted`);
-      setBatch([]); setOpen(false);
-    } catch { toast.danger("Submit failed"); } finally { setSubmitting(false); }
+      toast.success(`${batch.length} next-day plan(s) saved`);
+      setBatch([]);
+      if (onClose) onClose();
+    } catch {
+      toast.danger("Submit failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <SectionCard icon={<CalendarPlus className="w-4 h-4 text-accent" />} title="Add Next Day Planning" subtitle="Plan people to meet tomorrow" count={batch.length} open={open} setOpen={setOpen}>
-      <BatchList items={batch} onRemove={(id) => setBatch((p) => p.filter((i) => i._id !== id))} renderLabel={(i) => `${i.name} · ${i.mobile}`} />
-      <FormFields form={form} setForm={setForm} fields={[
-        { key: "name", label: "Name", placeholder: "Full Name" },
-        { key: "mobile", label: "Mobile", placeholder: "Mobile Number", type: "tel" },
-        { key: "address", label: "Address / Place", placeholder: "Address or place to meet" },
-      ]} />
-      <ActionRow onAdd={handleAdd} onSubmit={handleSubmit} count={batch.length} submitting={submitting} label="Next Day Plans" />
-    </SectionCard>
+    <>
+      <BatchList
+        items={batch}
+        onRemove={(id) => setBatch((p) => p.filter((i) => i._id !== id))}
+        renderLabel={(i) => `${i.name} · ${i.mobile}`}
+      />
+      <FormFields
+        form={form}
+        setForm={setForm}
+        fields={[
+          { key: "name", label: "Name", placeholder: "Full Name" },
+          { key: "mobile", label: "Mobile", placeholder: "Mobile Number", type: "tel" },
+          { key: "address", label: "Address / Place", placeholder: "Address or place to meet" },
+        ]}
+      />
+      <ModalActions onAdd={handleAdd} onSubmit={handleSubmit} onCancel={onClose} count={batch.length} submitting={submitting} label="Next Day Plans" />
+    </>
   );
 }

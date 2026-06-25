@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Moon, Sun, ListUl, Gear, ChevronLeft, ArrowRotateLeft } from "@gravity-ui/icons";
 import { useGeneralData } from "../Context/GeneralContext";
 import { useNavigate, useLocation, useSearchParams } from "react-router";
-import { LayoutDashboard, PlusCircle, Eye, ChevronRight, X, ClipboardList, Users, UserCheck } from "lucide-react";
+import { LayoutDashboard, PlusCircle, Eye, ChevronRight, X, ClipboardList, Users, UserCheck, Trophy, GitBranch, UserPlus } from "lucide-react";
+import { db } from "../Firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { COLLECTIONS } from "../collections";
 
 function getStoredHeaderData() {
   const mlmProfile = JSON.parse(localStorage.getItem("mlmProfile") || "{}");
@@ -23,13 +26,17 @@ const PAGE_TITLES = {
 };
 
 const REPORTING_TAB_LABELS = {
-  "dashboard": "Dashboard",
-  "add-work": "Add Work Reporting",
-  "add-patient": "Add Patient Reporting",
-  "add-team-list": "Add Team List",
-  "view-work": "View Work Reporting",
-  "view-patient": "View Patient Reporting",
-  "view-team-list": "View Team List",
+  "dashboard":       "Dashboard",
+  "add-work":        "Add Work Reporting",
+  "add-patient":     "Add Patient Reporting",
+  "add-guest":       "Add Guest",
+  "add-team":        "Add Reporting Team",
+  "view-work":       "View Work Reporting",
+  "view-patient":    "View Patient Reporting",
+  "view-guest-list": "View Guest List",
+  "view-team":       "View Reporting Team",
+  "team-weekly":     "Team Weekly Report",
+  "leaderboard":     "Leaderboard",
 };
 
 export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
@@ -44,10 +51,28 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
   const [refreshing, setRefreshing]   = useState(false);
   const [showReportingMenu, setShowReportingMenu] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const menuRef = useRef(null);
 
   const isReporting = location.pathname === "/reporting";
   const activeTab = searchParams.get("tab") || "dashboard";
+
+  // Fetch pending team invite count for the current user
+  useEffect(() => {
+    if (!isReporting) return;
+    try {
+      const profile = JSON.parse(localStorage.getItem("reportingProfile") || "{}");
+      const profileId = profile.profileId;
+      if (!profileId || !COLLECTIONS.TEAMREQUESTS) return;
+      getDocs(
+        query(
+          collection(db, COLLECTIONS.TEAMREQUESTS),
+          where("toId",   "==", profileId),
+          where("status", "==", "pending")
+        )
+      ).then((snap) => setPendingInviteCount(snap.size)).catch(() => {});
+    } catch { /* ignore */ }
+  }, [isReporting, activeTab]);
 
   useEffect(() => {
     const { companyLogo: logo, userName: name } = getStoredHeaderData();
@@ -97,6 +122,8 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
     return t ? t.replaceAll("_", " ") : "";
   })();
 
+  const hasPendingInvites = pendingInviteCount > 0;
+
   const handleMenuClick = () => {
     if (isReporting) {
       setShowReportingMenu((p) => !p);
@@ -127,9 +154,10 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
       icon: PlusCircle,
       type: "group",
       children: [
-        { id: "add-work",        label: "Add Work Reporting",    icon: ClipboardList, tab: "add-work" },
+        { id: "add-work",        label: "Add Self Work Reporting",    icon: ClipboardList, tab: "add-work" },
         { id: "add-patient",     label: "Add Patient Reporting", icon: UserCheck,     tab: "add-patient" },
-        { id: "add-team-list",   label: "Add Team List",         icon: Users,         tab: "add-team-list" },
+        { id: "add-guest",       label: "Add Guest",             icon: Users,         tab: "add-guest" },
+        { id: "add-team",        label: "Add Reporting Team",    icon: UserPlus,      tab: "add-team" },
       ],
     },
     {
@@ -138,10 +166,19 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
       icon: Eye,
       type: "group",
       children: [
-        { id: "view-work",       label: "View Work Reporting",    icon: ClipboardList, tab: "view-work" },
+        { id: "view-work",       label: "View Self Work Reporting",    icon: ClipboardList, tab: "view-work" },
         { id: "view-patient",    label: "View Patient Reporting", icon: UserCheck,     tab: "view-patient" },
-        { id: "view-team-list",  label: "View Team List",         icon: Users,         tab: "view-team-list" },
+        { id: "view-guest-list", label: "View Guest List Report",        icon: Users,         tab: "view-guest-list" },
+        { id: "view-team",       label: "View Team Report",    icon: GitBranch,     tab: "view-team" },
+        { id: "team-weekly",     label: "View Team Weekly Report",     icon: ClipboardList, tab: "team-weekly" },
       ],
+    },
+    {
+      id: "leaderboard",
+      label: "Leaderboard",
+      icon: Trophy,
+      type: "single",
+      tab: "leaderboard",
     },
   ];
 
@@ -161,9 +198,12 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
           <button
             onClick={handleMenuClick}
             aria-label="Menu"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-foreground hover:bg-foreground/8 active:scale-95 transition-all flex-shrink-0"
+            className="relative w-9 h-9 flex items-center justify-center rounded-full text-foreground hover:bg-foreground/8 active:scale-95 transition-all flex-shrink-0"
           >
             <ListUl className="w-5 h-5" />
+            {isReporting && hasPendingInvites && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background" />
+            )}
           </button>
         )}
 
@@ -263,6 +303,7 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
                 const Icon = item.icon;
                 if (item.type === "single") {
                   const isActive = activeTab === item.tab;
+                  const showBadge = item.tab === "dashboard" && hasPendingInvites;
                   return (
                     <button
                       key={item.id}
@@ -274,7 +315,14 @@ export default function Header({ collapsed, setCollapsed, setMobileOpen }) {
                       }`}
                     >
                       <Icon className="w-4.5 h-4.5 shrink-0" />
-                      {item.label}
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {showBadge && (
+                        <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                          isActive ? "bg-white text-accent" : "bg-red-500 text-white"
+                        }`}>
+                          {pendingInviteCount}
+                        </span>
+                      )}
                     </button>
                   );
                 }

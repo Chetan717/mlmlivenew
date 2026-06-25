@@ -1,9 +1,9 @@
-import { User, MapPin, Phone, Hash, Copy, CheckCheck } from "lucide-react";
+import { User, MapPin, Phone, Hash, Copy, CheckCheck, Link } from "lucide-react";
 import { useState } from "react";
 
 export default function ProfileCard({ profile }) {
   const [copied, setCopied] = useState(false);
-  const id = profile.managerId || profile.memberId || "";
+  const id = profile.profileId || profile.managerId || profile.memberId || "";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(id);
@@ -23,11 +23,8 @@ export default function ProfileCard({ profile }) {
           <div>
             <p className="font-bold text-foreground text-[15px] leading-tight">{profile.name}</p>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block"
-              style={{
-                background: profile.role === "Manager" ? "rgba(0,136,218,0.1)" : "rgba(34,139,34,0.1)",
-                color: profile.role === "Manager" ? "#0088da" : "#228b22",
-              }}>
-              {profile.role}
+              style={{ background: "rgba(0,136,218,0.1)", color: "#0088da" }}>
+              Network Member
             </span>
           </div>
         </div>
@@ -35,18 +32,20 @@ export default function ProfileCard({ profile }) {
         <div className="space-y-2.5">
           <InfoRow icon={<Phone className="w-3.5 h-3.5" />} label="Mobile" value={profile.mobile} />
           <InfoRow icon={<MapPin className="w-3.5 h-3.5" />} label="Address" value={profile.address} />
-          {profile.managerId && profile.role === "Team Member" && (
-            <InfoRow icon={<Hash className="w-3.5 h-3.5" />} label="Manager ID" value={profile.managerId} />
+          {profile.managerId && (
+            <InfoRow
+              icon={<Link className="w-3.5 h-3.5" />}
+              label="Manager ID"
+              value={`${profile.managerId}${profile.managerName ? ` (${profile.managerName})` : ""}`}
+            />
           )}
 
           <div className="flex items-center justify-between bg-muted/40 rounded-xl px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
               <Hash className="w-3.5 h-3.5 text-accent shrink-0" />
               <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground leading-none mb-0.5">
-                  {profile.role === "Manager" ? "Manager ID" : "Member ID"}
-                </p>
-                <p className="text-[13px] font-bold text-accent font-mono truncate">{id}</p>
+                <p className="text-[9px] text-muted-foreground leading-none mb-0.5">Your Profile ID</p>
+                <p className="text-[18px] font-black text-accent font-mono tracking-widest">{id}</p>
               </div>
             </div>
             <button onClick={handleCopy}

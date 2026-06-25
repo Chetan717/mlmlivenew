@@ -1,3 +1,7 @@
+export function generateProfileId() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 export function generateManagerId(name, mobile) {
   const namePart = name.replace(/\s+/g, "").toUpperCase().slice(0, 5).padEnd(5, "X");
   const mobilePart = String(mobile).slice(-5);

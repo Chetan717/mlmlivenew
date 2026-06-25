@@ -3,27 +3,24 @@ import { db } from "../../../Firebase";
 import { collection, query, where, getDocs, writeBatch, doc, Timestamp } from "firebase/firestore";
 import { Award } from "lucide-react";
 import { toast } from "@heroui/react";
-import { SectionCard, BatchList, FormFields, ActionRow } from "./AddPlan";
+import { BatchList, FormFields, ModalActions } from "./AddPlan";
 import SearchablePicker from "./SearchablePicker";
 import { COLLECTIONS } from "../../../collections";
 
-export default function AddNAC({ memberProfile }) {
-  const [open, setOpen] = useState(false);
+export default function AddNAC({ memberProfile, onClose }) {
   const [spList, setSpList] = useState([]);
   const [selectedSP, setSelectedSP] = useState(null);
   const [batch, setBatch] = useState([]);
   const [form, setForm] = useState({ name: "", mobile: "", address: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [loadingSP, setLoadingSP] = useState(false);
+  const [loadingSP, setLoadingSP] = useState(true);
 
   useEffect(() => {
-    if (!open) return;
-    setLoadingSP(true);
     getDocs(query(collection(db, COLLECTIONS.REPORTSP), where("memberId", "==", memberProfile.memberId)))
       .then((snap) => setSpList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
       .catch(() => toast.danger("Failed to load SP Closed entries"))
       .finally(() => setLoadingSP(false));
-  }, [open, memberProfile.memberId]);
+  }, [memberProfile.memberId]);
 
   const handleSelectSP = (spId) => {
     const s = spList.find((sp) => sp.id === spId);
@@ -63,9 +60,9 @@ export default function AddNAC({ memberProfile }) {
         });
       });
       await wb.commit();
-      toast.success(`${batch.length} NAC(s) submitted`);
+      toast.success(`${batch.length} NAC(s) saved`);
       setBatch([]);
-      setOpen(false);
+      if (onClose) onClose();
     } catch {
       toast.danger("Submit failed");
     } finally {
@@ -74,14 +71,7 @@ export default function AddNAC({ memberProfile }) {
   };
 
   return (
-    <SectionCard
-      icon={<Award className="w-4 h-4 text-accent" />}
-      title="Add NAC"
-      subtitle="New Account Conversion from SP Closed"
-      count={batch.length}
-      open={open}
-      setOpen={setOpen}
-    >
+    <>
       <BatchList
         items={batch}
         onRemove={(id) => setBatch((p) => p.filter((i) => i._id !== id))}
@@ -89,9 +79,7 @@ export default function AddNAC({ memberProfile }) {
       />
 
       <div>
-        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-          Select from SP Closed
-        </label>
+        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">Select from SP Closed</label>
         {loadingSP ? (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-background text-[12px] text-muted-foreground">
             <div className="w-3.5 h-3.5 border-2 border-border border-t-accent rounded-full animate-spin" />
@@ -106,9 +94,7 @@ export default function AddNAC({ memberProfile }) {
             renderItem={(s) => (
               <div>
                 <p className="text-[12px] font-semibold text-foreground leading-tight">{s.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {s.mobile} · SP: {s.sp}
-                </p>
+                <p className="text-[10px] text-muted-foreground">{s.mobile} · SP: {s.sp}</p>
               </div>
             )}
             getLabel={(s) => `${s.name} · ${s.mobile}`}
@@ -126,13 +112,7 @@ export default function AddNAC({ memberProfile }) {
         ]}
       />
 
-      <ActionRow
-        onAdd={handleAdd}
-        onSubmit={handleSubmit}
-        count={batch.length}
-        submitting={submitting}
-        label="NACs"
-      />
-    </SectionCard>
+      <ModalActions onAdd={handleAdd} onSubmit={handleSubmit} onCancel={onClose} count={batch.length} submitting={submitting} label="NACs" />
+    </>
   );
 }

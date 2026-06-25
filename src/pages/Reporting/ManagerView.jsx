@@ -14,6 +14,9 @@ import AddSPClosed from "./components/AddSPClosed";
 import AddNAC from "./components/AddNAC";
 import AddNextDayPlan from "./components/AddNextDayPlan";
 import { LayoutDashboard, PlusCircle, Eye, ClipboardList, Users, UserCheck, X } from "lucide-react";
+import AddGuest from "./components/AddGuest";
+import ViewGuestList from "./components/ViewGuestList";
+import TeamWeeklyReport from "./components/TeamWeeklyReport";
 
 const WORK_COLLECTIONS = [
   { key: "plan",   col: "reportplan",     label: "Plan" },
@@ -157,68 +160,9 @@ export default function ManagerView({ profile, activeTab }) {
   }
 
   if (activeTab === "view-work") {
-    if (!viewWorkChoice) {
-      return (
-        <div className="px-4 py-5 max-w-2xl mx-auto">
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg,#0088DA,#0088DA,#4f6fcf)" }} />
-            <div className="p-6 flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
-                <Eye className="w-7 h-7 text-white" />
-              </div>
-              <p className="text-[16px] font-bold text-foreground mb-1">View Work Reporting</p>
-              <p className="text-[12px] text-muted-foreground mb-6">Choose whose report you want to view</p>
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setViewWorkChoice("self")}
-                  className="flex-1 flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent transition-all"
-                >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
-                    <UserCheck className="w-5 h-5 text-white" />
-                  </div>
-                  <p className="text-[13px] font-bold text-foreground">Self</p>
-                  <p className="text-[10px] text-muted-foreground">Your own reports</p>
-                </button>
-                <button
-                  onClick={() => setViewWorkChoice("team")}
-                  className="flex-1 flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 border-accent/30 bg-accent/5 hover:bg-accent/10 hover:border-accent transition-all"
-                >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}>
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <p className="text-[13px] font-bold text-foreground">Team</p>
-                  <p className="text-[10px] text-muted-foreground">All team members</p>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="px-4 py-5 space-y-4 max-w-2xl mx-auto">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewWorkChoice(null)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-[12px] font-semibold text-muted-foreground hover:bg-foreground/6 transition-colors"
-          >
-            ← Back
-          </button>
-          <div className="flex-1 px-3 py-1.5 rounded-xl border border-accent/20 bg-accent/5 text-center">
-            <span className="text-[12px] font-bold text-accent capitalize">
-              {viewWorkChoice === "self" ? "My Reports" : "Team Reports"}
-            </span>
-          </div>
-        </div>
-        {viewWorkChoice === "self" ? (
-          <MemberReportView memberProfile={selfProfile} />
-        ) : (
-          <TeamReportView managerProfile={profile} />
-        )}
+        <MemberReportView memberProfile={selfProfile} />
       </div>
     );
   }
@@ -229,9 +173,9 @@ export default function ManagerView({ profile, activeTab }) {
     </div>
   );
 
-  if (activeTab === "add-team-list") return (
+  if (activeTab === "add-guest") return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
-      <ComingSoon label="Add Team List" />
+      <AddGuest memberProfile={selfProfile} />
     </div>
   );
 
@@ -241,9 +185,21 @@ export default function ManagerView({ profile, activeTab }) {
     </div>
   );
 
-  if (activeTab === "view-team-list") return (
+  if (activeTab === "view-guest-list") return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
-      <ComingSoon label="View Team List" />
+      <ViewGuestList memberProfile={selfProfile} />
+    </div>
+  );
+
+  if (activeTab === "view-team") return (
+    <div className="px-4 py-5 max-w-2xl mx-auto">
+      
+    </div>
+  );
+
+  if (activeTab === "team-weekly") return (
+    <div className="px-4 py-5 max-w-2xl mx-auto">
+      <TeamWeeklyReport managerProfile={selfProfile} />
     </div>
   );
 

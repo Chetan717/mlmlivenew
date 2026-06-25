@@ -18,6 +18,8 @@ const COLLECTIONS = {
   REPORTKITBOOK:   import.meta.env.VITE_COL_REPORTKITBOOK,
   REPORTNAC:       import.meta.env.VITE_COL_REPORTNAC,
   REPORTNEXTDAY:   import.meta.env.VITE_COL_REPORTNEXTDAY,
+  TEAMREQUESTS:    import.meta.env.VITE_COL_TEAMREQUESTS || "teamrequests",
+  REPORTGUEST:     import.meta.env.VITE_COL_REPORTGUEST    || "reportguest",
 };
 
 export { COLLECTIONS };

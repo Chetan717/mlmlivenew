@@ -1,103 +1,56 @@
 import { useState } from "react";
 import { db } from "../../../Firebase";
 import { collection, writeBatch, doc, Timestamp } from "firebase/firestore";
-import { Plus, Trash2, Send, Users, ChevronDown, ChevronUp } from "lucide-react";
-
-import {toast} from "@heroui/react"
+import { Plus, Trash2, Send, Users, X } from "lucide-react";
+import { toast } from "@heroui/react";
 import { COLLECTIONS } from "../../../collections";
 
-export default function AddPlan({ memberProfile }) {
-  const [open, setOpen] = useState(false);
-  const [batch, setBatch] = useState([]);
-  const [form, setForm] = useState({ name: "", mobile: "", address: "" });
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleAdd = () => {
-    if (!form.name.trim() || !form.mobile.trim()) {
-      toast.danger("Name and Mobile are required");
-      return;
-    }
-    setBatch((prev) => [...prev, { ...form, _id: Date.now() }]);
-    setForm({ name: "", mobile: "", address: "" });
-  };
-
-  const handleRemove = (id) => setBatch((prev) => prev.filter((i) => i._id !== id));
-
-  const handleSubmit = async () => {
-    if (batch.length === 0) { toast.danger("Add at least one plan"); return; }
-    setSubmitting(true);
-    try {
-      const wb = writeBatch(db);
-      const now = Timestamp.now();
-      batch.forEach((item) => {
-        const ref = doc(collection(db, COLLECTIONS.REPORTPLAN));
-        wb.set(ref, {
-          memberId: memberProfile.memberId,
-          managerId: memberProfile.managerId,
-          name: item.name,
-          mobile: item.mobile,
-          address: item.address,
-          createdAt: now,
-          date: now,
-        });
-      });
-      await wb.commit();
-      toast.success(`${batch.length} plan(s) submitted`);
-      setBatch([]);
-      setOpen(false);
-    } catch (e) {
-      toast.danger("Submit failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+export function WorkModal({ open, onClose, title, subtitle, icon, children }) {
+  if (!open) return null;
   return (
-    <SectionCard
-      icon={<Users className="w-4 h-4 text-accent" />}
-      title="Add Plan"
-      subtitle="Add people you planned to meet"
-      count={batch.length}
-      open={open}
-      setOpen={setOpen}
-    >
-      <BatchList items={batch} onRemove={handleRemove} renderLabel={(i) => `${i.name} · ${i.mobile}`} />
-      <FormFields form={form} setForm={setForm} fields={PLAN_FIELDS} />
-      <ActionRow onAdd={handleAdd} onSubmit={handleSubmit} count={batch.length} submitting={submitting} label="Plans" />
-    </SectionCard>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white dark:bg-gray-900 rounded-t-2xl shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(14,36,92,0.08)" }}>
+              {icon}
+            </div>
+            <div>
+              <p className="font-bold text-foreground text-[14px] leading-tight">{title}</p>
+              {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-muted/50 transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">{children}</div>
+      </div>
+    </div>
   );
 }
 
-const PLAN_FIELDS = [
-  { key: "name", placeholder: "Full Name", label: "Name" },
-  { key: "mobile", placeholder: "Mobile Number", label: "Mobile", type: "tel" },
-  { key: "address", placeholder: "Address / Location", label: "Address" },
-];
-
-export function SectionCard({ icon, title, subtitle, count, open, setOpen, children }) {
+export function WorkButton({ icon, label, subtitle, count, onClick }) {
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-      <button onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/30 transition-colors">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(14,36,92,0.08)" }}>
-            {icon}
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-foreground text-[13px] leading-tight">{title}</p>
-            <p className="text-[10px] text-muted-foreground">{subtitle}</p>
-          </div>
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between w-full px-4 py-3.5 rounded-2xl border border-border bg-card shadow-sm hover:bg-muted/30 active:scale-[0.98] transition-all"
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(14,36,92,0.08)" }}>
+          {icon}
         </div>
-        <div className="flex items-center gap-2">
-          {count > 0 && (
-            <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full"
-              style={{ background: "#0088DA" }}>{count}</span>
-          )}
-          {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        <div className="text-left">
+          <p className="font-bold text-foreground text-[13px] leading-tight">{label}</p>
+          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
         </div>
-      </button>
-      {open && <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">{children}</div>}
-    </div>
+      </div>
+      {count !== null && count !== undefined && (
+        <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[10px] font-bold bg-accent/10 text-accent border border-accent/20">
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -139,6 +92,120 @@ export function FormFields({ form, setForm, fields }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+export function ModalActions({ onAdd, onSubmit, onCancel, count, submitting, label }) {
+  return (
+    <div className="flex gap-2 pt-1 border-t border-border/40">
+      <button
+        onClick={onCancel}
+        className="py-2.5 px-4 rounded-xl border border-border text-muted-foreground text-[12px] font-semibold hover:bg-muted/40 transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={onAdd}
+        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-accent/30 text-accent text-[12px] font-bold hover:bg-accent/5 transition-colors"
+      >
+        <Plus className="w-3.5 h-3.5" /> Add to List
+      </button>
+      {count > 0 && (
+        <button
+          onClick={onSubmit}
+          disabled={submitting}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-[12px] font-bold disabled:opacity-60 transition-opacity"
+          style={{ background: "linear-gradient(135deg,#0088DA,#0088DA)" }}
+        >
+          {submitting
+            ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            : <><Send className="w-3.5 h-3.5" /> Save {count}</>}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const PLAN_FIELDS = [
+  { key: "name", placeholder: "Full Name", label: "Name" },
+  { key: "mobile", placeholder: "Mobile Number", label: "Mobile", type: "tel" },
+  { key: "address", placeholder: "Address / Location", label: "Address" },
+];
+
+export default function AddPlan({ memberProfile, onClose }) {
+  const [batch, setBatch] = useState([]);
+  const [form, setForm] = useState({ name: "", mobile: "", address: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleAdd = () => {
+    if (!form.name.trim() || !form.mobile.trim()) {
+      toast.danger("Name and Mobile are required");
+      return;
+    }
+    setBatch((prev) => [...prev, { ...form, _id: Date.now() }]);
+    setForm({ name: "", mobile: "", address: "" });
+  };
+
+  const handleSubmit = async () => {
+    if (batch.length === 0) { toast.danger("Add at least one plan"); return; }
+    setSubmitting(true);
+    try {
+      const wb = writeBatch(db);
+      const now = Timestamp.now();
+      batch.forEach((item) => {
+        const ref = doc(collection(db, COLLECTIONS.REPORTPLAN));
+        wb.set(ref, {
+          memberId: memberProfile.memberId,
+          managerId: memberProfile.managerId,
+          name: item.name,
+          mobile: item.mobile,
+          address: item.address,
+          createdAt: now,
+          date: now,
+        });
+      });
+      await wb.commit();
+      toast.success(`${batch.length} plan(s) saved`);
+      setBatch([]);
+      if (onClose) onClose();
+    } catch {
+      toast.danger("Submit failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <BatchList items={batch} onRemove={(id) => setBatch((p) => p.filter((i) => i._id !== id))} renderLabel={(i) => `${i.name} · ${i.mobile}`} />
+      <FormFields form={form} setForm={setForm} fields={PLAN_FIELDS} />
+      <ModalActions onAdd={handleAdd} onSubmit={handleSubmit} onCancel={onClose} count={batch.length} submitting={submitting} label="Plans" />
+    </>
+  );
+}
+
+export function SectionCard({ icon, title, subtitle, count, open, setOpen, children }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      <button onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/30 transition-colors">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(14,36,92,0.08)" }}>
+            {icon}
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-foreground text-[13px] leading-tight">{title}</p>
+            <p className="text-[10px] text-muted-foreground">{subtitle}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {count > 0 && (
+            <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: "#0088DA" }}>{count}</span>
+          )}
+        </div>
+      </button>
+      {open && <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">{children}</div>}
     </div>
   );
 }

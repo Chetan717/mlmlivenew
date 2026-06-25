@@ -3,8 +3,7 @@ import { db } from "../../Firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useSearchParams } from "react-router";
 import CreateProfile from "./CreateProfile";
-import ManagerView from "./ManagerView";
-import MemberView from "./MemberView";
+import UnifiedView from "./UnifiedView";
 import { BarChart3 } from "lucide-react";
 import { COLLECTIONS } from "../../collections";
 
@@ -94,8 +93,7 @@ export default function Reporting() {
   }
 
   if (status === "has-profile" && profile) {
-    if (profile.role === "Manager") return <ManagerView profile={profile} activeTab={activeTab} />;
-    if (profile.role === "Team Member") return <MemberView profile={profile} activeTab={activeTab} />;
+    return <UnifiedView profile={profile} activeTab={activeTab} />;
   }
 
   return null;

@@ -14,6 +14,8 @@ import {
   CheckCircle, Clock, Trash2, Link, AlertTriangle, X,
   PlusCircle, Eye, ClipboardList, LayoutDashboard,
 } from "lucide-react";
+import AddGuest from "./components/AddGuest";
+import ViewGuestList from "./components/ViewGuestList";
 import { toast } from "@heroui/react";
 
 function TodayCountBadge({ memberId, collectionName }) {
@@ -378,9 +380,9 @@ export default function MemberView({ profile, activeTab }) {
   }
 
   if (activeTab === "add-patient") return <div className="px-4 py-5 max-w-2xl mx-auto"><ComingSoon label="Add Patient Reporting" /></div>;
-  if (activeTab === "add-team-list") return <div className="px-4 py-5 max-w-2xl mx-auto"><ComingSoon label="Add Team List" /></div>;
+  if (activeTab === "add-guest") return <div className="px-4 py-5 max-w-2xl mx-auto"><AddGuest memberProfile={localProfile} /></div>;
   if (activeTab === "view-patient") return <div className="px-4 py-5 max-w-2xl mx-auto"><ComingSoon label="View Patient Reporting" /></div>;
-  if (activeTab === "view-team-list") return <div className="px-4 py-5 max-w-2xl mx-auto"><ComingSoon label="View Team List" /></div>;
+  if (activeTab === "view-guest-list") return <div className="px-4 py-5 max-w-2xl mx-auto"><ViewGuestList memberProfile={localProfile} /></div>;
 
   return null;
 }
