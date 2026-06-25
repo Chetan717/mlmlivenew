@@ -115,7 +115,7 @@ function NodeReportModal({ node, onClose }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[88vh] flex flex-col">
 
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white dark:bg-gray-900 rounded-t-2xl shrink-0">
@@ -334,7 +334,7 @@ export default function NetworkTree({ profile }) {
         <NodeReportModal node={reportNode} onClose={() => setReportNode(null)} />
       )}
 
-      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
         <button
           onClick={() => setShowTree((s) => !s)}
           className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/30 transition-colors"

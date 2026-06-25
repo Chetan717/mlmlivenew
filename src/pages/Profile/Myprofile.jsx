@@ -202,7 +202,7 @@ function Myprofile() {
           <ReferCard />
 
           {/* Settings */}
-          <div className="bg-card dark:bg-[#141824] rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#141824] rounded-2xl border border-border shadow-sm overflow-hidden">
             <SettingsMenu />
           </div>
 
