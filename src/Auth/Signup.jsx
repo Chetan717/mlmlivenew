@@ -38,8 +38,14 @@ export function Signup() {
   const [sentOtp, setSentOtp] = useState(verifyState?.otp || "");
   const [enteredOtp, setEnteredOtp] = useState("");
   const [otpError, setOtpError] = useState("");
+
+  // For verifyMode (existing unverified doc), we have a userId
   const [userId, setUserId] = useState(verifyState?.userId || "");
   const [userMobile, setUserMobile] = useState(verifyState?.mobile || "");
+
+  // Store pending form data to create doc only after OTP verified
+  const [pendingUser, setPendingUser] = useState(null);
+
   const [referInput, setReferInput] = useState("");
   const [referMsg, setReferMsg] = useState("");
 
@@ -93,14 +99,30 @@ export function Signup() {
       setFormError("");
       setReferMsg("");
 
+      // Check if mobile already exists (only verified accounts block signup)
       const q = query(
         collection(db, COLLECTIONS.USERS),
         where("mobileNo", "==", data.mobile),
+        where("isverified", "==", true),
       );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         setFormError("Mobile number already registered");
         return;
+      }
+
+      // Also check for unverified pending docs and clean them up
+      const unverifiedQ = query(
+        collection(db, COLLECTIONS.USERS),
+        where("mobileNo", "==", data.mobile),
+        where("isverified", "==", false),
+      );
+      const unverifiedSnap = await getDocs(unverifiedQ);
+      // Delete old unverified docs for this mobile to prevent duplicates
+      for (const d of unverifiedSnap.docs) {
+        try {
+          await updateDoc(doc(db, COLLECTIONS.USERS, d.id), { mobileNo: `_deleted_${data.mobile}_${d.id}` });
+        } catch {}
       }
 
       let referredByDocId = null;
@@ -149,27 +171,24 @@ export function Signup() {
         }
       }
 
-      const referCode = generateReferCode(data.mobile);
+      // Send OTP — do NOT create Firestore doc yet (prevents duplicates)
       const otp = await sendOtp(data.mobile);
-      const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
+
+      // Store all pending data in state; doc created only after OTP verified
+      const referCode = generateReferCode(data.mobile);
+      setPendingUser({
         name: data.name,
         mobileNo: data.mobile,
         password: data.pin,
-        createdAt: new Date(),
-        isverified: false,
-        otp: otp,
-        referCode: referCode,
+        referCode,
         referredBy: trimmedRefer || null,
-        referredByMteam: referredByMteamId || null,
+        referredByDocId: referredByDocId || null,
+        referredByMteamId: referredByMteamId || null,
         mteamCouponCode: mteamCouponCode || null,
-        referCredit: 0,
       });
 
       setSentOtp(otp);
-      setUserId(docRef.id);
       setUserMobile(data.mobile);
-      if (referredByDocId)
-        sessionStorage.setItem("referredByDocId", referredByDocId);
       setStep(2);
     } catch (error) {
       console.error("Signup Error:", error);
@@ -193,28 +212,61 @@ export function Signup() {
     try {
       setLoading(true);
       setOtpError("");
-      await updateDoc(doc(db, COLLECTIONS.USERS, userId), {
-        isverified: true,
-        otp: "",
-        referCredit: referInput.trim() !== "" ? 5 : 0,
-      });
 
-      const referredByDocId = sessionStorage.getItem("referredByDocId");
-      if (referredByDocId) {
-        const referrerSnap = await getDocs(
+      if (verifyState && userId) {
+        // Existing unverified doc — just mark verified
+        await updateDoc(doc(db, COLLECTIONS.USERS, userId), {
+          isverified: true,
+          otp: "",
+        });
+      } else if (pendingUser) {
+        // Re-check that the mobile is still not taken (race-condition guard)
+        const finalCheck = await getDocs(
           query(
             collection(db, COLLECTIONS.USERS),
-            where("__name__", "==", referredByDocId),
+            where("mobileNo", "==", pendingUser.mobileNo),
+            where("isverified", "==", true),
           ),
         );
-        if (!referrerSnap.empty) {
-          const currentCredits = referrerSnap.docs[0].data().referCredit || 0;
-          await updateDoc(doc(db, COLLECTIONS.USERS, referredByDocId), {
-            referCredit: currentCredits + 10,
-          });
+        if (!finalCheck.empty) {
+          setOtpError("Mobile number was just registered by someone else. Please try a different number.");
+          return;
         }
-        sessionStorage.removeItem("referredByDocId");
+
+        // Create the verified user document NOW (after OTP confirmed)
+        const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
+          name: pendingUser.name,
+          mobileNo: pendingUser.mobileNo,
+          password: pendingUser.password,
+          createdAt: new Date(),
+          isverified: true,
+          otp: "",
+          referCode: pendingUser.referCode,
+          referredBy: pendingUser.referredBy,
+          referredByMteam: pendingUser.referredByMteamId || null,
+          mteamCouponCode: pendingUser.mteamCouponCode || null,
+          referCredit: pendingUser.referredBy ? 5 : 0,
+        });
+
+        // Credit referrer
+        if (pendingUser.referredByDocId) {
+          try {
+            const referrerSnap = await getDocs(
+              query(
+                collection(db, COLLECTIONS.USERS),
+                where("__name__", "==", pendingUser.referredByDocId),
+              ),
+            );
+            if (!referrerSnap.empty) {
+              const currentCredits = referrerSnap.docs[0].data().referCredit || 0;
+              await updateDoc(doc(db, COLLECTIONS.USERS, pendingUser.referredByDocId), {
+                referCredit: currentCredits + 10,
+              });
+            }
+          } catch {}
+        }
       }
+
       navigate("/login");
     } catch (error) {
       console.error("Verify Error:", error);
@@ -228,9 +280,12 @@ export function Signup() {
     try {
       setLoading(true);
       setOtpError("");
-      const otp = await sendOtp(userMobile);
+      const otp = await sendOtp(userMobile || pendingUser?.mobileNo);
       setSentOtp(otp);
-      await updateDoc(doc(db, COLLECTIONS.USERS, userId), { otp: otp });
+      // For verifyMode (existing doc), update the stored OTP
+      if (verifyState && userId) {
+        await updateDoc(doc(db, COLLECTIONS.USERS, userId), { otp: otp });
+      }
       alert("OTP resent successfully!");
     } catch {
       setOtpError("Failed to resend OTP.");
@@ -240,7 +295,7 @@ export function Signup() {
   };
 
   const stepTitles = ["", "Create Account", "Verify OTP"];
-  const stepSubs = ["", "Join MLM LIVE today", `OTP sent to +91 ${userMobile}`];
+  const stepSubs = ["", "Join MLM LIVE today", `OTP sent to +91 ${userMobile || pendingUser?.mobileNo || ""}`];
 
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-hidden">

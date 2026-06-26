@@ -5,6 +5,7 @@ import { BarChart3 } from "lucide-react";
 import { db } from "../Firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { COLLECTIONS } from "../collections";
+import { useGeneralData } from "../Context/GeneralContext";
 
 const TABS = [
   {
@@ -16,7 +17,7 @@ const TABS = [
     label: "Subscription",
     path: "/subscription",
     Icon: ({ className }) => <Gem className={className} />,
-  }, 
+  },
   {
     label: "Report",
     path: "/reporting",
@@ -71,11 +72,12 @@ function useReportingBadge() {
 }
 
 export default function TabBar() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const badgeCount = useReportingBadge();
+  const navigate        = useNavigate();
+  const location        = useLocation();
+  const badgeCount      = useReportingBadge();
+  const { hasNewTemplates } = useGeneralData();
 
-  const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform","/mlmprofile"].includes(location.pathname);
+  const hide = ["/editor", "/Editor", "/selectcomp", "/mlmform", "/mlmprofile"].includes(location.pathname);
   if (hide) return null;
 
   return (
@@ -88,8 +90,9 @@ export default function TabBar() {
             location.pathname === path ||
             (path === "/" && location.pathname === "");
 
-          const isReporting = path === "/reporting";
-          const showBadge   = isReporting && badgeCount > 0;
+          const isReporting  = path === "/reporting";
+          const isHome       = path === "/";
+          const showBadge    = (isReporting && badgeCount > 0) || (isHome && hasNewTemplates);
 
           return (
             <button
@@ -112,12 +115,23 @@ export default function TabBar() {
                     <Icon className="w-[18px] h-[18px]" />
                   </div>
 
-                  {showBadge && (
+                  {/* Reporting: numbered badge */}
+                  {isReporting && badgeCount > 0 && (
                     <span
                       className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none shadow-sm"
                       style={{ boxShadow: "0 1px 4px rgba(239,68,68,0.5)" }}
                     >
                       {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                  )}
+
+                  {/* Home: pulsing dot badge for new templates */}
+                  {isHome && hasNewTemplates && (
+                    <span className="absolute -top-0.5 -right-0.5">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-70" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
+                      </span>
                     </span>
                   )}
                 </div>

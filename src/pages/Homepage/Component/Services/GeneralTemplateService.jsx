@@ -24,12 +24,10 @@ const TYPE_GROUPS = [
   ],
 ];
 
-// Module-level memory cache — survives component unmount/remount within a session
+// In-memory only cache — cleared on every page reload so new data always shows
+// TTL: 5 minutes within a session to avoid redundant fetches during navigation
 const _cache = new Map();
-
-// sessionStorage TTL key prefix
-const SS_KEY_PREFIX = "gts_v1_";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function getTemplateCache() {
   return _cache;
@@ -37,12 +35,6 @@ export function getTemplateCache() {
 
 export function clearTemplateCache() {
   _cache.clear();
-  // Also clear sessionStorage entries
-  try {
-    Object.keys(sessionStorage).forEach((k) => {
-      if (k.startsWith(SS_KEY_PREFIX)) sessionStorage.removeItem(k);
-    });
-  } catch {}
 }
 
 const normalizeDoc = (doc) => ({
@@ -54,54 +46,27 @@ const normalizeDoc = (doc) => ({
   serial: doc.data().serial,
 });
 
-function readSessionCache(key) {
-  try {
-    const raw = sessionStorage.getItem(SS_KEY_PREFIX + key);
-    if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL_MS) {
-      sessionStorage.removeItem(SS_KEY_PREFIX + key);
-      return null;
-    }
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-function writeSessionCache(key, data) {
-  try {
-    sessionStorage.setItem(
-      SS_KEY_PREFIX + key,
-      JSON.stringify({ ts: Date.now(), data })
-    );
-  } catch {}
-}
-
-// Max templates to fetch per type on the home page (keeps initial load lean)
+// Max templates to fetch per type on the home page
 const HOME_LIMIT = 10;
 
 export const fetchGeneralTemplates = async (groupIndex, company) => {
   const cacheKey = `${groupIndex}__${company || ""}`;
 
-  // 1. Memory cache (fastest — zero async)
+  // In-memory cache hit (with TTL check)
   if (_cache.has(cacheKey)) {
-    return _cache.get(cacheKey);
+    const { ts, data } = _cache.get(cacheKey);
+    if (Date.now() - ts < CACHE_TTL_MS) {
+      return data;
+    }
+    // Expired — remove and re-fetch
+    _cache.delete(cacheKey);
   }
 
-  // 2. sessionStorage TTL cache (survives context resets, avoids re-read on re-mount)
-  const ssHit = readSessionCache(cacheKey);
-  if (ssHit) {
-    _cache.set(cacheKey, ssHit);
-    return ssHit;
-  }
-
-  // 3. Fetch from Firestore
+  // Fetch fresh from Firestore
   try {
     const selectedTypes = TYPE_GROUPS[groupIndex];
     if (!selectedTypes) return [];
 
-    // Fetch all types in parallel
     const results = await Promise.all(
       selectedTypes.map(async (type) => {
         const generalQuery = query(
@@ -139,8 +104,7 @@ export const fetchGeneralTemplates = async (groupIndex, company) => {
       }),
     );
 
-    _cache.set(cacheKey, results);
-    writeSessionCache(cacheKey, results);
+    _cache.set(cacheKey, { ts: Date.now(), data: results });
     return results;
   } catch (error) {
     console.error("General fetch error:", error);

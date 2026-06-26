@@ -2,28 +2,22 @@ import { db } from "@firebase-config";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { COLLECTIONS } from "../../../../collections";
 
-const SS_KEY = "fest_v1_";
-const CACHE_TTL_MS = 60 * 60 * 1000;
-
+// In-memory only cache — cleared on every page reload so new festival data always shows
+// TTL: 5 minutes within a session
 const _mem = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function readCache(date) {
-  if (_mem.has(date)) return _mem.get(date);
-  try {
-    const raw = sessionStorage.getItem(SS_KEY + date);
-    if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL_MS) { sessionStorage.removeItem(SS_KEY + date); return null; }
-    _mem.set(date, data);
-    return data;
-  } catch { return null; }
+  if (_mem.has(date)) {
+    const { ts, data } = _mem.get(date);
+    if (Date.now() - ts < CACHE_TTL_MS) return data;
+    _mem.delete(date);
+  }
+  return null;
 }
 
 function writeCache(date, data) {
-  _mem.set(date, data);
-  try {
-    sessionStorage.setItem(SS_KEY + date, JSON.stringify({ ts: Date.now(), data }));
-  } catch {}
+  _mem.set(date, { ts: Date.now(), data });
 }
 
 export const Festival_template = async (Selected_date) => {

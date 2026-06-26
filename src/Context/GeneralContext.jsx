@@ -25,6 +25,10 @@ function GeneralContext({ children }) {
   // Cache for AllTemplates page: key = type string, value = { templates, lastDoc, hasMore }
   const [allTemplatesCache, setAllTemplatesCache] = useState({});
 
+  // New-templates notification badge
+  // true when templates with a higher serial than last seen have been loaded
+  const [hasNewTemplates, setHasNewTemplates] = useState(false);
+
   return (
     <>
       <DataContextGen.Provider
@@ -44,6 +48,8 @@ function GeneralContext({ children }) {
           setCachedTrending,
           allTemplatesCache,
           setAllTemplatesCache,
+          hasNewTemplates,
+          setHasNewTemplates,
         }}
       >
         {children}
