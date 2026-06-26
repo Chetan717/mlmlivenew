@@ -79,6 +79,7 @@ export default function Onboarding() {
       <div className="px-6 pb-14 flex flex-col items-center gap-3">
         <button
           onClick={() => markDone("/signup")}
+          onTap={() => markDone("/login")}
           className="w-full max-w-sm h-14 rounded-2xl text-white font-bold text-base shadow-xl"
           style={{
             background: "linear-gradient(135deg, #0055a5 0%, #0088DA 100%)",
@@ -90,6 +91,7 @@ export default function Onboarding() {
         </button>
         <button
           onClick={() => markDone("/login")}
+          onTap={() => markDone("/login")}
           className="w-full max-w-sm h-14 rounded-2xl font-bold text-base border border-white/20"
           style={{
             background: "rgba(255,255,255,0.08)",
