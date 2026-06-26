@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   serverTimestamp,
   query,
   where,
@@ -492,20 +493,16 @@ export default function MLMProfilePage() {
   const isSettingsMode =
     new URLSearchParams(location.search).get("mode") === "settings";
 
-  const company = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("selectedCompany") || "{}");
-    } catch {
-      return {};
-    }
-  })();
+  const [companyData, setCompanyData] = useState({});
+  const [loadingCompany, setLoadingCompany] = useState(true);
 
-  const logos = Array.isArray(company?.logos) ? company.logos : [];
-  const topuplines = Array.isArray(company?.topuplines)
-    ? company.topuplines
+  const logos = Array.isArray(companyData?.logos) ? companyData.logos : [];
+  const topuplines = Array.isArray(companyData?.topuplines)
+    ? companyData.topuplines
     : [];
-
-  const designations = Array.isArray(company?.profile) ? company.profile : [];
+  const designations = Array.isArray(companyData?.profile)
+    ? companyData.profile
+    : [];
 
   // ── fetchProfile (extracted so it can be called after save too) ──
   const fetchProfile = useCallback(async () => {
@@ -569,6 +566,43 @@ export default function MLMProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  // ── Fetch company data directly from Firestore (mlmcomp) ──
+  useEffect(() => {
+    const fetchCompany = async () => {
+      setLoadingCompany(true);
+      try {
+        // Get company ID from usermlm first, then fall back to selectedCompany key in localStorage
+        let companyId = userMlm.companyId || null;
+        if (!companyId) {
+          try {
+            const raw = localStorage.getItem("selectedCompany");
+            if (raw) companyId = JSON.parse(raw)?.id || null;
+          } catch {
+            companyId = null;
+          }
+        }
+        if (!companyId) {
+          setCompanyData({});
+          return;
+        }
+        const companyRef = doc(db, COLLECTIONS.MLMCOMP, companyId);
+        const companySnap = await getDoc(companyRef);
+        if (companySnap.exists()) {
+          setCompanyData({ id: companySnap.id, ...companySnap.data() });
+        } else {
+          setCompanyData({});
+        }
+      } catch (err) {
+        console.error("Failed to fetch company from Firestore:", err);
+        setCompanyData({});
+      } finally {
+        setLoadingCompany(false);
+      }
+    };
+    fetchCompany();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
   const clearError = (key) =>
@@ -906,8 +940,8 @@ export default function MLMProfilePage() {
         profileImageURLs: allProfileImageURLs,
         topuplineURLs: allTopupURLs,
         socials: form.socials,
-        companyId: company?.id || null,
-        companyName: company?.name || null,
+        companyId: companyData?.id || null,
+        companyName: companyData?.name || null,
         updatedAt: serverTimestamp(),
       };
 
@@ -999,7 +1033,7 @@ export default function MLMProfilePage() {
   }
 
   // ── Loading skeleton ───────────────────────────────────────
-  if (loadingProfile) {
+  if (loadingProfile || loadingCompany) {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 flex flex-col gap-4 animate-pulse">
         <div className="h-8 w-48 bg-muted rounded-xl" />
